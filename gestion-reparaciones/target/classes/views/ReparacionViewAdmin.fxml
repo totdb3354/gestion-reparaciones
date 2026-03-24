@@ -41,8 +41,7 @@
         <DatePicker fx:id="filtroFechaDesde" prefWidth="140"/>
         <Label text="Hasta:" style="-fx-font-size: 12px;"/>
         <DatePicker fx:id="filtroFechaHasta" prefWidth="140"/>
-        <CheckBox fx:id="filtroIncidencias" text="Solo incidencias" style="-fx-font-size: 12px;"/>
-        <HBox HBox.hgrow="ALWAYS"/>
+        <MenuButton fx:id="filtroIncidencias" text="Incidencias" prefWidth="150"/>
         <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar filtros"/>
     </HBox>
 
@@ -54,8 +53,8 @@
             <TableColumn fx:id="colReparador" minWidth="100" text="Reparador" />
             <TableColumn fx:id="colFecha" minWidth="110" text="Fecha fin" />
             <TableColumn fx:id="colComponente" minWidth="150" text="Componente" />
-            <TableColumn fx:id="colObservaciones" minWidth="200" text="Observaciones" />
-            <TableColumn fx:id="colIncidencia" minWidth="200" text="Incidencia" />
+            <TableColumn fx:id="colObservaciones" minWidth="200" maxWidth="320" text="Observaciones" />
+            <TableColumn fx:id="colIncidencia" minWidth="200" maxWidth="360" text="Incidencia" />
             <TableColumn fx:id="colIdAnterior" minWidth="150" text="Id Rep. Anterior" />
         </columns>
     </TableView>

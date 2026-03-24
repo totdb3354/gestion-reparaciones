@@ -4,6 +4,7 @@ import com.reparaciones.dao.ReparacionComponenteDAO;
 import com.reparaciones.dao.ReparacionDAO;
 import com.reparaciones.dao.TecnicoDAO;
 import com.reparaciones.dao.TelefonoDAO;
+import com.reparaciones.utils.ConfirmDialog;
 import com.reparaciones.models.ReparacionResumen;
 import com.reparaciones.models.Tecnico;
 import javafx.collections.FXCollections;
@@ -55,7 +56,9 @@ public class ReparacionControllerAdmin {
     @FXML private MenuButton filtroTecnico;
     @FXML private DatePicker filtroFechaDesde;
     @FXML private DatePicker filtroFechaHasta;
-    @FXML private CheckBox   filtroIncidencias;
+    @FXML private MenuButton filtroIncidencias;
+    private CheckBox cbIncidenciasAbiertas;
+    private CheckBox cbIncidenciasCerradas;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private final ReparacionComponenteDAO reparacionComponenteDAO = new ReparacionComponenteDAO();
@@ -73,20 +76,20 @@ public class ReparacionControllerAdmin {
         tablaReparaciones.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         configurarColumnas();
         configurarFilas();
-        cargarDatos();
         configurarFiltros();
+        cargarDatos();
     }
 
-    // ─── Tooltip solo para observaciones e incidencia ─────────────────────────
+    // ─── Label expandible (click abre popup de lectura) ───────────────────────
 
-    private Label labelConTooltip(String texto) {
+    private Label labelExpandible(String titulo, String texto) {
         Label lbl = new Label(texto != null ? texto : "");
         lbl.setMaxWidth(Double.MAX_VALUE);
         lbl.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
-        Tooltip tip = new Tooltip(texto != null ? texto : "");
-        tip.setWrapText(true);
-        tip.setMaxWidth(300);
-        lbl.setTooltip(tip);
+        if (texto != null && !texto.isEmpty()) {
+            lbl.setStyle("-fx-cursor: hand;");
+            lbl.setOnMouseClicked(e -> ConfirmDialog.mostrarTexto(titulo, texto));
+        }
         return lbl;
     }
 
@@ -170,7 +173,7 @@ public class ReparacionControllerAdmin {
                     setGraphic(null);
                     return;
                 }
-                setGraphic(labelConTooltip(getTableView().getItems().get(getIndex()).getObservaciones()));
+                setGraphic(labelExpandible("Observaciones", getTableView().getItems().get(getIndex()).getObservaciones()));
             }
         });
 
@@ -297,11 +300,10 @@ public class ReparacionControllerAdmin {
                 if (rep.isEsIncidencia()) {
                     String texto = rep.getIncidencia() != null ? rep.getIncidencia() : "";
                     lblComentario.setText(texto);
-                    Tooltip tip = new Tooltip(texto);
-                    tip.setWrapText(true);
-                    tip.setMaxWidth(300);
-                    lblComentario.setTooltip(tip);
-                    lblComentario.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;");
+                    lblComentario.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;" +
+                            (!texto.isEmpty() ? " -fx-cursor: hand;" : ""));
+                    lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
+                            e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
                     if (rep.isEsResuelto()) {
                         casoDos.setStyle("-fx-background-color: #E7E7E7;");
                         btnBorrarIncidencia.setVisible(false);
@@ -334,11 +336,11 @@ public class ReparacionControllerAdmin {
                     if (seleccion.isEmpty())
                         return;
                     var pos = seleccion.get(0);
-                    Object valor = pos.getTableColumn().getCellData(getItem());
-                    if (valor == null)
+                    String texto = textoDeCelda(getItem(), pos.getTableColumn());
+                    if (texto == null || texto.isEmpty())
                         return;
                     javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
-                    content.putString(valor.toString());
+                    content.putString(texto);
                     javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
                 });
                 menu.getItems().add(copiar);
@@ -357,6 +359,18 @@ public class ReparacionControllerAdmin {
                     setStyle("");
             }
         });
+    }
+
+    private String textoDeCelda(ReparacionResumen rep, TableColumn<?, ?> col) {
+        if (col == colIdRep)         return rep.getIdRep();
+        if (col == colImei)          return String.valueOf(rep.getImei());
+        if (col == colReparador)     return rep.getNombreTecnico();
+        if (col == colFecha)         return rep.getFechaFin() != null ? rep.getFechaFin().format(FORMATO_FECHA) : "";
+        if (col == colComponente)    return rep.getTipoComponente();
+        if (col == colObservaciones) return rep.getObservaciones();
+        if (col == colIncidencia)    return rep.getIncidencia();
+        if (col == colIdAnterior)    return rep.getIdRepAnterior();
+        return null;
     }
 
     private void cargarDatos() {
@@ -404,6 +418,15 @@ public class ReparacionControllerAdmin {
             if (!n.matches("\\d*")) filtroImei.setText(n.replaceAll("[^\\d]", ""));
             if (filtroImei.getText().length() > 15)
                 filtroImei.setText(filtroImei.getText().substring(0, 15));
+            String val = filtroImei.getText();
+            if (val.isEmpty())
+                filtroImei.setStyle("");
+            else if (val.length() < 15)
+                filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: #FB8888;" +
+                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
+            else
+                filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: #8AC7AF;" +
+                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
             aplicarFiltros();
         });
         // Deshabilitar escritura manual — solo selección por calendario
@@ -413,7 +436,27 @@ public class ReparacionControllerAdmin {
         filtroFechaHasta.getEditor().setOpacity(1.0);
         filtroFechaDesde.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
         filtroFechaHasta.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
-        filtroIncidencias.selectedProperty().addListener((obs, o, n) -> aplicarFiltros());
+        filtroIncidencias.setStyle(
+                "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4;" +
+                "-fx-font-size: 12px;");
+        cbIncidenciasAbiertas = new CheckBox("Abiertas");
+        cbIncidenciasAbiertas.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
+        cbIncidenciasAbiertas.selectedProperty().addListener((obs, o, n) -> {
+            actualizarTextoFiltroIncidencias();
+            aplicarFiltros();
+        });
+        cbIncidenciasCerradas = new CheckBox("Cerradas");
+        cbIncidenciasCerradas.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
+        cbIncidenciasCerradas.selectedProperty().addListener((obs, o, n) -> {
+            actualizarTextoFiltroIncidencias();
+            aplicarFiltros();
+        });
+        CustomMenuItem itemAbiertas = new CustomMenuItem(cbIncidenciasAbiertas, false);
+        itemAbiertas.setStyle("-fx-background-color: white;");
+        CustomMenuItem itemCerradas = new CustomMenuItem(cbIncidenciasCerradas, false);
+        itemCerradas.setStyle("-fx-background-color: white;");
+        filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas);
     }
 
     private void aplicarFiltros() {
@@ -421,7 +464,8 @@ public class ReparacionControllerAdmin {
         String imeiStr = filtroImei.getText().trim();
         LocalDate desde = filtroFechaDesde.getValue();
         LocalDate hasta = filtroFechaHasta.getValue();
-        boolean soloIncidencias = filtroIncidencias.isSelected();
+        boolean filtrarAbiertas = cbIncidenciasAbiertas.isSelected();
+        boolean filtrarCerradas = cbIncidenciasCerradas.isSelected();
         List<String> tecnicosSeleccionados = checksTecnico.stream()
                 .filter(CheckBox::isSelected)
                 .map(CheckBox::getText)
@@ -442,11 +486,23 @@ public class ReparacionControllerAdmin {
             if (hasta != null && rep.getFechaFin() != null
                     && rep.getFechaFin().toLocalDate().isAfter(hasta))
                 return false;
-            // Filtro solo incidencias
-            if (soloIncidencias && !rep.isEsIncidencia())
-                return false;
+            // Filtro incidencias abiertas / cerradas
+            if (filtrarAbiertas || filtrarCerradas) {
+                if (!rep.isEsIncidencia()) return false;
+                if (!filtrarAbiertas && !rep.isEsResuelto()) return false;
+                if (!filtrarCerradas &&  rep.isEsResuelto()) return false;
+            }
             return true;
         });
+    }
+
+    private void actualizarTextoFiltroIncidencias() {
+        boolean a = cbIncidenciasAbiertas.isSelected();
+        boolean c = cbIncidenciasCerradas.isSelected();
+        if (!a && !c)      filtroIncidencias.setText("Incidencias");
+        else if (a && c)   filtroIncidencias.setText("Abiertas + Cerradas");
+        else if (a)        filtroIncidencias.setText("Abiertas");
+        else               filtroIncidencias.setText("Cerradas");
     }
 
     private void actualizarTextoFiltroTecnico() {
@@ -465,11 +521,14 @@ public class ReparacionControllerAdmin {
     @FXML
     private void limpiarFiltros() {
         filtroImei.clear();
+        filtroImei.setStyle("");
         checksTecnico.forEach(cb -> cb.setSelected(false));
         filtroTecnico.setText("Técnico");
         filtroFechaDesde.setValue(null);
         filtroFechaHasta.setValue(null);
-        filtroIncidencias.setSelected(false);
+        cbIncidenciasAbiertas.setSelected(false);
+        cbIncidenciasCerradas.setSelected(false);
+        filtroIncidencias.setText("Incidencias");
     }
 
     // ─── Modal pendientes ─────────────────────────────────────────────────────
@@ -589,10 +648,12 @@ public class ReparacionControllerAdmin {
 
         // ── Campo comentario ──────────────────────────────────────────────────
         Label lblComentario = new Label("Comentario de incidencia");
-        TextField tfComentario = new TextField(rep.getIncidencia() != null ? rep.getIncidencia() : "");
+        TextArea tfComentario = new TextArea(rep.getIncidencia() != null ? rep.getIncidencia() : "");
         tfComentario.setPromptText("Describe la incidencia...");
+        tfComentario.setWrapText(true);
+        tfComentario.setPrefRowCount(4);
         tfComentario.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
+                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 13px;");
 
         // ── Selector técnico ──────────────────────────────────────────────────
         Label lblTecnico = new Label("Técnico asignado");
@@ -682,20 +743,19 @@ public class ReparacionControllerAdmin {
     }
 
     private void borrarIncidencia(ReparacionResumen rep) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Borrar incidencia");
-        confirm.setHeaderText("¿Seguro que quieres borrar esta incidencia?");
-        confirm.setContentText("Esta acción solo es válida si fue un error al añadirla.");
-        confirm.showAndWait().ifPresent(r -> {
-            if (r == ButtonType.OK) {
-                try {
-                    reparacionComponenteDAO.borrarIncidencia(rep.getIdRep());
-                    cargarDatos();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+        ConfirmDialog.mostrar(
+                "Borrar incidencia",
+                "Esta acción solo es válida si fue un error al añadirla.",
+                "Borrar incidencia",
+                () -> {
+                    try {
+                        reparacionComponenteDAO.borrarIncidencia(rep.getIdRep());
+                        cargarDatos();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        });
+        );
     }
 
     private void borrarReparacion(ReparacionResumen rep) {
@@ -709,20 +769,19 @@ public class ReparacionControllerAdmin {
                 alerta.showAndWait();
                 return;
             }
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setTitle("Borrar reparación");
-            confirm.setHeaderText("¿Seguro que quieres borrar esta reparación?");
-            confirm.setContentText("Se borrará " + rep.getIdRep() + " y no se podrá recuperar.");
-            confirm.showAndWait().ifPresent(r -> {
-                if (r == ButtonType.OK) {
-                    try {
-                        reparacionDAO.eliminar(rep.getIdRep());
-                        cargarDatos();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
+            ConfirmDialog.mostrar(
+                    "Borrar reparación",
+                    "Se borrará " + rep.getIdRep() + " y no se podrá recuperar.",
+                    "Borrar reparación",
+                    () -> {
+                        try {
+                            reparacionDAO.eliminar(rep.getIdRep());
+                            cargarDatos();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-            });
+            );
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -1,6 +1,7 @@
 package com.reparaciones.controllers;
 
 import com.reparaciones.dao.ReparacionDAO;
+import com.reparaciones.utils.ConfirmDialog;
 import com.reparaciones.dao.TecnicoDAO;
 import com.reparaciones.dao.TelefonoDAO;
 import com.reparaciones.models.ReparacionResumen;
@@ -83,31 +84,31 @@ public class PendientesAdminController {
                 box.setAlignment(javafx.geometry.Pos.CENTER);
                 iv.setOnMouseClicked(e -> {
                     ReparacionResumen rep = getTableView().getItems().get(getIndex());
-                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                    confirm.setTitle("Borrar asignación");
-                    confirm.setHeaderText("¿Borrar la asignación " + rep.getIdRep() + "?");
-                    confirm.setContentText("El técnico dejará de verla en su lista de pendientes" +
+                    String desc = "El técnico dejará de verla en su lista de pendientes" +
                             (rep.isEsIncidencia()
                                     ? " y la incidencia se marcará como no activa en la tabla principal."
-                                    : "."));
-                    confirm.showAndWait().ifPresent(r -> {
-                        if (r == ButtonType.OK) {
-                            try {
-                                System.out.println(">>> Borrando asignación: " + rep.getIdRep()
-                                        + " | esIncidencia=" + rep.isEsIncidencia()
-                                        + " | IMEI=" + rep.getImei());
-                                if (rep.isEsIncidencia()) {
-                                    reparacionDAO.borrarIncidenciaPorImei(rep.getImei());
+                                    : ".");
+                    ConfirmDialog.mostrar(
+                            "Borrar asignación " + rep.getIdRep(),
+                            desc,
+                            "Borrar asignación",
+                            () -> {
+                                try {
+                                    System.out.println(">>> Borrando asignación: " + rep.getIdRep()
+                                            + " | esIncidencia=" + rep.isEsIncidencia()
+                                            + " | IMEI=" + rep.getImei());
+                                    if (rep.isEsIncidencia()) {
+                                        reparacionDAO.borrarIncidenciaPorImei(rep.getImei());
+                                    }
+                                    reparacionDAO.eliminarAsignacion(rep.getIdRep());
+                                    tablaPendientes.getItems().remove(rep);
+                                    System.out.println(">>> Borrado completado OK");
+                                } catch (SQLException ex) {
+                                    System.out.println(">>> ERROR: " + ex.getMessage());
+                                    ex.printStackTrace();
                                 }
-                                reparacionDAO.eliminarAsignacion(rep.getIdRep());
-                                tablaPendientes.getItems().remove(rep);
-                                System.out.println(">>> Borrado completado OK");
-                            } catch (SQLException ex) {
-                                System.out.println(">>> ERROR: " + ex.getMessage());
-                                ex.printStackTrace();
                             }
-                        }
-                    });
+                    );
                 });
             }
 

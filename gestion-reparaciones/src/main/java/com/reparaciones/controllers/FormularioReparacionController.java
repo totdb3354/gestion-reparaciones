@@ -567,12 +567,26 @@ public class FormularioReparacionController {
         // ── Observación ───────────────────────────────────────────────────────
 
         private void abrirObservacion() {
-            TextInputDialog dialog = new TextInputDialog(observacion != null ? observacion : "");
+            TextArea ta = new TextArea(observacion != null ? observacion : "");
+            ta.setWrapText(true);
+            ta.setPrefRowCount(5);
+            ta.setPrefWidth(400);
+            ta.setStyle("-fx-font-size: 13px;");
+
+            Button btnGuardar = new Button("Guardar");
+            btnGuardar.setMaxWidth(Double.MAX_VALUE);
+            btnGuardar.setStyle("-fx-background-color: #8AC7AF; -fx-text-fill: white;" +
+                    "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+
+            Dialog<String> dialog = new Dialog<>();
             dialog.setTitle("Observación");
             dialog.setHeaderText("Observación para: " + traducirTipo(prefijo));
-            dialog.setContentText("Texto:");
-            dialog.showAndWait().ifPresent(texto -> {
-                String trimmed = texto.trim();
+            dialog.getDialogPane().setContent(new VBox(8, ta, btnGuardar));
+            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+            dialog.getDialogPane().setPrefWidth(440);
+
+            btnGuardar.setOnAction(e -> {
+                String trimmed = ta.getText().trim();
                 if (!trimmed.isEmpty()) {
                     observacion = trimmed;
                     lblObservacion.setText(observacion);
@@ -583,7 +597,10 @@ public class FormularioReparacionController {
                     btnBorrarObs.setVisible(true);
                     btnBorrarObs.setManaged(true);
                 }
+                dialog.close();
             });
+
+            dialog.showAndWait();
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
