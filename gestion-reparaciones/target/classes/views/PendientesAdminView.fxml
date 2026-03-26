@@ -36,11 +36,21 @@
         <placeholder><Label text="No hay asignaciones pendientes"/></placeholder>
     </TableView>
 
-    <Button fx:id="btnAsignar"
-            text="Asignar reparación +"
-            onAction="#abrirFormularioAsignacion"
-            style="-fx-background-color: #8AC7AF; -fx-text-fill: white;
-                   -fx-font-weight: bold; -fx-font-size: 12px;
-                   -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14 6 14;"/>
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Button fx:id="btnAsignar"
+                text="Asignar reparación +"
+                onAction="#abrirFormularioAsignacion"
+                style="-fx-background-color: #8AC7AF; -fx-text-fill: white;
+                       -fx-font-weight: bold; -fx-font-size: 12px;
+                       -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14 6 14;"/>
+        <HBox HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnConfirmarCambios"
+                text="Confirmar cambios"
+                onAction="#confirmarCambiosTecnico"
+                visible="false" managed="false"
+                style="-fx-background-color: #5A9BD5; -fx-text-fill: white;
+                       -fx-font-weight: bold; -fx-font-size: 12px;
+                       -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14 6 14;"/>
+    </HBox>
 
 </VBox>

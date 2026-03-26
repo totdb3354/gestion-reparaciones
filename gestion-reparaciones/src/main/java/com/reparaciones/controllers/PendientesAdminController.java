@@ -27,6 +27,8 @@ import javafx.geometry.Pos;
 
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PendientesAdminController {
 
@@ -47,18 +49,58 @@ public class PendientesAdminController {
     private final ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
     private FilteredList<ReparacionResumen> datosFiltrados;
 
+    @FXML private Button btnConfirmarCambios;
+
     private CheckBox cbSoloSolicitudes;
     private CheckBox cbSoloIncidencias;
     private CheckBox cbSoloAsignaciones;
-    private final List<CheckBox> cbsTecnico = new ArrayList<>();
-    private final List<Tecnico>  tecnicos   = new ArrayList<>();
+    private final List<CheckBox>        cbsTecnico       = new ArrayList<>();
+    private final List<Tecnico>         tecnicos         = new ArrayList<>();
+    private final Map<String, Tecnico>  cambiosPendientes = new HashMap<>();
 
     @FXML
     public void initialize() {
         tablaPendientes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         cId.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getIdRep()));
-        cTecnico.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getNombreTecnico()));
+        cTecnico.setCellFactory(col -> new TableCell<>() {
+            private final ComboBox<Tecnico> cb = new ComboBox<>();
+            private boolean actualizando = false;
+            {
+                cb.setMaxWidth(Double.MAX_VALUE);
+                cb.setStyle("-fx-font-size: 11px;");
+                cb.setOnAction(e -> {
+                    if (actualizando) return;
+                    if (getIndex() < 0 || getIndex() >= getTableView().getItems().size()) return;
+                    ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                    Tecnico sel = cb.getValue();
+                    if (sel == null) return;
+                    if (sel.getIdTec() != rep.getIdTec()) {
+                        cambiosPendientes.put(rep.getIdRep(), sel);
+                    } else {
+                        cambiosPendientes.remove(rep.getIdRep());
+                    }
+                    actualizarVisibilidadConfirmar();
+                });
+            }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                    return;
+                }
+                actualizando = true;
+                ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                cb.getItems().setAll(tecnicos);
+                Tecnico mostrar = cambiosPendientes.getOrDefault(rep.getIdRep(),
+                        tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec())
+                                .findFirst().orElse(null));
+                cb.setValue(mostrar);
+                actualizando = false;
+                setGraphic(cb);
+            }
+        });
         cImei.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().getImei())));
         cFecha.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
                 d.getValue().getFechaAsig() != null ? d.getValue().getFechaAsig().format(FMT) : ""));
@@ -377,6 +419,29 @@ public class PendientesAdminController {
         formDialog.getDialogPane().setPrefWidth(600);
         formDialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         formDialog.showAndWait();
+    }
+
+    private void actualizarVisibilidadConfirmar() {
+        boolean hay = !cambiosPendientes.isEmpty();
+        btnConfirmarCambios.setVisible(hay);
+        btnConfirmarCambios.setManaged(hay);
+    }
+
+    @FXML
+    private void confirmarCambiosTecnico() {
+        cambiosPendientes.forEach((idRep, tecnico) -> {
+            try {
+                reparacionDAO.actualizarTecnico(idRep, tecnico.getIdTec());
+                datos.stream().filter(r -> r.getIdRep().equals(idRep)).findFirst()
+                        .ifPresent(r -> {
+                            r.setIdTec(tecnico.getIdTec());
+                            r.setNombreTecnico(tecnico.getNombre());
+                        });
+            } catch (SQLException e) { e.printStackTrace(); }
+        });
+        cambiosPendientes.clear();
+        actualizarVisibilidadConfirmar();
+        tablaPendientes.refresh();
     }
 
     public static void abrir(Runnable onCerrar) {

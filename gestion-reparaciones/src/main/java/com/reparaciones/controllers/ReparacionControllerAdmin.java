@@ -777,7 +777,7 @@ public class ReparacionControllerAdmin {
             }
             ConfirmDialog.mostrar(
                     "Borrar reparación",
-                    "Se borrará " + rep.getIdRep() + " y no se podrá recuperar.",
+                    "Se borrará " + rep.getIdRep() + ". Los componentes usados volverán a stock y, si resolvía una incidencia, esta quedará activa de nuevo.",
                     "Borrar reparación",
                     () -> {
                         try {

@@ -296,6 +296,16 @@ public class ReparacionDAO {
         return prefijo + "1";
     }
 
+    public void actualizarTecnico(String idRep, int idTec) throws SQLException {
+        String sql = "UPDATE Reparacion SET ID_TEC = ? WHERE ID_REP = ?";
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idTec);
+            ps.setString(2, idRep);
+            ps.executeUpdate();
+        }
+    }
+
     // ─── Utilidades ───────────────────────────────────────────────────────────
 
     public String getReferenciadora(String idRep) throws SQLException {
@@ -312,6 +322,13 @@ public class ReparacionDAO {
 
     public void eliminar(String idRep) throws SQLException {
         String sqlGetInfo    = "SELECT ID_REP_ANTERIOR, IMEI FROM Reparacion WHERE ID_REP = ?";
+        String sqlGetComps   = """
+                SELECT ID_COM, COUNT(*) AS UNIDADES
+                FROM Reparacion_componente
+                WHERE ID_REP = ? AND ES_REUTILIZADO = FALSE AND ES_SOLICITUD = 0
+                GROUP BY ID_COM
+                """;
+        String sqlDevolverStock = "UPDATE Componente SET STOCK = STOCK + ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
         String sqlComp       = "DELETE FROM Reparacion_componente WHERE ID_REP = ?";
         String sqlRep        = "DELETE FROM Reparacion WHERE ID_REP = ?";
         String sqlRevertir   = "UPDATE Reparacion_componente SET ES_RESUELTO = FALSE WHERE ID_REP = ?";
@@ -332,7 +349,18 @@ public class ReparacionDAO {
                         imei = rs.getLong("IMEI");
                     }
                 }
-                // 2. Borrar componentes y reparación
+                // 2. Devolver stock: solo componentes reales (no reutilizados, no solicitudes)
+                try (PreparedStatement psGet = con.prepareStatement(sqlGetComps);
+                     PreparedStatement psUpd = con.prepareStatement(sqlDevolverStock)) {
+                    psGet.setString(1, idRep);
+                    ResultSet rs = psGet.executeQuery();
+                    while (rs.next()) {
+                        psUpd.setInt(1, rs.getInt("UNIDADES"));
+                        psUpd.setInt(2, rs.getInt("ID_COM"));
+                        psUpd.executeUpdate();
+                    }
+                }
+                // 4. Borrar componentes y reparación
                 try (PreparedStatement ps = con.prepareStatement(sqlComp)) {
                     ps.setString(1, idRep);
                     ps.executeUpdate();
@@ -341,14 +369,14 @@ public class ReparacionDAO {
                     ps.setString(1, idRep);
                     ps.executeUpdate();
                 }
-                // 3. Revertir incidencia de la reparación anterior si la había
+                // 5. Revertir incidencia de la reparación anterior si la había
                 if (idRepAnterior != null) {
                     try (PreparedStatement ps = con.prepareStatement(sqlRevertir)) {
                         ps.setString(1, idRepAnterior);
                         ps.executeUpdate();
                     }
                 }
-                // 4. Si ya no quedan reparaciones con ese IMEI, borrar el Telefono
+                // 6. Si ya no quedan reparaciones con ese IMEI, borrar el Telefono
                 if (imei != 0) {
                     try (PreparedStatement ps = con.prepareStatement(sqlContarImei)) {
                         ps.setLong(1, imei);

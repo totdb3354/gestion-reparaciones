@@ -70,4 +70,6 @@ public class ReparacionResumen {
     public void setEsResuelto(boolean esResuelto)                  { this.esResuelto = esResuelto; }
     public void setEsSolicitud(int esSolicitud)                    { this.esSolicitud = esSolicitud; }
     public void setDescripcionSolicitud(String descripcionSolicitud){ this.descripcionSolicitud = descripcionSolicitud; }
+    public void setIdTec(int idTec)                                { this.idTec = idTec; }
+    public void setNombreTecnico(String nombreTecnico)             { this.nombreTecnico = nombreTecnico; }
 }
