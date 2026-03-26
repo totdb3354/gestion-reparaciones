@@ -22,41 +22,52 @@ INSERT INTO Tecnico (ID_TEC, NOMBRE) VALUES (3, 'Admin');
 -- 122323525560001 → incidencia resuelta
 -- 111111111111111 → pendiente Ángelo (teléfono nuevo, sin historial)
 -- 222222222222222 → pendiente Daniel  (teléfono nuevo, sin historial)
+-- 333333333333333 → pendiente Ángelo con solicitud de pieza (escenario 5)
 INSERT INTO Telefono (IMEI) VALUES (987654321000003);
 INSERT INTO Telefono (IMEI) VALUES (345234532340002);
 INSERT INTO Telefono (IMEI) VALUES (122323525560001);
 INSERT INTO Telefono (IMEI) VALUES (111111111111111);
 INSERT INTO Telefono (IMEI) VALUES (222222222222222);
+INSERT INTO Telefono (IMEI) VALUES (333333333333333);
 
 -- ── Escenario 1: Reparación normal sin incidencia ──────────────────────────
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260210_1', '2026-02-10 09:00:00', '2026-02-10 10:00:00', 987654321000003, 1, NULL);
 
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
-VALUES ('R20260210_1', 36, FALSE, FALSE, FALSE, NULL, 'Batería sustituida correctamente');
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+VALUES ('R20260210_1', 36, FALSE, FALSE, FALSE, NULL, 'Batería sustituida correctamente', 0, NULL);
 
 -- ── Escenario 2: Incidencia abierta ───────────────────────────────────────
 -- ES_INCIDENCIA=TRUE, ES_RESUELTO=FALSE, ninguna reparación posterior apunta a esta
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260211_1', '2026-02-11 10:00:00', '2026-02-11 11:00:00', 345234532340002, 2, NULL);
 
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
-VALUES ('R20260211_1', 52, FALSE, TRUE, FALSE, 'No se ha pegado bien la batería', 'El dispositivo se reinicia');
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+VALUES ('R20260211_1', 52, FALSE, TRUE, FALSE, 'No se ha pegado bien la batería', 'El dispositivo se reinicia', 0, NULL);
 
 -- ── Escenario 3: Incidencia resuelta ──────────────────────────────────────
 -- R3: reparación con incidencia, marcada como resuelta (ES_RESUELTO=TRUE)
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260215_1', '2026-02-15 08:00:00', '2026-02-15 09:00:00', 122323525560001, 1, NULL);
 
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
-VALUES ('R20260215_1', 70, FALSE, TRUE, TRUE, 'Pantalla no encendía tras la reparación', 'Pantalla instalada pero sin retroiluminación');
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+VALUES ('R20260215_1', 70, FALSE, TRUE, TRUE, 'Pantalla no encendía tras la reparación', 'Pantalla instalada pero sin retroiluminación', 0, NULL);
 
 -- R4: reparación que resuelve la incidencia de R3 — apunta a R3 via ID_REP_ANTERIOR
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260216_1', '2026-02-16 09:00:00', '2026-02-16 10:00:00', 122323525560001, 1, 'R20260215_1');
 
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
-VALUES ('R20260216_1', 70, FALSE, FALSE, FALSE, NULL, 'Incidencia resuelta, pantalla recolocada y retroiluminación restaurada');
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+VALUES ('R20260216_1', 70, FALSE, FALSE, FALSE, NULL, 'Incidencia resuelta, pantalla recolocada y retroiluminación restaurada', 0, NULL);
+
+-- ── Escenario 5: Asignación pendiente con solicitud de pieza ───────────────
+-- A* de Ángelo con Reparacion_componente ES_SOLICITUD=1 → fila naranja en pendientes
+-- Al abrir "Añadir reparación" la fila de batería aparece pre-seleccionada como pendiente
+INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
+VALUES ('A20260318_1', '2026-03-18 11:00:00', NULL, 333333333333333, 1, NULL);
+
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+VALUES ('A20260318_1', 36, FALSE, FALSE, FALSE, NULL, NULL, 1, 'La batería del proveedor habitual está agotada. Pendiente de reposición.');
 
 -- ── Escenario 4: Asignaciones pendientes ───────────────────────────────────
 -- A1: Ángelo, teléfono nuevo → fila blanca en pendientes

@@ -22,24 +22,29 @@ public class ReparacionResumen {
     private String        incidencia;
     private String        idRepAnterior;
     private int           idTec;
+    private int           esSolicitud;
+    private String        descripcionSolicitud;
 
     public ReparacionResumen(String idRep, long imei, String nombreTecnico,
                              LocalDateTime fechaAsig, LocalDateTime fechaFin,
                              String tipoComponente, String observaciones,
                              boolean esIncidencia, boolean esResuelto,
-                             String incidencia, String idRepAnterior, int idTec) {
-        this.idRep          = idRep;
-        this.imei           = imei;
-        this.nombreTecnico  = nombreTecnico;
-        this.fechaAsig      = fechaAsig;
-        this.fechaFin       = fechaFin;
-        this.tipoComponente = tipoComponente;
-        this.observaciones  = observaciones;
-        this.esIncidencia   = esIncidencia;
-        this.esResuelto     = esResuelto;
-        this.incidencia     = incidencia;
-        this.idRepAnterior  = idRepAnterior;
-        this.idTec          = idTec;
+                             String incidencia, String idRepAnterior, int idTec,
+                             int esSolicitud, String descripcionSolicitud) {
+        this.idRep                = idRep;
+        this.imei                 = imei;
+        this.nombreTecnico        = nombreTecnico;
+        this.fechaAsig            = fechaAsig;
+        this.fechaFin             = fechaFin;
+        this.tipoComponente       = tipoComponente;
+        this.observaciones        = observaciones;
+        this.esIncidencia         = esIncidencia;
+        this.esResuelto           = esResuelto;
+        this.incidencia           = incidencia;
+        this.idRepAnterior        = idRepAnterior;
+        this.idTec                = idTec;
+        this.esSolicitud          = esSolicitud;
+        this.descripcionSolicitud = descripcionSolicitud;
     }
 
     public String        getIdRep()           { return idRep; }
@@ -57,7 +62,12 @@ public class ReparacionResumen {
     public String        getIdRepAnterior()   { return idRepAnterior; }
     public int           getIdTec()           { return idTec; }
 
-    public void setEsIncidencia(boolean esIncidencia) { this.esIncidencia = esIncidencia; }
-    public void setIncidencia(String incidencia)      { this.incidencia = incidencia; }
-    public void setEsResuelto(boolean esResuelto)     { this.esResuelto = esResuelto; }
+    public int    getEsSolicitud()            { return esSolicitud; }
+    public String getDescripcionSolicitud()   { return descripcionSolicitud; }
+
+    public void setEsIncidencia(boolean esIncidencia)              { this.esIncidencia = esIncidencia; }
+    public void setIncidencia(String incidencia)                   { this.incidencia = incidencia; }
+    public void setEsResuelto(boolean esResuelto)                  { this.esResuelto = esResuelto; }
+    public void setEsSolicitud(int esSolicitud)                    { this.esSolicitud = esSolicitud; }
+    public void setDescripcionSolicitud(String descripcionSolicitud){ this.descripcionSolicitud = descripcionSolicitud; }
 }

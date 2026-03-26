@@ -39,19 +39,27 @@
                style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
     </HBox>
 
+    <!-- Placeholder hasta seleccionar modelo -->
+    <Label fx:id="lblSeleccionaModelo"
+           text="Selecciona un modelo de iPhone para continuar"
+           maxWidth="Infinity"
+           style="-fx-font-size: 13px; -fx-text-fill: #A9A9A9;
+                  -fx-padding: 40 0 40 0; -fx-alignment: center;"
+           visible="false" managed="false"/>
+
     <!-- Filas de componentes -->
     <VBox fx:id="contenedorFilas"/>
 
     <!-- Botón guardar -->
-    <VBox style="-fx-padding: 12 16 12 16;">
+    <HBox fx:id="zonaGuardar" style="-fx-padding: 12 16 12 16;" spacing="8">
         <Button fx:id="btnGuardar"
                 text="Guardar reparación"
-                maxWidth="Infinity"
                 disable="true"
                 onAction="#guardar"
                 style="-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;
                        -fx-font-size: 12px; -fx-font-weight: bold;
-                       -fx-background-radius: 0; -fx-padding: 10;"/>
-    </VBox>
+                       -fx-background-radius: 0; -fx-padding: 10;"
+                HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+    </HBox>
 
 </VBox>

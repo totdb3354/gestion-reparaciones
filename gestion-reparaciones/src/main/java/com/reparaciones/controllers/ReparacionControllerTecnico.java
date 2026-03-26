@@ -52,12 +52,12 @@ public class ReparacionControllerTecnico {
     @FXML private MenuButton filtroIncidencias;
     private CheckBox cbIncidenciasAbiertas;
     private CheckBox cbIncidenciasCerradas;
+    private CheckBox cbNormales;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private final ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
     private FilteredList<ReparacionResumen> datosFiltrados;
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-    private static final DateTimeFormatter FORMATO_FECHA_HOR = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
     @FXML
     public void initialize() {
@@ -233,11 +233,7 @@ public class ReparacionControllerTecnico {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                    setStyle("");
-                    return;
-                }
+                if (empty) { setGraphic(null); setStyle(""); return; }
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
                 if (!rep.isEsIncidencia()) {
                     setGraphic(null);
@@ -291,13 +287,14 @@ public class ReparacionControllerTecnico {
             @Override
             protected void updateItem(ReparacionResumen item, boolean empty) {
                 super.updateItem(item, empty);
-                if (!empty && item != null && item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle(
-                            "-fx-background-color: rgba(251,136,136,0.16);" +
-                                    "-fx-border-color: transparent transparent #FB8888 transparent;" +
-                                    "-fx-border-width: 0 0 0.2 0;");
-                } else
+                if (empty || item == null) { setStyle(""); return; }
+                if (item.isEsIncidencia() && !item.isEsResuelto()) {
+                    setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
+                            "-fx-border-color: transparent transparent #FB8888 transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else {
                     setStyle("");
+                }
             }
         });
     }
@@ -305,10 +302,12 @@ public class ReparacionControllerTecnico {
     private void actualizarTextoFiltroIncidencias() {
         boolean a = cbIncidenciasAbiertas.isSelected();
         boolean c = cbIncidenciasCerradas.isSelected();
-        if (!a && !c)      filtroIncidencias.setText("Incidencias");
-        else if (a && c)   filtroIncidencias.setText("Abiertas + Cerradas");
-        else if (a)        filtroIncidencias.setText("Abiertas");
-        else               filtroIncidencias.setText("Cerradas");
+        boolean n = cbNormales.isSelected();
+        long total = java.util.stream.Stream.of(a, c, n).filter(Boolean::booleanValue).count();
+        if      (total == 0) filtroIncidencias.setText("Incidencias");
+        else if (total == 3) filtroIncidencias.setText("Todas");
+        else if (total == 1) filtroIncidencias.setText(a ? "Abiertas" : c ? "Cerradas" : "Sin incidencia");
+        else                 filtroIncidencias.setText(total + " filtros");
     }
 
     private String textoDeCelda(ReparacionResumen rep, TableColumn<?, ?> col) {
@@ -374,11 +373,19 @@ public class ReparacionControllerTecnico {
             actualizarTextoFiltroIncidencias();
             aplicarFiltros();
         });
+        cbNormales = new CheckBox("Sin incidencia");
+        cbNormales.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
+        cbNormales.selectedProperty().addListener((obs, o, n) -> {
+            actualizarTextoFiltroIncidencias();
+            aplicarFiltros();
+        });
         CustomMenuItem itemAbiertas = new CustomMenuItem(cbIncidenciasAbiertas, false);
         itemAbiertas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemCerradas = new CustomMenuItem(cbIncidenciasCerradas, false);
         itemCerradas.setStyle("-fx-background-color: white;");
-        filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas);
+        CustomMenuItem itemNormales = new CustomMenuItem(cbNormales, false);
+        itemNormales.setStyle("-fx-background-color: white;");
+        filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas, itemNormales);
     }
 
     private void aplicarFiltros() {
@@ -388,6 +395,7 @@ public class ReparacionControllerTecnico {
         LocalDate hasta = filtroFechaHasta.getValue();
         boolean filtrarAbiertas = cbIncidenciasAbiertas.isSelected();
         boolean filtrarCerradas = cbIncidenciasCerradas.isSelected();
+        boolean filtrarNormales = cbNormales.isSelected();
 
         datosFiltrados.setPredicate(rep -> {
             if (imeiStr.length() == 15 && !String.valueOf(rep.getImei()).equals(imeiStr))
@@ -398,10 +406,12 @@ public class ReparacionControllerTecnico {
             if (hasta != null && rep.getFechaFin() != null
                     && rep.getFechaFin().toLocalDate().isAfter(hasta))
                 return false;
-            if (filtrarAbiertas || filtrarCerradas) {
-                if (!rep.isEsIncidencia()) return false;
-                if (!filtrarAbiertas && !rep.isEsResuelto()) return false;
-                if (!filtrarCerradas &&  rep.isEsResuelto()) return false;
+            if (filtrarAbiertas || filtrarCerradas || filtrarNormales) {
+                boolean mostrar = false;
+                if (filtrarNormales && !rep.isEsIncidencia())                        mostrar = true;
+                if (filtrarAbiertas && rep.isEsIncidencia() && !rep.isEsResuelto()) mostrar = true;
+                if (filtrarCerradas && rep.isEsIncidencia() &&  rep.isEsResuelto()) mostrar = true;
+                if (!mostrar) return false;
             }
             return true;
         });
@@ -414,6 +424,7 @@ public class ReparacionControllerTecnico {
         filtroFechaHasta.setValue(null);
         cbIncidenciasAbiertas.setSelected(false);
         cbIncidenciasCerradas.setSelected(false);
+        cbNormales.setSelected(false);
         filtroIncidencias.setText("Incidencias");
         filtroImei.setStyle("");
     }

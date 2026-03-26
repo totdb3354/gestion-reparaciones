@@ -21,6 +21,8 @@ public class ReparacionDAO {
                    rc.ES_INCIDENCIA,
                    rc.ES_RESUELTO,
                    rc.INCIDENCIA,
+                   rc.ES_SOLICITUD,
+                   rc.DESCRIPCION_SOLICITUD,
                    r.ID_REP_ANTERIOR AS id_rep_nueva
             FROM Reparacion r
             JOIN Tecnico t ON r.ID_TEC = t.ID_TEC
@@ -44,7 +46,12 @@ public class ReparacionDAO {
                          AND r2.ID_TEC = r.ID_TEC
                          AND rc2.ES_INCIDENCIA = TRUE
                          AND rc2.ES_RESUELTO = FALSE
-                   ) AS ES_INCIDENCIA
+                   ) AS ES_INCIDENCIA,
+                   EXISTS (
+                       SELECT 1 FROM Reparacion_componente rc
+                       WHERE rc.ID_REP = r.ID_REP
+                         AND rc.ES_SOLICITUD = 1
+                   ) AS TIENE_SOLICITUD
             FROM Reparacion r
             JOIN Tecnico t ON r.ID_TEC = t.ID_TEC
             WHERE r.ID_REP LIKE 'A%'
@@ -111,6 +118,25 @@ public class ReparacionDAO {
             ResultSet rs = ps.executeQuery();
             while (rs.next())
                 lista.add(mapearAsignacion(rs));
+        }
+        return lista;
+    }
+
+    public List<FilaReparacion> getSolicitudesPorAsignacion(String idAsignacion) throws SQLException {
+        List<FilaReparacion> lista = new ArrayList<>();
+        String sql = """
+                SELECT rc.ID_COM, rc.DESCRIPCION_SOLICITUD
+                FROM Reparacion_componente rc
+                WHERE rc.ID_REP = ? AND rc.ES_SOLICITUD = 1
+                """;
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, idAsignacion);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next())
+                lista.add(new FilaReparacion(
+                        rs.getInt("ID_COM"), 0, false, null, null,
+                        true, rs.getString("DESCRIPCION_SOLICITUD")));
         }
         return lista;
     }
@@ -346,6 +372,13 @@ public class ReparacionDAO {
     public void insertarCompleta(List<FilaReparacion> filas, long imei, int idTec,
             String idRepAnterior, String idAsignacion) throws SQLException {
 
+        List<FilaReparacion> filasNormales   = new ArrayList<>();
+        List<FilaReparacion> filasSolicitud  = new ArrayList<>();
+        for (FilaReparacion f : filas) {
+            if (f.isEsSolicitud()) filasSolicitud.add(f);
+            else                   filasNormales.add(f);
+        }
+
         String sqlRep = """
                 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
                 VALUES (?, NOW(), NOW(), ?, ?, ?)
@@ -355,40 +388,43 @@ public class ReparacionDAO {
                 (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
                 VALUES (?, ?, ?, FALSE, FALSE, NULL, ?)
                 """;
-        String sqlStock = "UPDATE Componente SET STOCK = STOCK - ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
+        String sqlCompSolicitud = """
+                INSERT INTO Reparacion_componente
+                (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+                VALUES (?, ?, FALSE, FALSE, FALSE, 1, ?)
+                """;
+        String sqlStock    = "UPDATE Componente SET STOCK = STOCK - ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
         String sqlResolver = "UPDATE Reparacion_componente SET ES_RESUELTO = TRUE WHERE ID_REP = ?";
         String sqlBorrarAsig = "DELETE FROM Reparacion WHERE ID_REP = ?";
 
-        // Calcular base del contador fuera de la transacción
+        // Calcular base del contador solo si hay filas normales
         String fechaHoy = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int contadorBase;
-        String sqlCount = "SELECT COUNT(*) FROM Reparacion WHERE ID_REP LIKE ?";
-        try (Connection con = Conexion.getConexion();
-                PreparedStatement ps = con.prepareStatement(sqlCount)) {
-            ps.setString(1, "R" + fechaHoy + "_%");
-            ResultSet rs = ps.executeQuery();
-            contadorBase = rs.next() ? rs.getInt(1) : 0;
+        int contadorBase = 0;
+        if (!filasNormales.isEmpty()) {
+            String sqlCount = "SELECT COUNT(*) FROM Reparacion WHERE ID_REP LIKE ?";
+            try (Connection con = Conexion.getConexion();
+                    PreparedStatement ps = con.prepareStatement(sqlCount)) {
+                ps.setString(1, "R" + fechaHoy + "_%");
+                ResultSet rs = ps.executeQuery();
+                contadorBase = rs.next() ? rs.getInt(1) : 0;
+            }
         }
 
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
             try {
+                // ── Filas normales → nuevos R* ────────────────────────────────
                 int indice = 0;
-                for (FilaReparacion fila : filas) {
-                    String nuevoId = "R" + fechaHoy + "_" + (contadorBase + 1 + indice);
-                    indice++;
-
+                for (FilaReparacion fila : filasNormales) {
+                    String nuevoId = "R" + fechaHoy + "_" + (contadorBase + 1 + indice++);
                     try (PreparedStatement ps = con.prepareStatement(sqlRep)) {
                         ps.setString(1, nuevoId);
                         ps.setLong(2, imei);
                         ps.setInt(3, idTec);
-                        if (idRepAnterior != null)
-                            ps.setString(4, idRepAnterior);
-                        else
-                            ps.setNull(4, Types.VARCHAR);
+                        if (idRepAnterior != null) ps.setString(4, idRepAnterior);
+                        else                       ps.setNull(4, Types.VARCHAR);
                         ps.executeUpdate();
                     }
-
                     try (PreparedStatement ps = con.prepareStatement(sqlComp)) {
                         ps.setString(1, nuevoId);
                         ps.setInt(2, fila.getIdCom());
@@ -396,7 +432,6 @@ public class ReparacionDAO {
                         ps.setString(4, fila.getObservacion());
                         ps.executeUpdate();
                     }
-
                     if (!fila.isReutilizado() && fila.getCantidad() > 0
                             && !fila.getPrefijo().equals("otro")) {
                         try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
@@ -407,14 +442,41 @@ public class ReparacionDAO {
                     }
                 }
 
-                if (idRepAnterior != null) {
+                // ── Limpiar solicitudes previas de la A* (se reemplazan) ─────
+                if (idAsignacion != null) {
+                    String sqlLimpiarSol =
+                            "DELETE FROM Reparacion_componente WHERE ID_REP = ? AND ES_SOLICITUD = 1";
+                    try (PreparedStatement ps = con.prepareStatement(sqlLimpiarSol)) {
+                        ps.setString(1, idAsignacion);
+                        ps.executeUpdate();
+                    }
+                }
+
+                // ── Filas solicitud → Reparacion_componente sobre A* ──────────
+                if (idAsignacion != null) {
+                    for (FilaReparacion fila : filasSolicitud) {
+                        try (PreparedStatement ps = con.prepareStatement(sqlCompSolicitud)) {
+                            ps.setString(1, idAsignacion);
+                            ps.setInt(2, fila.getIdCom());
+                            if (fila.getDescripcionSolicitud() != null)
+                                ps.setString(3, fila.getDescripcionSolicitud());
+                            else
+                                ps.setNull(3, Types.LONGVARCHAR);
+                            ps.executeUpdate();
+                        }
+                    }
+                }
+
+                // ── Resolver incidencia anterior si hubo filas normales ───────
+                if (idRepAnterior != null && !filasNormales.isEmpty()) {
                     try (PreparedStatement ps = con.prepareStatement(sqlResolver)) {
                         ps.setString(1, idRepAnterior);
                         ps.executeUpdate();
                     }
                 }
 
-                if (idAsignacion != null) {
+                // ── Borrar A* solo si no quedan solicitudes pendientes ────────
+                if (idAsignacion != null && filasSolicitud.isEmpty()) {
                     try (PreparedStatement ps = con.prepareStatement(sqlBorrarAsig)) {
                         ps.setString(1, idAsignacion);
                         ps.executeUpdate();
@@ -446,7 +508,9 @@ public class ReparacionDAO {
                 rs.getBoolean("ES_RESUELTO"),
                 rs.getString("INCIDENCIA"),
                 rs.getString("id_rep_nueva"),
-                rs.getInt("ID_TEC"));
+                rs.getInt("ID_TEC"),
+                rs.getInt("ES_SOLICITUD"),
+                rs.getString("DESCRIPCION_SOLICITUD"));
     }
 
     private ReparacionResumen mapearAsignacion(ResultSet rs) throws SQLException {
@@ -464,7 +528,9 @@ public class ReparacionDAO {
                 false,
                 null,
                 rs.getString("id_rep_nueva"),
-                rs.getInt("ID_TEC"));
+                rs.getInt("ID_TEC"),
+                rs.getBoolean("TIENE_SOLICITUD") ? 1 : 0,
+                null);
     }
 
     private Reparacion mapear(ResultSet rs) throws SQLException {

@@ -30,7 +30,7 @@ import javafx.util.Duration;
  */
 public class ConfirmDialog {
 
-    private static final int SEGUNDOS = 10;
+    private static final int SEGUNDOS = 1;
 
     public static void mostrar(String titulo, String descripcion,
                                String textoAccion, String textoCancel,

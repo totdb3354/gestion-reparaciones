@@ -4,6 +4,8 @@ import com.reparaciones.Sesion;
 import com.reparaciones.dao.ReparacionDAO;
 import com.reparaciones.models.ReparacionResumen;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -14,7 +16,6 @@ import javafx.stage.Stage;
 
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 public class PendientesTecnicoController {
 
@@ -23,9 +24,16 @@ public class PendientesTecnicoController {
     @FXML private TableColumn<ReparacionResumen, String> cImei;
     @FXML private TableColumn<ReparacionResumen, String> cFecha;
     @FXML private TableColumn<ReparacionResumen, Void>   cAccion;
+    @FXML private MenuButton filtroSolicitud;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+
+    private final ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
+    private FilteredList<ReparacionResumen> datosFiltrados;
+    private CheckBox cbSoloSolicitudes;
+    private CheckBox cbSoloIncidencias;
+    private CheckBox cbSoloAsignaciones;
 
     private Runnable onCerrar;
 
@@ -39,17 +47,24 @@ public class PendientesTecnicoController {
             new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().getImei())));
         cFecha.setCellValueFactory(d ->
             new javafx.beans.property.SimpleStringProperty(
-                d.getValue().getFechaAsig() != null
-                    ? d.getValue().getFechaAsig().format(FMT) : ""));
+                d.getValue().getFechaAsig() != null ? d.getValue().getFechaAsig().format(FMT) : ""));
 
-        // Colorear filas con incidencia activa
+        datosFiltrados = new FilteredList<>(datos, p -> true);
+        tablaPendientes.setItems(datosFiltrados);
+
         tablaPendientes.setRowFactory(tv -> new TableRow<>() {
             @Override protected void updateItem(ReparacionResumen item, boolean empty) {
                 super.updateItem(item, empty);
-                if (!empty && item != null && item.isEsIncidencia()) {
-                    setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
-                             "-fx-border-color: transparent transparent #FB8888 transparent;" +
-                             "-fx-border-width: 0 0 0.2 0;");
+                if (!empty && item != null) {
+                    if (item.getEsSolicitud() == 1) {
+                        setStyle("-fx-background-color: rgba(255,165,0,0.12);" +
+                                "-fx-border-color: transparent transparent #FFA500 transparent;" +
+                                "-fx-border-width: 0 0 0.2 0;");
+                    } else if (item.isEsIncidencia()) {
+                        setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
+                                "-fx-border-color: transparent transparent #FB8888 transparent;" +
+                                "-fx-border-width: 0 0 0.2 0;");
+                    } else setStyle("");
                 } else setStyle("");
             }
         });
@@ -62,10 +77,8 @@ public class PendientesTecnicoController {
                              "-fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 4 10 4 10;");
                 btn.setOnAction(e -> {
                     ReparacionResumen asig = getTableView().getItems().get(getIndex());
-                    // Cerrar pendientes primero
                     Stage stage = (Stage) tablaPendientes.getScene().getWindow();
                     stage.close();
-                    // Abrir formulario — Platform.runLater interno en abrir()
                     FormularioReparacionController.abrir(
                             asig.getImei(), null, asig.getIdRep(), onCerrar);
                 });
@@ -76,15 +89,76 @@ public class PendientesTecnicoController {
             }
         });
 
+        configurarFiltros();
         cargar();
     }
+
+    // ─── Filtros ──────────────────────────────────────────────────────────────
+
+    private void configurarFiltros() {
+        filtroSolicitud.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;");
+
+        cbSoloSolicitudes  = new CheckBox("Solicitudes pieza");
+        cbSoloIncidencias  = new CheckBox("Incidencias");
+        cbSoloAsignaciones = new CheckBox("Asignaciones");
+
+        for (CheckBox cb : new CheckBox[]{cbSoloSolicitudes, cbSoloIncidencias, cbSoloAsignaciones}) {
+            cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
+            cb.selectedProperty().addListener((obs, o, n) -> {
+                actualizarTextoFiltroSolicitud();
+                aplicarFiltros();
+            });
+            CustomMenuItem item = new CustomMenuItem(cb, false);
+            item.setStyle("-fx-background-color: white;");
+            filtroSolicitud.getItems().add(item);
+        }
+    }
+
+    private void actualizarTextoFiltroSolicitud() {
+        boolean sol  = cbSoloSolicitudes.isSelected();
+        boolean inc  = cbSoloIncidencias.isSelected();
+        boolean asig = cbSoloAsignaciones.isSelected();
+        long total = java.util.stream.Stream.of(sol, inc, asig).filter(Boolean::booleanValue).count();
+        if      (total == 0) filtroSolicitud.setText("Tipo");
+        else if (total == 3) filtroSolicitud.setText("Todas");
+        else if (total == 1) filtroSolicitud.setText(sol ? "Solicitudes pieza" : inc ? "Incidencias" : "Asignaciones");
+        else                 filtroSolicitud.setText(total + " filtros");
+    }
+
+    private void aplicarFiltros() {
+        if (datosFiltrados == null) return;
+        boolean filtrarSol  = cbSoloSolicitudes.isSelected();
+        boolean filtrarInc  = cbSoloIncidencias.isSelected();
+        boolean filtrarAsig = cbSoloAsignaciones.isSelected();
+        datosFiltrados.setPredicate(rep -> {
+            if (!filtrarSol && !filtrarInc && !filtrarAsig) return true;
+            boolean esSol  = rep.getEsSolicitud() == 1;
+            boolean esInc  = rep.isEsIncidencia();
+            boolean esAsig = !esSol && !esInc;
+            boolean mostrar = false;
+            if (filtrarSol  && esSol)  mostrar = true;
+            if (filtrarInc  && esInc)  mostrar = true;
+            if (filtrarAsig && esAsig) mostrar = true;
+            return mostrar;
+        });
+    }
+
+    @FXML
+    private void limpiarFiltros() {
+        cbSoloSolicitudes.setSelected(false);
+        cbSoloIncidencias.setSelected(false);
+        cbSoloAsignaciones.setSelected(false);
+        filtroSolicitud.setText("Tipo");
+    }
+
+    // ─── Carga ────────────────────────────────────────────────────────────────
 
     private void cargar() {
         try {
             Integer idTec = Sesion.getIdTec();
             if (idTec == null) return;
-            List<ReparacionResumen> lista = reparacionDAO.getAsignacionesPorTecnico(idTec);
-            tablaPendientes.setItems(FXCollections.observableArrayList(lista));
+            datos.setAll(reparacionDAO.getAsignacionesPorTecnico(idTec));
         } catch (SQLException e) {
             e.printStackTrace();
         }

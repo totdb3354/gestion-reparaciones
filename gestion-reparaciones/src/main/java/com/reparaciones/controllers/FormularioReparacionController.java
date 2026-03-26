@@ -5,7 +5,10 @@ import com.reparaciones.dao.ComponenteDAO;
 import com.reparaciones.dao.ReparacionDAO;
 import com.reparaciones.models.Componente;
 import com.reparaciones.models.FilaReparacion;
+import com.reparaciones.utils.ConfirmDialog;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -16,6 +19,7 @@ import javafx.stage.Stage;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.geometry.Pos;
+import javafx.util.Duration;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -26,16 +30,16 @@ import java.util.stream.Collectors;
 
 public class FormularioReparacionController {
 
-    @FXML
-    private Label lblImei;
-    @FXML
-    private Label lblIncidencia;
-    @FXML
-    private VBox contenedorFilas;
-    @FXML
-    private Button btnGuardar;
-    @FXML
-    private ComboBox<String> cbFiltroModelo;
+    @FXML private Label lblImei;
+    @FXML private Label lblIncidencia;
+    @FXML private Label lblSeleccionaModelo;
+    @FXML private VBox contenedorFilas;
+    @FXML private Button btnGuardar;
+    @FXML private ComboBox<String> cbFiltroModelo;
+    private boolean tieneSolicitudesIniciales = false;
+    private boolean esperandoConfirmacion = false;
+    private Timeline timelineReset;
+    private int segundosRestantes;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private final ComponenteDAO componenteDAO = new ComponenteDAO();
@@ -87,7 +91,29 @@ public class FormularioReparacionController {
         }
 
         cargarFilas();
-        configurarFiltroModelo();
+        List<FilaReparacion> solicitudesCargadas = null;
+        if (idAsignacion != null) {
+            try {
+                List<FilaReparacion> solicitudes = reparacionDAO.getSolicitudesPorAsignacion(idAsignacion);
+                if (!solicitudes.isEmpty()) {
+                    tieneSolicitudesIniciales = true;
+                    solicitudesCargadas = solicitudes;
+                    // Primera pasada: activar para que configurarFiltroModelo detecte el modelo
+                    for (FilaReparacion sol : solicitudes)
+                        for (FilaUI fila : filasUI)
+                            fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud());
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        configurarFiltroModelo(); // el auto-filtro de modelo dispara aplicarFiltroModelo → resetea solicitudActiva
+        // Segunda pasada: re-activar solicitudes después del reset del filtro
+        if (solicitudesCargadas != null) {
+            for (FilaReparacion sol : solicitudesCargadas)
+                for (FilaUI fila : filasUI)
+                    fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud());
+        }
     }
 
     private void cargarFilas() {
@@ -118,43 +144,61 @@ public class FormularioReparacionController {
                 .filter(modelosEnBD::contains)
                 .collect(Collectors.toList());
 
-        cbFiltroModelo.getItems().add("Todos");
         cbFiltroModelo.getItems().addAll(modelosFiltrados);
-        cbFiltroModelo.setValue("Todos");
+        cbFiltroModelo.setPromptText("— Selecciona modelo —");
 
         cbFiltroModelo.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(String m, boolean empty) {
                 super.updateItem(m, empty);
-                if (empty || m == null) {
-                    setText(null);
-                    return;
-                }
-                setText(m.equals("Todos") ? "Todos los modelos" : traducirModelo(m));
+                setText((empty || m == null) ? null : traducirModelo(m));
             }
         });
         cbFiltroModelo.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(String m, boolean empty) {
                 super.updateItem(m, empty);
-                if (empty || m == null) {
-                    setText(null);
-                    return;
-                }
-                setText(m.equals("Todos") ? "Todos los modelos" : traducirModelo(m));
+                setText((empty || m == null) ? null : traducirModelo(m));
             }
         });
 
         cbFiltroModelo.valueProperty().addListener((obs, o, n) -> {
+            boolean hayModelo = n != null;
+            if (!tieneSolicitudesIniciales) {
+                contenedorFilas.setVisible(hayModelo);
+                contenedorFilas.setManaged(hayModelo);
+                lblSeleccionaModelo.setVisible(!hayModelo);
+                lblSeleccionaModelo.setManaged(!hayModelo);
+            }
             for (FilaUI fila : filasUI) {
                 fila.aplicarFiltroModelo(n);
             }
         });
+
+        if (tieneSolicitudesIniciales) {
+            // Auto-detectar modelo desde la solicitud y bloquearlo
+            filasUI.stream()
+                    .filter(FilaUI::isSolicitud)
+                    .map(f -> extraerModelo(f.getComponenteSeleccionado().getTipo(), f.getPrefijo()))
+                    .filter(m -> !m.isEmpty() && cbFiltroModelo.getItems().contains(m))
+                    .findFirst()
+                    .ifPresent(modelo -> {
+                        cbFiltroModelo.setValue(modelo);
+                        cbFiltroModelo.setDisable(true);
+                    });
+        } else {
+            // Flujo normal: ocultar filas hasta que se seleccione modelo
+            contenedorFilas.setVisible(false);
+            contenedorFilas.setManaged(false);
+            lblSeleccionaModelo.setVisible(true);
+            lblSeleccionaModelo.setManaged(true);
+        }
     }
 
     private void actualizarBoton() {
         boolean activa = filasUI.stream().anyMatch(FilaUI::isActiva);
-        btnGuardar.setDisable(!activa);
+        boolean haySolicitudesPendientes = tieneSolicitudesIniciales && filasUI.stream().anyMatch(FilaUI::isSolicitud);
+        btnGuardar.setDisable(!activa || haySolicitudesPendientes);
         btnGuardar.setStyle(activa
                 ? "-fx-background-color: #8AC7AF; -fx-text-fill: white; -fx-font-size: 12px;" +
                         "-fx-font-weight: bold; -fx-background-radius: 0; -fx-padding: 10; -fx-cursor: hand;"
@@ -164,6 +208,36 @@ public class FormularioReparacionController {
 
     @FXML
     private void guardar() {
+        if (!esperandoConfirmacion) {
+            activarConfirmacion();
+        } else {
+            ejecutarGuardar();
+        }
+    }
+
+    private void activarConfirmacion() {
+        esperandoConfirmacion = true;
+        btnGuardar.setDisable(true);
+        segundosRestantes = 5;
+        btnGuardar.setText("Guardar (" + segundosRestantes + ")");
+
+        timelineReset = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            segundosRestantes--;
+            if (segundosRestantes > 0) {
+                btnGuardar.setText("Guardar (" + segundosRestantes + ")");
+            } else {
+                timelineReset.stop();
+                btnGuardar.setDisable(false);
+                btnGuardar.setText("✓  Confirmar guardar");
+            }
+        }));
+        timelineReset.setCycleCount(5);
+        timelineReset.play();
+    }
+
+    private void ejecutarGuardar() {
+        if (timelineReset != null) { timelineReset.stop(); timelineReset = null; }
+        esperandoConfirmacion = false;
         List<FilaReparacion> filasActivas = new ArrayList<>();
         for (FilaUI fila : filasUI) {
             if (fila.isActiva()) {
@@ -172,7 +246,9 @@ public class FormularioReparacionController {
                         fila.getCantidad(),
                         fila.isReutilizado(),
                         fila.getObservacion(),
-                        fila.getPrefijo()));
+                        fila.getPrefijo(),
+                        fila.isSolicitud(),
+                        fila.getDescripcionSolicitud()));
             }
         }
         try {
@@ -204,7 +280,7 @@ public class FormularioReparacionController {
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setResizable(true);
                 stage.setMinWidth(900);
-                stage.setMinHeight(400);
+                stage.setMinHeight(520);
 
                 ctrl.init(imei, idRepAnterior, idAsignacion, onGuardado);
 
@@ -283,7 +359,7 @@ public class FormularioReparacionController {
 
         private final String prefijo;
         private final List<Componente> skus;
-        private final HBox root;
+        private final VBox root;
 
         private final Label lblContador;
         private final Button btnMas;
@@ -294,9 +370,19 @@ public class FormularioReparacionController {
         private final Button btnObservacion;
         private final Label lblObservacion;
         private final Button btnBorrarObs;
+        private final Button btnSolicitud;
+
+        private static final String STYLE_SOL_INACTIVA =
+                "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
+                "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+        private static final String STYLE_SOL_ACTIVA =
+                "-fx-background-color: #FFA500; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
 
         private int cantidad = 0;
         private String observacion = null;
+        private boolean solicitudActiva = false;
+        private String descripcionSolicitud = null;
         private Runnable onCambio;
 
         FilaUI(String prefijo, List<Componente> skus, Image imgBorrar) {
@@ -431,10 +517,17 @@ public class FormularioReparacionController {
             HBox.setHgrow(wrapObs, Priority.ALWAYS);
             HBox.setHgrow(lblObservacion, Priority.ALWAYS);
 
-            root = new HBox(wrapContador, lblNombre, cbSku, lblStock, chkReutilizado, wrapObs);
-            root.setAlignment(Pos.CENTER_LEFT);
-            root.setMinHeight(37);
-            root.setMaxHeight(37);
+            btnSolicitud = new Button("⚠ Solicitud pieza");
+            btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+            btnSolicitud.setMinHeight(27);
+            btnSolicitud.setMaxHeight(27);
+            btnSolicitud.setOnAction(e -> abrirSolicitud());
+
+            HBox mainRow = new HBox(wrapContador, lblNombre, cbSku, lblStock, chkReutilizado, wrapObs, btnSolicitud);
+            mainRow.setAlignment(Pos.CENTER_LEFT);
+            mainRow.setMinHeight(37);
+
+            root = new VBox(mainRow);
             root.setStyle("-fx-background-color: #F3F3F3; " +
                     "-fx-border-color: transparent transparent #E0E0E0 transparent;" +
                     "-fx-border-width: 0 0 1 0;");
@@ -499,8 +592,12 @@ public class FormularioReparacionController {
             actualizarContador();
             chkReutilizado.setSelected(false);
             chkReutilizado.setDisable(false);
+            solicitudActiva = false;
+            descripcionSolicitud = null;
+            btnSolicitud.setText("⚠ Solicitud pieza");
+            btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
 
-            if (modelo == null || modelo.equals("Todos")) {
+            if (modelo == null) {
                 cbSku.getItems().setAll(skus);
                 Componente def = skus.stream()
                         .filter(c -> c.getStock() > 0)
@@ -644,11 +741,15 @@ public class FormularioReparacionController {
         // ── Estado público ────────────────────────────────────────────────────
 
         boolean isActiva() {
-            return cantidad > 0 || chkReutilizado.isSelected();
+            return cantidad > 0 || chkReutilizado.isSelected() || solicitudActiva;
         }
 
         int getIdComSeleccionado() {
             return cbSku.getValue() != null ? cbSku.getValue().getIdCom() : -1;
+        }
+
+        Componente getComponenteSeleccionado() {
+            return cbSku.getValue();
         }
 
         int getCantidad() {
@@ -671,7 +772,138 @@ public class FormularioReparacionController {
             return skus;
         }
 
-        HBox getRoot() {
+        boolean isSolicitud() {
+            return solicitudActiva;
+        }
+
+        String getDescripcionSolicitud() {
+            return descripcionSolicitud;
+        }
+
+        private void abrirSolicitud() {
+            TextArea ta = new TextArea(descripcionSolicitud != null ? descripcionSolicitud : "");
+            ta.setPromptText("Describe la pieza que falta (opcional)...");
+            ta.setWrapText(true);
+            ta.setPrefRowCount(4);
+            ta.setPrefWidth(380);
+            ta.setStyle("-fx-font-size: 13px;");
+
+            Button btnGuardar = new Button(solicitudActiva ? "Guardar cambios" : "Marcar como solicitud");
+            btnGuardar.setMaxWidth(Double.MAX_VALUE);
+            btnGuardar.setStyle("-fx-background-color: #8AC7AF; -fx-text-fill: white;" +
+                    "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Solicitud de pieza");
+            dialog.setHeaderText("Pieza pendiente: " + traducirTipo(prefijo));
+            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+            dialog.getDialogPane().setPrefWidth(440);
+
+            VBox content = new VBox(8, ta, btnGuardar);
+
+            if (solicitudActiva) {
+                Button btnPiezaRecibida = new Button("Pieza recibida — instalar");
+                btnPiezaRecibida.setMaxWidth(Double.MAX_VALUE);
+                btnPiezaRecibida.setStyle("-fx-background-color: #8AC7AF; -fx-text-fill: white;" +
+                        "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+                btnPiezaRecibida.setOnAction(e -> {
+                    solicitudActiva = false;
+                    descripcionSolicitud = null;
+                    btnSolicitud.setText("⚠ Solicitud pieza");
+                    btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+                    Componente sel = cbSku.getValue();
+                    int stock = (sel != null && !prefijo.equals("otro")) ? sel.getStock() : Integer.MAX_VALUE;
+                    if (prefijo.equals("otro") || stock > 0) {
+                        cantidad = 1;
+                        actualizarContador();
+                        btnMas.setDisable(!prefijo.equals("otro") && cantidad >= stock);
+                        btnMenos.setDisable(false);
+                        chkReutilizado.setDisable(true);
+                    } else {
+                        chkReutilizado.setDisable(false);
+                        btnMas.setDisable(true);
+                        btnMenos.setDisable(true);
+                    }
+                    dialog.close();
+                    notificar();
+                });
+                Button btnCancelarSol = new Button("Cancelar solicitud de pieza");
+                btnCancelarSol.setMaxWidth(Double.MAX_VALUE);
+                btnCancelarSol.setStyle("-fx-background-color: #E7E7E7; -fx-text-fill: #555555;" +
+                        "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+                btnCancelarSol.setOnAction(e -> {
+                    dialog.close();
+                    Platform.runLater(() -> ConfirmDialog.mostrar("Cancelar solicitud",
+                            "¿Seguro que quieres cancelar la solicitud de pieza para " + traducirTipo(prefijo) + "?",
+                            "Sí, cancelar", () -> {
+                                solicitudActiva = false;
+                                descripcionSolicitud = null;
+                                btnSolicitud.setText("⚠ Solicitud pieza");
+                                btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+                                chkReutilizado.setDisable(false);
+                                Componente sel = cbSku.getValue();
+                                btnMas.setDisable(!prefijo.equals("otro") &&
+                                        (sel == null || sel.getStock() <= 0));
+                                btnMenos.setDisable(true);
+                                notificar();
+                            }));
+                });
+                content.getChildren().addAll(btnPiezaRecibida, btnCancelarSol);
+            }
+
+            dialog.getDialogPane().setContent(content);
+
+            btnGuardar.setOnAction(e -> {
+                String trimmed = ta.getText().trim();
+                descripcionSolicitud = trimmed.isEmpty() ? null : trimmed;
+                solicitudActiva = true;
+                cantidad = 0;
+                actualizarContador();
+                chkReutilizado.setSelected(false);
+                chkReutilizado.setDisable(true);
+                btnMas.setDisable(true);
+                btnMenos.setDisable(true);
+                btnSolicitud.setText("⚠ Pieza pendiente");
+                btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                dialog.close();
+                notificar();
+            });
+
+            dialog.showAndWait();
+        }
+
+        void deshabilitarPorNoImplicada() {
+            cbSku.setDisable(true);
+            btnMas.setDisable(true);
+            btnMenos.setDisable(true);
+            chkReutilizado.setDisable(true);
+            btnObservacion.setDisable(true);
+            btnSolicitud.setDisable(true);
+            root.setOpacity(0.4);
+        }
+
+        void activarSolicitud(int idCom, String descripcion) {
+            for (Componente c : skus) {
+                if (c.getIdCom() == idCom) {
+                    cbSku.setValue(c);
+                    descripcionSolicitud = descripcion;
+                    solicitudActiva = true;
+                    cantidad = 0;
+                    actualizarContador();
+                    chkReutilizado.setSelected(false);
+                    chkReutilizado.setDisable(true);
+                    btnMas.setDisable(true);
+                    btnMenos.setDisable(true);
+                    btnSolicitud.setText("⚠ Pieza pendiente");
+                    btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                    notificar();
+                    return;
+                }
+            }
+        }
+
+
+        VBox getRoot() {
             return root;
         }
 
