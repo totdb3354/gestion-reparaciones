@@ -1,26 +1,26 @@
 .vista-container {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: #DDE1E7;
 }
 
 .vista-titulo {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: #A9A9A9;
+    -fx-text-fill: #2C3B54;
 }
 
 .buscador {
-    -fx-background-color: #F3F3F3;
-    -fx-border-color: #A9A9A9;
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #586376;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-padding: 10;
     -fx-font-size: 12px;
-    -fx-text-fill: #A9A9A9;
+    -fx-text-fill: #2C3B54;
 }
 
 .btn-primary {
-    -fx-background-color: #A9A9A9;
-    -fx-text-fill: #FFFFFF;
+    -fx-background-color: #2C3B54;
+    -fx-text-fill: #F6F6F6;
     -fx-background-radius: 4;
     -fx-font-size: 12px;
     -fx-padding: 10 16 10 16;
@@ -28,8 +28,10 @@
 }
 
 .btn-secondary {
-    -fx-background-color: #E7E7E7;
-    -fx-text-fill: #A9A9A9;
+    -fx-background-color: #F6F6F6;
+    -fx-text-fill: #586376;
+    -fx-border-color: #586376;
+    -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-font-size: 12px;
     -fx-padding: 10 16 10 16;
@@ -37,35 +39,43 @@
 }
 
 .tabla-reparaciones {
-    -fx-background-color: #F3F3F3;
-    -fx-border-color: transparent;
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C2C8D0;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
 }
 
 .tabla-reparaciones .column-header {
-    -fx-background-color: #FFFFFF;
-    -fx-border-color: transparent transparent #A9A9A9 transparent;
+    -fx-background-color: #F6F6F6;
+    -fx-border-color: transparent transparent #586376 transparent;
     -fx-border-width: 0 0 0.2 0;
 }
 
 .tabla-reparaciones .column-header-background {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: #F6F6F6;
 }
 
 .tabla-reparaciones .column-header .label {
     -fx-font-size: 12px;
-    -fx-text-fill: #A9A9A9;
+    -fx-font-weight: bold;
+    -fx-text-fill: #586376;
 }
 
 .tabla-reparaciones .table-row-cell {
-    -fx-background-color: #F3F3F3;
-    -fx-border-color: transparent transparent #A9A9A9 transparent;
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: transparent transparent #586376 transparent;
     -fx-border-width: 0 0 0.2 0;
     -fx-cell-size: 35px;
 }
 
+.tabla-reparaciones .table-row-cell:selected .text {
+    -fx-fill: #F6F6F6;
+}
+
 .btn-cargar-mas {
-    -fx-background-color: #A9A9A9;
-    -fx-text-fill: #FFFFFF;
+    -fx-background-color: #2C3B54;
+    -fx-text-fill: #F6F6F6;
     -fx-background-radius: 4;
     -fx-font-size: 12px;
     -fx-padding: 10;
@@ -74,5 +84,5 @@
 
 .paginacion-label {
     -fx-font-size: 12px;
-    -fx-text-fill: #A9A9A9;
+    -fx-text-fill: #586376;
 }

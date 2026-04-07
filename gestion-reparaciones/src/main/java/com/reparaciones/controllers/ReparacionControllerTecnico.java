@@ -282,19 +282,28 @@ public class ReparacionControllerTecnico {
                 });
                 menu.getItems().add(copiar);
                 setContextMenu(menu);
+                selectedProperty().addListener((obs, wasSelected, isSelected) -> aplicarEstilo(getItem(), isEmpty()));
             }
 
-            @Override
-            protected void updateItem(ReparacionResumen item, boolean empty) {
-                super.updateItem(item, empty);
+            private void aplicarEstilo(ReparacionResumen item, boolean empty) {
                 if (empty || item == null) { setStyle(""); return; }
-                if (item.isEsIncidencia() && !item.isEsResuelto()) {
+                if (isSelected()) {
+                    setStyle("-fx-background-color: #2C3B54;" +
+                            "-fx-border-color: transparent transparent #3D5070 transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
                     setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
                             "-fx-border-color: transparent transparent #FB8888 transparent;" +
                             "-fx-border-width: 0 0 0.2 0;");
                 } else {
                     setStyle("");
                 }
+            }
+
+            @Override
+            protected void updateItem(ReparacionResumen item, boolean empty) {
+                super.updateItem(item, empty);
+                aplicarEstilo(item, empty);
             }
         });
     }
