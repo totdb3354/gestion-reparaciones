@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class ReparacionResumen {
 
     private String        idRep;
-    private long          imei;
+    private String        imei;
     private String        nombreTecnico;
     private LocalDateTime fechaAsig;
     private LocalDateTime fechaFin;
@@ -25,7 +25,7 @@ public class ReparacionResumen {
     private int           esSolicitud;
     private String        descripcionSolicitud;
 
-    public ReparacionResumen(String idRep, long imei, String nombreTecnico,
+    public ReparacionResumen(String idRep, String imei, String nombreTecnico,
                              LocalDateTime fechaAsig, LocalDateTime fechaFin,
                              String tipoComponente, String observaciones,
                              boolean esIncidencia, boolean esResuelto,
@@ -48,7 +48,7 @@ public class ReparacionResumen {
     }
 
     public String        getIdRep()           { return idRep; }
-    public long          getImei()            { return imei; }
+    public String        getImei()            { return imei; }
     public String        getNombreTecnico()   { return nombreTecnico; }
     public LocalDateTime getFechaAsig()       { return fechaAsig; }
     public LocalDateTime getFechaFin()        { return fechaFin; }

@@ -12,11 +12,8 @@
 
     <!-- Cabecera info -->
     <HBox alignment="CENTER_LEFT" spacing="16"
-          style="-fx-background-color: #F3F3F3; -fx-padding: 10 16 10 16;">
+          style="-fx-background-color: #F3F3F3; -fx-padding: 10 16 6 16;">
         <Label fx:id="lblImei" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
-        <Label fx:id="lblIncidencia"
-               style="-fx-text-fill: #FB8888; -fx-font-size: 12px;"
-               visible="false" managed="false"/>
         <HBox HBox.hgrow="ALWAYS"/>
         <!-- Filtro de modelo global — arriba a la derecha -->
         <Label text="Filtrar por modelo:"
@@ -24,6 +21,14 @@
         <ComboBox fx:id="cbFiltroModelo"
                   prefWidth="180"
                   style="-fx-font-size: 11px;"/>
+    </HBox>
+    <!-- Fila de incidencia pendiente — ancho completo, solo visible si hay incidencia -->
+    <HBox alignment="CENTER_LEFT"
+          style="-fx-background-color: #FFF4F4; -fx-padding: 5 16 5 16;"
+          visible="false" managed="false" fx:id="filaIncidencia">
+        <Label fx:id="lblIncidencia"
+               style="-fx-text-fill: #CC4444; -fx-font-size: 12px;"
+               wrapText="true" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
     </HBox>
 
     <!-- Cabecera columnas -->
@@ -35,7 +40,7 @@
         <Label text="SKU"           minWidth="170" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
         <Label text="Stock"         minWidth="70"  style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
         <Label text="¿Reutilizado?" minWidth="110" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
-        <Label text="Observación"   HBox.hgrow="ALWAYS" maxWidth="Infinity"
+        <Label text="Observación"   minWidth="280" maxWidth="280"
                style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
     </HBox>
 

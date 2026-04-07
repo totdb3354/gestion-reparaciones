@@ -2,12 +2,12 @@ package com.reparaciones.models;
 
 public class Telefono {
 
-    private long imei;
+    private String imei;
 
-    public Telefono(long imei) {
+    public Telefono(String imei) {
         this.imei = imei;
     }
 
-    public long getImei() { return imei; }
-    public void setImei(long imei) { this.imei = imei; }
+    public String getImei() { return imei; }
+    public void setImei(String imei) { this.imei = imei; }
 }

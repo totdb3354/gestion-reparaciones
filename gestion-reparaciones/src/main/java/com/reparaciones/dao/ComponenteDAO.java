@@ -106,7 +106,7 @@ public class ComponenteDAO {
     public Map<String, List<Componente>> getAgrupadosPorTipo() throws SQLException {
         Map<String, List<Componente>> mapa = new LinkedHashMap<>();
         // Orden fijo de las 7 filas — prefijos reales sin la 'i' de iPhone
-        for (String prefijo : List.of("bat", "cha", "g", "cam", "lcd", "mc", "otro")) {
+        for (String prefijo : List.of("bat", "cha", "g", "mc", "cam", "lcd", "otro")) {
             mapa.put(prefijo, new ArrayList<>());
         }
         String sql = "SELECT * FROM Componente ORDER BY TIPO ASC";

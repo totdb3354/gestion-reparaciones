@@ -7,10 +7,10 @@ public class Reparacion {
     private String        idRep;
     private LocalDateTime fechaAsig;
     private LocalDateTime fechaFin;
-    private long          imei;
+    private String        imei;
     private int           idTec;
 
-    public Reparacion(String idRep, LocalDateTime fechaAsig, LocalDateTime fechaFin, long imei, int idTec) {
+    public Reparacion(String idRep, LocalDateTime fechaAsig, LocalDateTime fechaFin, String imei, int idTec) {
         this.idRep     = idRep;
         this.fechaAsig = fechaAsig;
         this.fechaFin  = fechaFin;
@@ -27,8 +27,8 @@ public class Reparacion {
     public LocalDateTime getFechaFin()                       { return fechaFin; }
     public void setFechaFin(LocalDateTime fechaFin)          { this.fechaFin = fechaFin; }
 
-    public long getImei()                       { return imei; }
-    public void setImei(long imei)              { this.imei = imei; }
+    public String getImei()                     { return imei; }
+    public void setImei(String imei)            { this.imei = imei; }
 
     public int getIdTec()                       { return idTec; }
     public void setIdTec(int idTec)             { this.idTec = idTec; }

@@ -39,7 +39,7 @@ public class ReparacionControllerAdmin {
     @FXML
     private TableColumn<ReparacionResumen, String> colIdRep;
     @FXML
-    private TableColumn<ReparacionResumen, Long> colImei;
+    private TableColumn<ReparacionResumen, String> colImei;
     @FXML
     private TableColumn<ReparacionResumen, String> colReparador;
     @FXML
@@ -106,14 +106,14 @@ public class ReparacionControllerAdmin {
             }
         });
 
-        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/editar.png"));
+        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial32pixeles.png"));
         colImei.setCellFactory(col -> new TableCell<>() {
             private final Label lblImei = new Label();
             private final ImageView ivHist = new ImageView(imgHistorial);
             private final HBox contenedor = new HBox(6, lblImei, ivHist);
             {
-                ivHist.setFitWidth(14);
-                ivHist.setFitHeight(14);
+                ivHist.setFitWidth(20);
+                ivHist.setFitHeight(20);
                 ivHist.setPreserveRatio(true);
                 ivHist.setStyle("-fx-cursor: hand; -fx-opacity: 0.5;");
                 contenedor.setAlignment(Pos.CENTER_LEFT);
@@ -121,13 +121,13 @@ public class ReparacionControllerAdmin {
             }
 
             @Override
-            protected void updateItem(Long item, boolean empty) {
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
                     return;
                 }
-                lblImei.setText(String.valueOf(getTableView().getItems().get(getIndex()).getImei()));
+                lblImei.setText(getTableView().getItems().get(getIndex()).getImei());
                 setGraphic(contenedor);
             }
         });
@@ -223,30 +223,49 @@ public class ReparacionControllerAdmin {
     }
 
     private void configurarColAcciones() {
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
+        Image imgEditar = new Image(getClass().getResourceAsStream("/images/editar32pixeles.png"));
         colAcciones.setCellFactory(col -> new TableCell<>() {
             private final ImageView ivBorrar = new ImageView(imgBorrar);
-            private final HBox contenedor = new HBox(ivBorrar);
+            private final ImageView ivEditar = new ImageView(imgEditar);
+            private final HBox contenedor = new HBox(6, ivEditar, ivBorrar);
             {
-                ivBorrar.setFitWidth(16);
-                ivBorrar.setFitHeight(16);
+                ivBorrar.setFitWidth(20);
+                ivBorrar.setFitHeight(20);
                 ivBorrar.setPreserveRatio(true);
                 ivBorrar.setStyle("-fx-cursor: hand;");
+                ivEditar.setFitWidth(20);
+                ivEditar.setFitHeight(20);
+                ivEditar.setPreserveRatio(true);
+                ivEditar.setStyle("-fx-cursor: hand;");
                 contenedor.setAlignment(Pos.CENTER);
                 ivBorrar.setOnMouseClicked(e -> borrarReparacion(getTableView().getItems().get(getIndex())));
+                ivEditar.setOnMouseClicked(e -> {
+                    ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                    FormularioReparacionController.abrirEditar(rep.getIdRep(), this::cargarDatos);
+                });
+            }
+
+            private void cargarDatos() {
+                ReparacionControllerAdmin.this.cargarDatos();
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : contenedor);
+                if (empty) { setGraphic(null); return; }
+                ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                // Mostrar editar solo en filas R* (reparaciones completadas)
+                ivEditar.setVisible(rep.getIdRep().startsWith("R"));
+                ivEditar.setManaged(rep.getIdRep().startsWith("R"));
+                setGraphic(contenedor);
             }
         });
     }
 
     private void configurarColIncidencia() {
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
-        Image imgLapiz = new Image(getClass().getResourceAsStream("/images/añadir_incidencia.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
+        Image imgLapiz = new Image(getClass().getResourceAsStream("/images/añadir_incidencia32pixeles.png"));
 
         colIncidencia.setCellFactory(col -> new TableCell<>() {
             private final ImageView ivLapiz = new ImageView(imgLapiz);
@@ -257,8 +276,8 @@ public class ReparacionControllerAdmin {
             private final HBox casoUno = new HBox(btnAniadir);
             private final HBox casoDos = new HBox(8, btnBorrarIncidencia, lblComentario);
             {
-                ivLapiz.setFitWidth(16);
-                ivLapiz.setFitHeight(16);
+                ivLapiz.setFitWidth(20);
+                ivLapiz.setFitHeight(20);
                 ivLapiz.setPreserveRatio(true);
                 btnAniadir.setGraphic(ivLapiz);
                 btnAniadir.setContentDisplay(ContentDisplay.LEFT);
@@ -270,8 +289,8 @@ public class ReparacionControllerAdmin {
                 btnAniadir.setMaxWidth(Double.MAX_VALUE);
                 casoUno.setMaxWidth(Double.MAX_VALUE);
 
-                ivBorrar.setFitWidth(16);
-                ivBorrar.setFitHeight(16);
+                ivBorrar.setFitWidth(20);
+                ivBorrar.setFitHeight(20);
                 ivBorrar.setPreserveRatio(true);
                 btnBorrarIncidencia.setGraphic(ivBorrar);
                 btnBorrarIncidencia.setStyle(
@@ -360,7 +379,7 @@ public class ReparacionControllerAdmin {
 
     private String textoDeCelda(ReparacionResumen rep, TableColumn<?, ?> col) {
         if (col == colIdRep)         return rep.getIdRep();
-        if (col == colImei)          return String.valueOf(rep.getImei());
+        if (col == colImei)          return rep.getImei();
         if (col == colReparador)     return rep.getNombreTecnico();
         if (col == colFecha)         return rep.getFechaFin() != null ? rep.getFechaFin().format(FORMATO_FECHA) : "";
         if (col == colComponente)    return rep.getTipoComponente();
@@ -478,7 +497,7 @@ public class ReparacionControllerAdmin {
                 .collect(java.util.stream.Collectors.toList());
 
         datosFiltrados.setPredicate(rep -> {
-            if (imeiStr.length() == 15 && !String.valueOf(rep.getImei()).equals(imeiStr))
+            if (imeiStr.length() == 15 && !rep.getImei().equals(imeiStr))
                 return false;
             if (!tecnicosSeleccionados.isEmpty() && !tecnicosSeleccionados.contains(rep.getNombreTecnico()))
                 return false;
@@ -621,7 +640,7 @@ public class ReparacionControllerAdmin {
         cbTecnico.valueProperty().addListener((obs, o, n) -> validar.run());
 
         btnConfirmar.setOnAction(ev -> {
-            long imei = Long.parseLong(tfImei.getText().trim());
+            String imei = tfImei.getText().trim();
             try {
                 if (!telefonoDAO.exists(imei))
                     telefonoDAO.insertar(imei);
@@ -795,7 +814,7 @@ public class ReparacionControllerAdmin {
 
     // ─── Historial IMEI ───────────────────────────────────────────────────────
 
-    private void abrirHistorialImei(long imei) {
+    private void abrirHistorialImei(String imei) {
         try {
             List<ReparacionResumen> historial = reparacionDAO.getResumenPorImei(imei);
 
@@ -805,6 +824,13 @@ public class ReparacionControllerAdmin {
             TableColumn<ReparacionResumen, String> cComp = new TableColumn<>("Componente");
             TableColumn<ReparacionResumen, String> cObs = new TableColumn<>("Observaciones");
             TableColumn<ReparacionResumen, String> cIncid = new TableColumn<>("Incidencia");
+
+            cId.setPrefWidth(130); cId.setMinWidth(100);
+            cTecnico.setPrefWidth(110); cTecnico.setMinWidth(80);
+            cFecha.setPrefWidth(120); cFecha.setMinWidth(100);
+            cComp.setPrefWidth(120); cComp.setMinWidth(90);
+            cObs.setPrefWidth(200); cObs.setMinWidth(100); cObs.setMaxWidth(250);
+            cIncid.setPrefWidth(200); cIncid.setMinWidth(100);
 
             cId.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getIdRep()));
             cTecnico.setCellValueFactory(
@@ -839,7 +865,7 @@ public class ReparacionControllerAdmin {
             Dialog<Void> dialog = new Dialog<>();
             dialog.setTitle("Historial IMEI");
             dialog.getDialogPane().setContent(contenido);
-            dialog.getDialogPane().setPrefWidth(750);
+            dialog.getDialogPane().setPrefWidth(900);
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
             dialog.showAndWait();
 

@@ -44,7 +44,7 @@ public class PendientesTecnicoController {
         cId.setCellValueFactory(d ->
             new javafx.beans.property.SimpleStringProperty(d.getValue().getIdRep()));
         cImei.setCellValueFactory(d ->
-            new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().getImei())));
+            new javafx.beans.property.SimpleStringProperty(d.getValue().getImei()));
         cFecha.setCellValueFactory(d ->
             new javafx.beans.property.SimpleStringProperty(
                 d.getValue().getFechaAsig() != null ? d.getValue().getFechaAsig().format(FMT) : ""));

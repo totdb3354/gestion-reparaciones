@@ -101,7 +101,7 @@ public class PendientesAdminController {
                 setGraphic(cb);
             }
         });
-        cImei.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().getImei())));
+        cImei.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getImei()));
         cFecha.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
                 d.getValue().getFechaAsig() != null ? d.getValue().getFechaAsig().format(FMT) : ""));
 
@@ -130,12 +130,12 @@ public class PendientesAdminController {
             }
         });
 
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
         cAccion.setCellFactory(col -> new TableCell<>() {
             private final ImageView iv  = new ImageView(imgBorrar);
             private final HBox      box = new HBox(iv);
             {
-                iv.setFitWidth(16); iv.setFitHeight(16); iv.setPreserveRatio(true);
+                iv.setFitWidth(20); iv.setFitHeight(20); iv.setPreserveRatio(true);
                 iv.setStyle("-fx-cursor: hand;");
                 box.setAlignment(Pos.CENTER);
                 iv.setOnMouseClicked(e -> {
@@ -329,8 +329,7 @@ public class PendientesAdminController {
             // Primero comprobar si el IMEI tiene historial
             if (imeiOk) {
                 try {
-                    long imei = Long.parseLong(imeiStr);
-                    if (telefonoDAO.exists(imei)) {
+                    if (telefonoDAO.exists(imeiStr)) {
                         bloqueadoPorHistorial = true;
                         lblImeiErr.setText("Este teléfono ya tiene historial. Marca una incidencia desde la tabla si necesita reparación.");
                         lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: #FB8888;");
@@ -387,7 +386,7 @@ public class PendientesAdminController {
 
         // ── Confirmar ─────────────────────────────────────────────────────────
         btnConfirmar.setOnAction(ev -> {
-            long imei = Long.parseLong(tfImei.getText().trim());
+            String imei = tfImei.getText().trim();
             try {
                 telefonoDAO.insertar(imei); // sabemos que no existe, la validación lo garantiza
                 for (int i = 0; i < checkboxes.size(); i++) {

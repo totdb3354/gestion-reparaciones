@@ -33,7 +33,7 @@ public class ReparacionControllerTecnico {
     @FXML
     private TableColumn<ReparacionResumen, String> colIdRep;
     @FXML
-    private TableColumn<ReparacionResumen, Long> colImei;
+    private TableColumn<ReparacionResumen, String> colImei;
     @FXML
     private TableColumn<ReparacionResumen, String> colReparador;
     @FXML
@@ -96,14 +96,14 @@ public class ReparacionControllerTecnico {
             }
         });
 
-        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/editar.png"));
+        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial32pixeles.png"));
         colImei.setCellFactory(col -> new TableCell<>() {
             private final Label lblImei = new Label();
             private final ImageView ivHist = new ImageView(imgHistorial);
             private final HBox contenedor = new HBox(6, lblImei, ivHist);
             {
-                ivHist.setFitWidth(14);
-                ivHist.setFitHeight(14);
+                ivHist.setFitWidth(20);
+                ivHist.setFitHeight(20);
                 ivHist.setPreserveRatio(true);
                 ivHist.setStyle("-fx-cursor: hand; -fx-opacity: 0.5;");
                 contenedor.setAlignment(Pos.CENTER_LEFT);
@@ -111,13 +111,13 @@ public class ReparacionControllerTecnico {
             }
 
             @Override
-            protected void updateItem(Long item, boolean empty) {
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
                     return;
                 }
-                lblImei.setText(String.valueOf(getTableView().getItems().get(getIndex()).getImei()));
+                lblImei.setText(getTableView().getItems().get(getIndex()).getImei());
                 setGraphic(contenedor);
             }
         });
@@ -312,7 +312,7 @@ public class ReparacionControllerTecnico {
 
     private String textoDeCelda(ReparacionResumen rep, TableColumn<?, ?> col) {
         if (col == colIdRep)         return rep.getIdRep();
-        if (col == colImei)          return String.valueOf(rep.getImei());
+        if (col == colImei)          return rep.getImei();
         if (col == colReparador)     return rep.getNombreTecnico();
         if (col == colFecha)         return rep.getFechaFin() != null ? rep.getFechaFin().format(FORMATO_FECHA) : "";
         if (col == colComponente)    return rep.getTipoComponente();
@@ -398,7 +398,7 @@ public class ReparacionControllerTecnico {
         boolean filtrarNormales = cbNormales.isSelected();
 
         datosFiltrados.setPredicate(rep -> {
-            if (imeiStr.length() == 15 && !String.valueOf(rep.getImei()).equals(imeiStr))
+            if (imeiStr.length() == 15 && !rep.getImei().equals(imeiStr))
                 return false;
             if (desde != null && rep.getFechaFin() != null
                     && rep.getFechaFin().toLocalDate().isBefore(desde))
@@ -438,7 +438,7 @@ public class ReparacionControllerTecnico {
 
     // ─── Historial IMEI ───────────────────────────────────────────────────────
 
-    private void abrirHistorialImei(long imei) {
+    private void abrirHistorialImei(String imei) {
         try {
             List<ReparacionResumen> historial = reparacionDAO.getResumenPorImei(imei);
 
