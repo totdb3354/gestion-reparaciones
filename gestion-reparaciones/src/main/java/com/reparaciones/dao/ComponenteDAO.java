@@ -44,26 +44,34 @@ public class ComponenteDAO {
     }
 
     public void insertar(Componente c) throws SQLException {
-        String sql = "INSERT INTO Componente (TIPO, STOCK, STOCK_MINIMO, PRECIO_UNIDAD) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO Componente (TIPO, STOCK, STOCK_MINIMO) VALUES (?, ?, ?)";
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, c.getTipo());
             ps.setInt(2, c.getStock());
             ps.setInt(3, c.getStockMinimo());
-            ps.setBigDecimal(4, c.getPrecioUnidad());
             ps.executeUpdate();
         }
     }
 
     public void actualizar(Componente c) throws SQLException {
-        String sql = "UPDATE Componente SET TIPO=?, STOCK=?, STOCK_MINIMO=?, PRECIO_UNIDAD=? WHERE ID_COM=?";
+        String sql = "UPDATE Componente SET TIPO=?, STOCK=?, STOCK_MINIMO=? WHERE ID_COM=?";
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, c.getTipo());
             ps.setInt(2, c.getStock());
             ps.setInt(3, c.getStockMinimo());
-            ps.setBigDecimal(4, c.getPrecioUnidad());
-            ps.setInt(5, c.getIdCom());
+            ps.setInt(4, c.getIdCom());
+            ps.executeUpdate();
+        }
+    }
+
+    public void setStockMinimo(int idCom, int stockMinimo) throws SQLException {
+        String sql = "UPDATE Componente SET STOCK_MINIMO = ? WHERE ID_COM = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, stockMinimo);
+            ps.setInt(2, idCom);
             ps.executeUpdate();
         }
     }
@@ -93,8 +101,7 @@ public class ComponenteDAO {
                 rs.getString("TIPO"),
                 rs.getTimestamp("FECHA_REGISTRO").toLocalDateTime(),
                 rs.getInt("STOCK"),
-                rs.getInt("STOCK_MINIMO"),
-                rs.getBigDecimal("PRECIO_UNIDAD"));
+                rs.getInt("STOCK_MINIMO"));
     }
 
     /**

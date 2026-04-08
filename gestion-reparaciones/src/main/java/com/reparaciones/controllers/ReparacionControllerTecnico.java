@@ -409,12 +409,12 @@ public class ReparacionControllerTecnico {
         datosFiltrados.setPredicate(rep -> {
             if (imeiStr.length() == 15 && !rep.getImei().equals(imeiStr))
                 return false;
-            if (desde != null && rep.getFechaFin() != null
-                    && rep.getFechaFin().toLocalDate().isBefore(desde))
-                return false;
-            if (hasta != null && rep.getFechaFin() != null
-                    && rep.getFechaFin().toLocalDate().isAfter(hasta))
-                return false;
+            if (desde != null || hasta != null) {
+                if (rep.getFechaFin() == null) return false;
+                LocalDate fechaFin = rep.getFechaFin().toLocalDate();
+                if (desde != null && fechaFin.isBefore(desde)) return false;
+                if (hasta != null && fechaFin.isAfter(hasta))  return false;
+            }
             if (filtrarAbiertas || filtrarCerradas || filtrarNormales) {
                 boolean mostrar = false;
                 if (filtrarNormales && !rep.isEsIncidencia())                        mostrar = true;

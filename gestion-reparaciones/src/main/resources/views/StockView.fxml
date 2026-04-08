@@ -1,11 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
 
-<VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.reparaciones.controllers.StockController"
-      spacing="10">
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.reparaciones.controllers.StockController"
+            styleClass="vista-container"
+            stylesheets="@../styles/reparacion.css">
 
-    <Label text="Vista de Stock — en construcción"/>
+    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <left>
+        <VBox styleClass="stock-sidebar" spacing="0">
+            <Button fx:id="btnTabStock"       text="Stock actual"  maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn-active" onAction="#mostrarTabStock"/>
+            <Button fx:id="btnTabPedidos"     text="Pedidos"       maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#mostrarTabPedidos"/>
+            <Button fx:id="btnTabProveedores" text="Proveedores"   maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#mostrarTabProveedores"/>
+        </VBox>
+    </left>
 
-</VBox>
+    <!-- ── Contenido ────────────────────────────────────────────────────────── -->
+    <center>
+        <StackPane>
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+            <!-- ══ Panel: Stock actual ══════════════════════════════════════════ -->
+            <VBox fx:id="pnlStock" spacing="12" visible="true" managed="true">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Stock actual" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
+                    <TextField fx:id="txtBuscador" promptText="Buscar componente…"
+                               styleClass="buscador" prefWidth="220"/>
+                </HBox>
+                <TableView fx:id="tablaStock" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colTipo"     text="Componente" prefWidth="280"/>
+                        <TableColumn fx:id="colStockVal" text="Stock"      prefWidth="80"/>
+                        <TableColumn fx:id="colStockMin" text="Mín."       prefWidth="70"/>
+                        <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="100"/>
+                        <TableColumn fx:id="colAccion"   text=""           prefWidth="80"/>
+                    </columns>
+                    <placeholder><Label text="Sin componentes"/></placeholder>
+                </TableView>
+            </VBox>
+
+            <!-- ══ Panel: Pedidos ═══════════════════════════════════════════════ -->
+            <VBox fx:id="pnlPedidos" spacing="12" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Pedidos" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
+                    <ComboBox fx:id="cmbFiltroEstado" prefWidth="140"/>
+                    <Button text="Nuevo pedido" styleClass="btn-primary" onAction="#nuevoPedido"/>
+                </HBox>
+                <TableView fx:id="tablaPedidos" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="cpId"         text="ID"         prefWidth="50"/>
+                        <TableColumn fx:id="cpComponente" text="Componente" prefWidth="190"/>
+                        <TableColumn fx:id="cpProveedor"  text="Proveedor"  prefWidth="130"/>
+                        <TableColumn fx:id="cpCantidad"   text="Cant."      prefWidth="50"/>
+                        <TableColumn fx:id="cpUrgente"    text="Urg."       prefWidth="45"/>
+                        <TableColumn fx:id="cpFecha"      text="Pedido"     prefWidth="115"/>
+                        <TableColumn fx:id="cpPrecio"     text="P.Unit."    prefWidth="68"/>
+                        <TableColumn fx:id="cpDivisa"     text="Div."       prefWidth="45"/>
+                        <TableColumn fx:id="cpEur"        text="EUR"        prefWidth="68"/>
+                        <TableColumn fx:id="cpEstado"     text="Estado"     prefWidth="85"/>
+                    </columns>
+                    <placeholder><Label text="Sin pedidos"/></placeholder>
+                </TableView>
+                <HBox spacing="8">
+                    <Button fx:id="btnConfirmarRecibido" text="Confirmar recibido" styleClass="btn-primary"
+                            onAction="#confirmarRecibido" disable="true"/>
+                    <Button fx:id="btnConfirmarAlterado" text="Cantidad alterada"  styleClass="btn-secondary"
+                            onAction="#confirmarAlterado" disable="true"/>
+                    <Button fx:id="btnEditarPedido"      text="Editar"             styleClass="btn-secondary"
+                            onAction="#editarPedido"      disable="true"/>
+                    <Button fx:id="btnCancelarPedido"    text="Cancelar pedido"    styleClass="btn-secondary"
+                            onAction="#cancelarPedido"    disable="true"/>
+                    <Button fx:id="btnDevolverPedido"    text="Devolver"           styleClass="btn-secondary"
+                            onAction="#devolverPedido"    disable="true"/>
+                </HBox>
+            </VBox>
+
+            <!-- ══ Panel: Proveedores ═══════════════════════════════════════════ -->
+            <VBox fx:id="pnlProveedores" spacing="12" visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Proveedores" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
+                    <Button text="Nuevo proveedor" styleClass="btn-primary" onAction="#nuevoProveedor"/>
+                </HBox>
+                <TableView fx:id="tablaProveedores" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="cpvNombre" text="Nombre" prefWidth="300"/>
+                        <TableColumn fx:id="cpvActivo" text="Estado" prefWidth="100"/>
+                    </columns>
+                    <placeholder><Label text="Sin proveedores"/></placeholder>
+                </TableView>
+                <HBox spacing="8">
+                    <Button fx:id="btnActivarProveedor" text="Activar / Desactivar" styleClass="btn-secondary"
+                            onAction="#activarProveedor" disable="true"/>
+                    <Button fx:id="btnBorrarProveedor"  text="Borrar"               styleClass="btn-secondary"
+                            onAction="#borrarProveedor"  disable="true"/>
+                </HBox>
+            </VBox>
+
+        </StackPane>
+    </center>
+
+</BorderPane>

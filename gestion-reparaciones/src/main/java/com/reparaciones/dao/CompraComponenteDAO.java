@@ -1,57 +1,220 @@
 package com.reparaciones.dao;
 
 import com.reparaciones.models.CompraComponente;
+import com.reparaciones.models.CompraComponente.Estado;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CompraComponenteDAO {
 
-    public List<CompraComponente> getByComponente(int idCom) throws SQLException {
+    private static final String SQL_BASE = """
+            SELECT cc.*, c.TIPO AS tipo_componente, p.NOMBRE AS nombre_proveedor
+            FROM Compra_componente cc
+            JOIN Componente c ON cc.ID_COM  = c.ID_COM
+            JOIN Proveedor  p ON cc.ID_PROV = p.ID_PROV
+            """;
+
+    // ─── Lectura ──────────────────────────────────────────────────────────────
+
+    public List<CompraComponente> getAll() throws SQLException {
         List<CompraComponente> lista = new ArrayList<>();
-        String sql = "SELECT * FROM Compra_componente WHERE ID_COM = ? ORDER BY FECHA_PEDIDO DESC";
+        String sql = SQL_BASE + " ORDER BY cc.FECHA_PEDIDO DESC";
         try (Connection con = Conexion.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, idCom);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                lista.add(new CompraComponente(
-                    rs.getInt("ID_COMPRA"),
-                    rs.getInt("ID_COM"),
-                    rs.getInt("CANTIDAD"),
-                    rs.getBoolean("ES_URGENTE"),
-                    rs.getTimestamp("FECHA_PEDIDO").toLocalDateTime()
-                ));
-            }
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) lista.add(mapear(rs));
         }
         return lista;
     }
 
-    public void insertar(CompraComponente cc) throws SQLException {
-        String sqlCompra = "INSERT INTO Compra_componente (ID_COM, CANTIDAD, ES_URGENTE, FECHA_PEDIDO) " +
-                           "VALUES (?, ?, ?, ?)";
-        String sqlStock = "UPDATE Componente SET STOCK = STOCK + ? WHERE ID_COM = ?";
+    public List<CompraComponente> getPendientes() throws SQLException {
+        List<CompraComponente> lista = new ArrayList<>();
+        String sql = SQL_BASE + " WHERE cc.ESTADO = 'pendiente' ORDER BY cc.ES_URGENTE DESC, cc.FECHA_PEDIDO ASC";
+        try (Connection con = Conexion.getConexion();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) lista.add(mapear(rs));
+        }
+        return lista;
+    }
 
+    // ─── Insertar ─────────────────────────────────────────────────────────────
+
+    public void insertar(int idCom, int idProv, int cantidad, boolean esUrgente,
+                         double precioUnidad, String divisa, double precioEur) throws SQLException {
+        String sql = """
+                INSERT INTO Compra_componente
+                    (ID_COM, ID_PROV, CANTIDAD, ES_URGENTE,
+                     PRECIO_UNIDAD_PEDIDO, DIVISA, PRECIO_EUR, ESTADO)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente')
+                """;
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idCom);
+            ps.setInt(2, idProv);
+            ps.setInt(3, cantidad);
+            ps.setBoolean(4, esUrgente);
+            ps.setDouble(5, precioUnidad);
+            ps.setString(6, divisa);
+            ps.setDouble(7, precioEur);
+            ps.executeUpdate();
+        }
+    }
+
+    // ─── Editar pedido pendiente ──────────────────────────────────────────────
+
+    public void editar(int idCompra, int idProv, int cantidad, boolean esUrgente,
+                       double precioUnidad, String divisa, double precioEur) throws SQLException {
+        String sql = """
+                UPDATE Compra_componente
+                SET ID_PROV = ?, CANTIDAD = ?, ES_URGENTE = ?,
+                    PRECIO_UNIDAD_PEDIDO = ?, DIVISA = ?, PRECIO_EUR = ?
+                WHERE ID_COMPRA = ? AND ESTADO = 'pendiente'
+                """;
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idProv);
+            ps.setInt(2, cantidad);
+            ps.setBoolean(3, esUrgente);
+            ps.setDouble(4, precioUnidad);
+            ps.setString(5, divisa);
+            ps.setDouble(6, precioEur);
+            ps.setInt(7, idCompra);
+            ps.executeUpdate();
+        }
+    }
+
+    // ─── Confirmar llegada ────────────────────────────────────────────────────
+
+    public void confirmarRecibido(int idCompra, String observacion) throws SQLException {
+        String sqlUpdate = """
+                UPDATE Compra_componente
+                SET ESTADO = 'recibido', FECHA_LLEGADA = NOW(),
+                    CANTIDAD_RECIBIDA = CANTIDAD, OBSERVACION_LLEGADA = ?
+                WHERE ID_COMPRA = ?
+                """;
+        String sqlStock = """
+                UPDATE Componente SET STOCK = STOCK + (
+                    SELECT CANTIDAD FROM Compra_componente WHERE ID_COMPRA = ?
+                ) WHERE ID_COM = (
+                    SELECT ID_COM FROM Compra_componente WHERE ID_COMPRA = ?
+                )
+                """;
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
-            try (PreparedStatement ps1 = con.prepareStatement(sqlCompra);
-                 PreparedStatement ps2 = con.prepareStatement(sqlStock)) {
-
-                ps1.setInt(1, cc.getIdCom());
-                ps1.setInt(2, cc.getCantidad());
-                ps1.setBoolean(3, cc.isEsUrgente());
-                ps1.setTimestamp(4, Timestamp.valueOf(cc.getFechaPedido()));
-                ps1.executeUpdate();
-
-                ps2.setInt(1, cc.getCantidad());
-                ps2.setInt(2, cc.getIdCom());
-                ps2.executeUpdate();
-
+            try {
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
+                    ps.setString(1, observacion);
+                    ps.setInt(2, idCompra);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
+                    ps.setInt(1, idCompra);
+                    ps.setInt(2, idCompra);
+                    ps.executeUpdate();
+                }
                 con.commit();
             } catch (SQLException e) {
                 con.rollback();
                 throw e;
             }
         }
+    }
+
+    public void confirmarAlterado(int idCompra, int cantidadRecibida, String observacion) throws SQLException {
+        String sqlUpdate = """
+                UPDATE Compra_componente
+                SET ESTADO = 'alterado', FECHA_LLEGADA = NOW(),
+                    CANTIDAD_RECIBIDA = ?, OBSERVACION_LLEGADA = ?
+                WHERE ID_COMPRA = ?
+                """;
+        String sqlStock = """
+                UPDATE Componente SET STOCK = STOCK + ?
+                WHERE ID_COM = (SELECT ID_COM FROM Compra_componente WHERE ID_COMPRA = ?)
+                """;
+        try (Connection con = Conexion.getConexion()) {
+            con.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
+                    ps.setInt(1, cantidadRecibida);
+                    ps.setString(2, observacion);
+                    ps.setInt(3, idCompra);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
+                    ps.setInt(1, cantidadRecibida);
+                    ps.setInt(2, idCompra);
+                    ps.executeUpdate();
+                }
+                con.commit();
+            } catch (SQLException e) {
+                con.rollback();
+                throw e;
+            }
+        }
+    }
+
+    // ─── Cancelar ─────────────────────────────────────────────────────────────
+
+    public void cancelar(int idCompra) throws SQLException {
+        String sql = "UPDATE Compra_componente SET ESTADO = 'cancelado' WHERE ID_COMPRA = ? AND ESTADO = 'pendiente'";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idCompra);
+            ps.executeUpdate();
+        }
+    }
+
+    // ─── Devolver ─────────────────────────────────────────────────────────────
+
+    public void devolver(int idCompra, int cantidadDevuelta) throws SQLException {
+        String sqlUpdate = "UPDATE Compra_componente SET ESTADO = 'devuelto' WHERE ID_COMPRA = ?";
+        String sqlStock  = """
+                UPDATE Componente SET STOCK = STOCK - ?
+                WHERE ID_COM = (SELECT ID_COM FROM Compra_componente WHERE ID_COMPRA = ?)
+                """;
+        try (Connection con = Conexion.getConexion()) {
+            con.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
+                    ps.setInt(1, idCompra);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
+                    ps.setInt(1, cantidadDevuelta);
+                    ps.setInt(2, idCompra);
+                    ps.executeUpdate();
+                }
+                con.commit();
+            } catch (SQLException e) {
+                con.rollback();
+                throw e;
+            }
+        }
+    }
+
+    // ─── Mapeo ────────────────────────────────────────────────────────────────
+
+    private CompraComponente mapear(ResultSet rs) throws SQLException {
+        Timestamp tsLlegada = rs.getTimestamp("FECHA_LLEGADA");
+        return new CompraComponente(
+                rs.getInt("ID_COMPRA"),
+                rs.getInt("ID_COM"),
+                rs.getString("tipo_componente"),
+                rs.getInt("ID_PROV"),
+                rs.getString("nombre_proveedor"),
+                rs.getInt("CANTIDAD"),
+                rs.getObject("CANTIDAD_RECIBIDA") != null ? rs.getInt("CANTIDAD_RECIBIDA") : null,
+                rs.getBoolean("ES_URGENTE"),
+                rs.getTimestamp("FECHA_PEDIDO").toLocalDateTime(),
+                tsLlegada != null ? tsLlegada.toLocalDateTime() : null,
+                rs.getDouble("PRECIO_UNIDAD_PEDIDO"),
+                rs.getString("DIVISA"),
+                rs.getDouble("PRECIO_EUR"),
+                Estado.valueOf(rs.getString("ESTADO")),
+                rs.getString("OBSERVACION_LLEGADA")
+        );
     }
 }

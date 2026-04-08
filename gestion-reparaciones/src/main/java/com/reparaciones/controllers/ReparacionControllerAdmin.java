@@ -3,7 +3,6 @@ package com.reparaciones.controllers;
 import com.reparaciones.dao.ReparacionComponenteDAO;
 import com.reparaciones.dao.ReparacionDAO;
 import com.reparaciones.dao.TecnicoDAO;
-import com.reparaciones.dao.TelefonoDAO;
 import com.reparaciones.utils.ConfirmDialog;
 import com.reparaciones.models.ReparacionResumen;
 import com.reparaciones.models.Tecnico;
@@ -64,7 +63,6 @@ public class ReparacionControllerAdmin {
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private final ReparacionComponenteDAO reparacionComponenteDAO = new ReparacionComponenteDAO();
     private final TecnicoDAO tecnicoDAO = new TecnicoDAO();
-    private final TelefonoDAO telefonoDAO = new TelefonoDAO();
 
     private ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
     private FilteredList<ReparacionResumen> datosFiltrados;
@@ -510,12 +508,12 @@ public class ReparacionControllerAdmin {
                 return false;
             if (!tecnicosSeleccionados.isEmpty() && !tecnicosSeleccionados.contains(rep.getNombreTecnico()))
                 return false;
-            if (desde != null && rep.getFechaFin() != null
-                    && rep.getFechaFin().toLocalDate().isBefore(desde))
-                return false;
-            if (hasta != null && rep.getFechaFin() != null
-                    && rep.getFechaFin().toLocalDate().isAfter(hasta))
-                return false;
+            if (desde != null || hasta != null) {
+                if (rep.getFechaFin() == null) return false;
+                LocalDate fechaFin = rep.getFechaFin().toLocalDate();
+                if (desde != null && fechaFin.isBefore(desde)) return false;
+                if (hasta != null && fechaFin.isAfter(hasta))  return false;
+            }
             if (filtrarAbiertas || filtrarCerradas || filtrarNormales) {
                 boolean mostrar = false;
                 if (filtrarNormales && !rep.isEsIncidencia())                        mostrar = true;
@@ -575,105 +573,6 @@ public class ReparacionControllerAdmin {
     @FXML
     private void abrirMisPendientes() {
         PendientesTecnicoController.abrir(this::cargarDatos);
-    }
-
-    // ─── Formulario asignación ────────────────────────────────────────────────
-
-    private void abrirFormularioAsignacion(TableView<ReparacionResumen> tablaModal) {
-        Label lblImei = new Label("Introduzca IMEI de teléfono a reparar");
-        TextField tfImei = new TextField();
-        Label lblImeiErr = new Label();
-        tfImei.setPromptText("Introduce un IMEI para identificar");
-        tfImei.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9; " +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
-        lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: #FB8888;");
-
-        tfImei.textProperty().addListener((obs, o, n) -> {
-            if (!n.matches("\\d*"))
-                tfImei.setText(n.replaceAll("[^\\d]", ""));
-            if (tfImei.getText().length() > 15)
-                tfImei.setText(tfImei.getText().substring(0, 15));
-        });
-
-        Label lblTecnico = new Label("Técnico a asignar");
-        ComboBox<Tecnico> cbTecnico = new ComboBox<>();
-        cbTecnico.setPromptText("Selecciona técnico a asignar reparación");
-        cbTecnico.setMaxWidth(Double.MAX_VALUE);
-        cbTecnico.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9; " +
-                "-fx-border-radius: 4; -fx-background-radius: 4;");
-        try {
-            cbTecnico.getItems().addAll(tecnicoDAO.getAll());
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-        cbTecnico.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Tecnico t, boolean empty) {
-                super.updateItem(t, empty);
-                setText(empty || t == null ? null : t.getNombre());
-            }
-        });
-        cbTecnico.setButtonCell(new ListCell<>() {
-            @Override
-            protected void updateItem(Tecnico t, boolean empty) {
-                super.updateItem(t, empty);
-                setText(empty || t == null ? "Selecciona técnico a asignar reparación" : t.getNombre());
-            }
-        });
-
-        Button btnConfirmar = new Button("Asignar reparación");
-        btnConfirmar.setMaxWidth(Double.MAX_VALUE);
-        btnConfirmar.setDisable(true);
-        btnConfirmar.setStyle(
-                "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
-                        "-fx-font-size: 12px; -fx-background-radius: 4; -fx-padding: 8;");
-
-        Runnable validar = () -> {
-            String imeiStr = tfImei.getText().trim();
-            boolean imeiOk = imeiStr.length() == 15;
-            boolean ok = imeiOk && cbTecnico.getValue() != null;
-            tfImei.setStyle(imeiStr.isEmpty()
-                    ? "-fx-background-color: white; -fx-border-color: #A9A9A9; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;"
-                    : imeiOk
-                            ? "-fx-background-color: white; -fx-border-color: #8AC7AF; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;"
-                            : "-fx-background-color: white; -fx-border-color: #FB8888; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
-            lblImeiErr.setText(!imeiStr.isEmpty() && !imeiOk ? "El IMEI debe tener exactamente 15 dígitos" : "");
-            btnConfirmar.setDisable(!ok);
-            btnConfirmar.setStyle(ok
-                    ? "-fx-background-color: #8AC7AF; -fx-text-fill: white; -fx-font-size: 12px; " +
-                            "-fx-background-radius: 4; -fx-padding: 8; -fx-cursor: hand;"
-                    : "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9; -fx-font-size: 12px; " +
-                            "-fx-background-radius: 4; -fx-padding: 8;");
-        };
-        tfImei.textProperty().addListener((obs, o, n) -> validar.run());
-        cbTecnico.valueProperty().addListener((obs, o, n) -> validar.run());
-
-        btnConfirmar.setOnAction(ev -> {
-            String imei = tfImei.getText().trim();
-            try {
-                if (!telefonoDAO.exists(imei))
-                    telefonoDAO.insertar(imei);
-                reparacionDAO.insertarAsignacion(imei, cbTecnico.getValue().getIdTec());
-                tablaModal.getItems().setAll(reparacionDAO.getAsignaciones());
-                tfImei.clear();
-                cbTecnico.setValue(null);
-                lblImeiErr.setText("");
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        VBox form = new VBox(6, lblImei, tfImei, lblImeiErr, lblTecnico, cbTecnico, btnConfirmar);
-        form.setPadding(new Insets(16));
-        form.setStyle("-fx-background-color: #F0F0F0; -fx-background-radius: 8;");
-        form.setPrefWidth(560);
-
-        Dialog<Void> formDialog = new Dialog<>();
-        formDialog.setTitle("Asignación de Reparación");
-        formDialog.getDialogPane().setContent(form);
-        formDialog.getDialogPane().setPrefWidth(600);
-        formDialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        formDialog.showAndWait();
     }
 
     // ─── Incidencias ──────────────────────────────────────────────────────────
