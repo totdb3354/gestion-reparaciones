@@ -58,7 +58,9 @@ public class TipoCambioDAO {
 
     private double consultarApi(String divisa) throws SQLException {
         try {
-            HttpClient client = HttpClient.newHttpClient();
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.ALWAYS)
+                    .build();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(String.format(API_URL, divisa.toUpperCase())))
                     .build();

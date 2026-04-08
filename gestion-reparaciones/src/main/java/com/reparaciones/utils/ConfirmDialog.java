@@ -88,7 +88,7 @@ public class ConfirmDialog {
                 btnAccion.setText(textoAccion);
                 btnAccion.setDisable(false);
                 btnAccion.setStyle(
-                        "-fx-background-color: #D9756A; -fx-text-fill: " + Colores.CREMA + ";" +
+                        "-fx-background-color: " + Colores.ROJO_ACCION + "; -fx-text-fill: " + Colores.CREMA + ";" +
                         "-fx-background-radius: 4; -fx-font-size: 12px;" +
                         "-fx-padding: 10; -fx-cursor: hand;");
             }

@@ -57,12 +57,12 @@ public class PendientesTecnicoController {
                 super.updateItem(item, empty);
                 if (!empty && item != null) {
                     if (item.getEsSolicitud() == 1) {
-                        setStyle("-fx-background-color: rgba(255,165,0,0.12);" +
-                                "-fx-border-color: transparent transparent #FFA500 transparent;" +
+                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
                                 "-fx-border-width: 0 0 0.2 0;");
                     } else if (item.isEsIncidencia()) {
-                        setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
-                                "-fx-border-color: transparent transparent #FB8888 transparent;" +
+                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
                                 "-fx-border-width: 0 0 0.2 0;");
                     } else setStyle("");
                 } else setStyle("");

@@ -114,12 +114,12 @@ public class PendientesAdminController {
                 super.updateItem(item, empty);
                 if (!empty && item != null) {
                     if (item.getEsSolicitud() == 1) {
-                        setStyle("-fx-background-color: rgba(255,165,0,0.12);" +
-                                "-fx-border-color: transparent transparent #FFA500 transparent;" +
+                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
                                 "-fx-border-width: 0 0 0.2 0;");
                     } else if (item.isEsIncidencia()) {
-                        setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
-                                "-fx-border-color: transparent transparent #FB8888 transparent;" +
+                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
                                 "-fx-border-width: 0 0 0.2 0;");
                     } else {
                         setStyle("");
@@ -291,7 +291,7 @@ public class PendientesAdminController {
         tfImei.setPromptText("Introduce un IMEI para identificar");
         tfImei.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
                 "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
-        lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: #FB8888;");
+        lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ERROR + ";");
 
         // ── Lista de técnicos con checkboxes ──────────────────────────────────
         Label lblTecnicos = new Label("Técnicos a asignar");
@@ -332,8 +332,8 @@ public class PendientesAdminController {
                     if (telefonoDAO.exists(imeiStr)) {
                         bloqueadoPorHistorial = true;
                         lblImeiErr.setText("Este teléfono ya tiene historial. Marca una incidencia desde la tabla si necesita reparación.");
-                        lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: #FB8888;");
-                        tfImei.setStyle("-fx-background-color: white; -fx-border-color: #FB8888;" +
+                        lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ERROR + ";");
+                        tfImei.setStyle("-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
                                 "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
                         // Deshabilitar todos los checkboxes
                         checkboxes.forEach(cb -> { cb.setDisable(true); cb.setSelected(false); });
@@ -355,7 +355,7 @@ public class PendientesAdminController {
                         : imeiOk
                                 ? "-fx-background-color: white; -fx-border-color: #8AC7AF;" +
                                         "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;"
-                                : "-fx-background-color: white; -fx-border-color: #FB8888;" +
+                                : "-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
                                         "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
                 lblImeiErr.setText(!imeiStr.isEmpty() && !imeiOk
                         ? "El IMEI debe tener exactamente 15 dígitos" : "");

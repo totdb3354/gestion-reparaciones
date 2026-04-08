@@ -53,7 +53,7 @@ public class FormularioCompraController {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        cmbDivisa.getItems().setAll(List.of("EUR", "USD", "CNY", "GBP"));
+        cmbDivisa.getItems().setAll(List.of("EUR", "USD"));
 
         // Listeners (antes de setear valores para que calcularTotal se dispare)
         txtPrecio   .textProperty().addListener((obs, o, n) -> calcularTotal());
@@ -94,21 +94,23 @@ public class FormularioCompraController {
                 double t = tipoCambioDAO.getTasa(divisa);
                 Platform.runLater(() -> { tasaActual = t; calcularTotal(); });
             } catch (SQLException e) {
+                e.printStackTrace();
                 Platform.runLater(() -> lblTotalEur.setText("Error al obtener tasa"));
             }
         }, "tasa-fetch").start();
     }
 
     private void calcularTotal() {
+        String divisa = cmbDivisa.getValue() != null ? cmbDivisa.getValue() : "EUR";
+        boolean esEur = "EUR".equalsIgnoreCase(divisa);
+        String infoTasa = esEur ? "" : String.format("  (1 %s = %.4f €)", divisa, tasaActual);
         try {
             double precio = Double.parseDouble(txtPrecio.getText().trim().replace(",", "."));
             int    cant   = Integer.parseInt(txtCantidad.getText().trim());
             double total  = precio * tasaActual * cant;
-            String divisa = cmbDivisa.getValue() != null ? cmbDivisa.getValue() : "EUR";
-            lblTotalEur.setText(String.format("%.2f € · 1 %s = %.4f €",
-                    total, divisa, tasaActual));
+            lblTotalEur.setText(String.format("%.2f €%s", total, infoTasa));
         } catch (NumberFormatException e) {
-            lblTotalEur.setText("—");
+            lblTotalEur.setText(esEur ? "—" : infoTasa.trim());
         }
     }
 

@@ -28,22 +28,30 @@ public final class Colores {
     public static final String FILA_REPARADO_BRD = "#C5E1C5";
     public static final String FILA_REPARADO_ICO = "#8AC7AF";
 
-    /** Fila con solicitud de pieza pendiente — naranja */
-    public static final String FILA_SOLICITUD_BG  = "rgba(255,165,0,0.12)";
-    public static final String FILA_SOLICITUD_BRD = "#FFA500";
+    /** Fila con incidencia activa — fondo rosa frío, borde inferior carmesí */
+    public static final String FILA_INCIDENCIA_BG  = "#F5E6E8";
+    public static final String FILA_INCIDENCIA_BRD = "#B83746";
 
-    /** Fila con incidencia activa — rojo suave */
-    public static final String FILA_INCIDENCIA_BG  = "rgba(251,136,136,0.16)";
-    public static final String FILA_INCIDENCIA_BRD = "#FB8888";
+    /** Fila con solicitud de pieza pendiente — fondo crema, borde inferior naranja oscuro */
+    public static final String FILA_SOLICITUD_BG   = "#FDF0DC";
+    public static final String FILA_SOLICITUD_BRD  = "#C07800";
 
     // ─── Texto funcional ──────────────────────────────────────────────────────
 
-    /** Texto de advertencia / incidencia */
-    public static final String TEXTO_ERROR    = "#CC4444";
+    /** Texto de advertencia / incidencia / error de validación */
+    public static final String TEXTO_ERROR    = "#B03040";
 
     /** Texto de acción secundaria — azul medio */
     public static final String TEXTO_ACCION   = "#5B8CFF";
 
     /** Verde confirmación */
     public static final String VERDE_OK       = "#4CAF50";
+
+    // ─── Acciones destructivas ────────────────────────────────────────────────
+
+    /** Botón de acción destructiva (ConfirmDialog borrar) */
+    public static final String ROJO_ACCION    = "#A84040";
+
+    /** Estado sin stock (StockController, FormularioReparacion) */
+    public static final String ROJO_SIN_STOCK = "#B03040";
 }

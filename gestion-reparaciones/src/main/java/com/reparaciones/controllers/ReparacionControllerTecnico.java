@@ -292,8 +292,8 @@ public class ReparacionControllerTecnico {
                             "-fx-border-color: transparent transparent #3D5070 transparent;" +
                             "-fx-border-width: 0 0 0.2 0;");
                 } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
-                            "-fx-border-color: transparent transparent #FB8888 transparent;" +
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
                             "-fx-border-width: 0 0 0.2 0;");
                 } else {
                     setStyle("");
@@ -353,7 +353,7 @@ public class ReparacionControllerTecnico {
             if (val.isEmpty())
                 filtroImei.setStyle("");
             else if (val.length() < 15)
-                filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: #FB8888;" +
+                filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
                         "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
             else
                 filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: #8AC7AF;" +

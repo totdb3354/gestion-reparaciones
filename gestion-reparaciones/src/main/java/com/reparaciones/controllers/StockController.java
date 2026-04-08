@@ -12,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
@@ -36,10 +37,10 @@ public class StockController {
     @FXML private TableView<Componente>             tablaStock;
     @FXML private TableColumn<Componente, String>   colTipo;
     @FXML private TableColumn<Componente, Integer>  colStockVal;
-    @FXML private TableColumn<Componente, Integer>  colStockMin;
     @FXML private TableColumn<Componente, String>   colEstado;
     @FXML private TableColumn<Componente, Void>     colAccion;
     @FXML private TextField                         txtBuscador;
+    @FXML private PieChart                          chartEstado;
 
     // ── Panel Pedidos ─────────────────────────────────────────────────────────
     @FXML private TableView<CompraComponente>             tablaPedidos;
@@ -128,14 +129,12 @@ public class StockController {
                 new javafx.beans.property.SimpleStringProperty(c.getValue().getTipo()));
         colStockVal.setCellValueFactory(c ->
                 new javafx.beans.property.SimpleIntegerProperty(c.getValue().getStock()).asObject());
-        colStockMin.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getStockMinimo()).asObject());
 
         // Estado semáforo
         colEstado.setCellValueFactory(c -> {
             Componente comp = c.getValue();
-            if (comp.getStock() == 0)                          return sp("Sin stock");
-            if (comp.getStock() <= comp.getStockMinimo())      return sp("Bajo");
+            if (comp.getStock() == 0)                     return sp("Sin stock");
+            if (comp.getStock() <= comp.getStockMinimo()) return sp("Bajo");
             return sp("OK");
         });
         colEstado.setCellFactory(col -> new TableCell<>() {
@@ -144,25 +143,32 @@ public class StockController {
                 if (empty || val == null) { setText(null); setStyle(""); return; }
                 setText(val);
                 setStyle(switch (val) {
-                    case "OK"       -> "-fx-text-fill:#3a7d44; -fx-font-weight:bold;";
-                    case "Bajo"     -> "-fx-text-fill:#c77a00; -fx-font-weight:bold;";
-                    default         -> "-fx-text-fill:#c0392b; -fx-font-weight:bold;";
+                    case "OK"   -> "-fx-text-fill:#3a7d44; -fx-font-weight:bold;";
+                    case "Bajo" -> "-fx-text-fill:#c77a00; -fx-font-weight:bold;";
+                    default     -> "-fx-text-fill:" + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + "; -fx-font-weight:bold;";
                 });
             }
         });
 
-        // Botón "Pedir"
+        // Botones "Pedir" + "Mín." (solo admin)
         colAccion.setCellFactory(col -> new TableCell<>() {
-            private final Button btn = new Button("Pedir");
+            private final Button btnPedir = new Button("Pedir");
+            private final Button btnMin   = new Button("Mín.");
+            private final javafx.scene.layout.HBox box;
             {
-                btn.setStyle("-fx-font-size:11px; -fx-padding:4 10 4 10;" +
+                btnPedir.setStyle("-fx-font-size:11px; -fx-padding:4 10 4 10;" +
                         "-fx-background-color:#2C3B54; -fx-text-fill:white;" +
                         "-fx-background-radius:4; -fx-cursor:hand;");
-                btn.setOnAction(e -> pedirComponente(getTableView().getItems().get(getIndex())));
+                btnMin.setStyle("-fx-font-size:11px; -fx-padding:4 8 4 8;" +
+                        "-fx-background-color:#586376; -fx-text-fill:white;" +
+                        "-fx-background-radius:4; -fx-cursor:hand;");
+                btnPedir.setOnAction(e -> pedirComponente(getTableView().getItems().get(getIndex())));
+                btnMin  .setOnAction(e -> ajustarMinimo(getTableView().getItems().get(getIndex())));
+                box = new javafx.scene.layout.HBox(4, btnPedir, btnMin);
             }
             @Override protected void updateItem(Void v, boolean empty) {
                 super.updateItem(v, empty);
-                setGraphic(empty ? null : btn);
+                setGraphic(empty || !com.reparaciones.Sesion.esAdmin() ? null : box);
             }
         });
 
@@ -177,15 +183,55 @@ public class StockController {
     private void cargarStock() {
         try {
             datosStock.setAll(componenteDAO.getAll());
+            actualizarChart();
         } catch (SQLException e) {
             mostrarError(e);
         }
+    }
+
+    private void actualizarChart() {
+        long ok       = datosStock.stream().filter(c -> c.getStock() > c.getStockMinimo()).count();
+        long bajo     = datosStock.stream().filter(c -> c.getStock() > 0 && c.getStock() <= c.getStockMinimo()).count();
+        long sinStock = datosStock.stream().filter(c -> c.getStock() == 0).count();
+
+        chartEstado.getData().setAll(
+                new PieChart.Data("OK (" + ok + ")",             ok),
+                new PieChart.Data("Bajo (" + bajo + ")",         bajo),
+                new PieChart.Data("Sin stock (" + sinStock + ")", sinStock)
+        );
+
+        // Colores coherentes con el semáforo de la tabla
+        javafx.application.Platform.runLater(() -> {
+            ObservableList<PieChart.Data> data = chartEstado.getData();
+            if (data.size() == 3) {
+                data.get(0).getNode().setStyle("-fx-pie-color: #3a7d44;");
+                data.get(1).getNode().setStyle("-fx-pie-color: #c77a00;");
+                data.get(2).getNode().setStyle("-fx-pie-color: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";");
+            }
+        });
     }
 
     private void pedirComponente(Componente c) {
         FormularioCompraController.abrir(c, () -> {
             cargarStock();
             if (pnlPedidos.isVisible()) cargarPedidos();
+        });
+    }
+
+    private void ajustarMinimo(Componente c) {
+        TextInputDialog d = new TextInputDialog(String.valueOf(c.getStockMinimo()));
+        d.setTitle("Stock mínimo");
+        d.setHeaderText(c.getTipo());
+        d.setContentText("Nuevo stock mínimo:");
+        d.showAndWait().ifPresent(val -> {
+            try {
+                int min = Integer.parseInt(val.trim());
+                if (min < 0) throw new NumberFormatException();
+                componenteDAO.setStockMinimo(c.getIdCom(), min);
+                cargarStock();
+            } catch (NumberFormatException ex) {
+                new Alert(Alert.AlertType.WARNING, "Valor no válido (debe ser ≥ 0).").showAndWait();
+            } catch (SQLException e) { mostrarError(e); }
         });
     }
 

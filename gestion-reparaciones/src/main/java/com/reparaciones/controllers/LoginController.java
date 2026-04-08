@@ -144,7 +144,7 @@ public class LoginController {
                 "-fx-text-fill: " + Colores.CREMA + "; -fx-prompt-text-fill: " + Colores.AZUL_GRIS + ";");
 
         Label lblError2 = new Label();
-        lblError2.setStyle("-fx-font-size: 11px; -fx-text-fill: #FB8888;");
+        lblError2.setStyle("-fx-font-size: 11px; -fx-text-fill: " + Colores.TEXTO_ERROR + ";");
         lblError2.setVisible(false);
 
         Button btnAcceder = new Button("Acceder");

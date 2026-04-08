@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.chart.*?>
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
@@ -32,16 +33,26 @@
                     <TextField fx:id="txtBuscador" promptText="Buscar componente…"
                                styleClass="buscador" prefWidth="220"/>
                 </HBox>
-                <TableView fx:id="tablaStock" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="colTipo"     text="Componente" prefWidth="280"/>
-                        <TableColumn fx:id="colStockVal" text="Stock"      prefWidth="80"/>
-                        <TableColumn fx:id="colStockMin" text="Mín."       prefWidth="70"/>
-                        <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="100"/>
-                        <TableColumn fx:id="colAccion"   text=""           prefWidth="80"/>
-                    </columns>
-                    <placeholder><Label text="Sin componentes"/></placeholder>
-                </TableView>
+                <HBox spacing="16" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="tablaStock" styleClass="tabla-reparaciones" HBox.hgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colTipo"     text="Componente" prefWidth="280"/>
+                            <TableColumn fx:id="colStockVal" text="Stock"      prefWidth="80"/>
+                            <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="100"/>
+                            <TableColumn fx:id="colAccion"   text=""           prefWidth="130"/>
+                        </columns>
+                        <placeholder><Label text="Sin componentes"/></placeholder>
+                    </TableView>
+                    <VBox fx:id="pnlChart" spacing="8" prefWidth="220" minWidth="220"
+                          style="-fx-background-color:white; -fx-background-radius:6;
+                                 -fx-border-color:#C2C8D0; -fx-border-radius:6; -fx-padding:16;">
+                        <Label text="Estado del stock"
+                               style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
+                        <PieChart fx:id="chartEstado" labelsVisible="false"
+                                  legendVisible="true" animated="false"
+                                  VBox.vgrow="ALWAYS"/>
+                    </VBox>
+                </HBox>
             </VBox>
 
             <!-- ══ Panel: Pedidos ═══════════════════════════════════════════════ -->

@@ -523,7 +523,7 @@ public class FormularioReparacionController {
                 "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
                 "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
         private static final String STYLE_SOL_ACTIVA =
-                "-fx-background-color: #FFA500; -fx-text-fill: white;" +
+                "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + "; -fx-text-fill: white;" +
                 "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
 
         private final HBox mainRow;
@@ -811,9 +811,9 @@ public class FormularioReparacionController {
 
         private static void aplicarColorStock(ListCell<Componente> cell, Componente c) {
             if (c.getStock() == 0) {
-                cell.setStyle("-fx-text-fill: #FB8888;");
+                cell.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";");
             } else if (c.getStock() <= c.getStockMinimo()) {
-                cell.setStyle("-fx-text-fill: #FFA500;");
+                cell.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
             } else {
                 cell.setStyle("");
             }
