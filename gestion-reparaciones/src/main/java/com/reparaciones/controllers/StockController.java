@@ -182,7 +182,7 @@ public class StockController {
 
     private void cargarStock() {
         try {
-            datosStock.setAll(componenteDAO.getAll());
+            datosStock.setAll(componenteDAO.getAllGestionados());
             actualizarChart();
         } catch (SQLException e) {
             mostrarError(e);
@@ -200,15 +200,13 @@ public class StockController {
                 new PieChart.Data("Sin stock (" + sinStock + ")", sinStock)
         );
 
-        // Colores coherentes con el semáforo de la tabla
-        javafx.application.Platform.runLater(() -> {
-            ObservableList<PieChart.Data> data = chartEstado.getData();
-            if (data.size() == 3) {
-                data.get(0).getNode().setStyle("-fx-pie-color: #3a7d44;");
-                data.get(1).getNode().setStyle("-fx-pie-color: #c77a00;");
-                data.get(2).getNode().setStyle("-fx-pie-color: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";");
-            }
-        });
+        // CHART_COLOR_N afecta tanto el sector como el símbolo de la leyenda
+        // El orden coincide con el orden de inserción: 1=OK, 2=Bajo, 3=Sin stock
+        chartEstado.setStyle(
+                "CHART_COLOR_1: #3a7d44; " +
+                "CHART_COLOR_2: #c77a00; " +
+                "CHART_COLOR_3: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";"
+        );
     }
 
     private void pedirComponente(Componente c) {
