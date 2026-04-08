@@ -7,8 +7,8 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       xmlns="http://javafx.com/javafx/25"
       fx:controller="com.reparaciones.controllers.PendientesTecnicoController"
-      spacing="8" prefWidth="700" prefHeight="400"
-      style="-fx-padding: 8;">
+      spacing="8" VBox.vgrow="ALWAYS"
+      style="-fx-padding: 16;">
 
     <Label text="Mis asignaciones pendientes"
            style="-fx-font-size: 13px; -fx-font-weight: bold;"/>

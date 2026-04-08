@@ -257,14 +257,19 @@ public class StockController {
             @Override protected void updateItem(CompraComponente item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setStyle(""); return; }
+                String brd = "-fx-border-width: 0 0 0.3 0; -fx-border-color: transparent transparent ";
                 setStyle(switch (item.getEstado()) {
-                    case pendiente  -> item.isEsUrgente()
-                            ? "-fx-background-color: rgba(241,195,86,0.18);"
+                    case pendiente -> item.isEsUrgente()
+                            ? "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                              brd + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;"
                             : "";
-                    case recibido   -> "-fx-background-color: rgba(58,125,68,0.10);";
-                    case alterado   -> "-fx-background-color: rgba(199,122,0,0.10);";
+                    case recibido  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_RECIBIDO_BG + ";" +
+                                     brd + com.reparaciones.utils.Colores.FILA_RECIBIDO_BRD + " transparent;";
+                    case alterado  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_ALTERADO_BG + ";" +
+                                     brd + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;";
                     case cancelado,
-                         devuelto   -> "-fx-background-color: rgba(150,150,150,0.10);";
+                         devuelto  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_CANCELADO_BG + ";" +
+                                     brd + com.reparaciones.utils.Colores.FILA_CANCELADO_BRD + " transparent;";
                 });
             }
         });

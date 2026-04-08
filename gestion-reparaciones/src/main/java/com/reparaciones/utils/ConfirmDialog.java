@@ -30,7 +30,7 @@ import javafx.util.Duration;
  */
 public class ConfirmDialog {
 
-    private static final int SEGUNDOS = 1;
+    private static final int SEGUNDOS = 5;
 
     // Estilos del contenedor
     private static final String ESTILO_CONTENEDOR =

@@ -2,61 +2,90 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.MenuButton?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox styleClass="vista-container" stylesheets="@/styles/reparacion.css"
-      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/25"
-      fx:controller="com.reparaciones.controllers.ReparacionControllerAdmin">
+<BorderPane styleClass="vista-container" stylesheets="@/styles/reparacion.css"
+            xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/25"
+            fx:controller="com.reparaciones.controllers.ReparacionControllerAdmin">
 
-    <padding>
-        <Insets bottom="40" left="40" right="40" top="40" />
-    </padding>
+    <!-- ── Sidebar ── -->
+    <left>
+        <VBox styleClass="stock-sidebar" spacing="0">
+            <Button fx:id="btnTabHistorial"    text="Historial"       maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn-active" onAction="#mostrarHistorial"/>
+            <Button fx:id="btnTabPendientes"   text="Pendientes"      maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#abrirModalPendientes"/>
+            <Button fx:id="btnTabMisPendientes" text="Mis pendientes" maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#abrirMisPendientes"/>
+        </VBox>
+    </left>
 
-    <HBox alignment="CENTER_LEFT" spacing="24" styleClass="barra-superior">
-        <VBox.margin>
-            <Insets bottom="8" />
-        </VBox.margin>
-        <Label styleClass="vista-titulo" text="Historial de reparaciones" />
-        <HBox HBox.hgrow="ALWAYS" />
-        <Button fx:id="btnPendientes" onAction="#abrirModalPendientes" styleClass="btn-primary" text="Pendientes" />
-        <Button fx:id="btnMisPendientes" onAction="#abrirMisPendientes" styleClass="btn-primary" text="Mis pendientes" />
-        <Button fx:id="btnDescargar" onAction="#descargarHistorial" styleClass="btn-secondary" text="Descargar Historial (Formato TXT)" />
-    </HBox>
+    <!-- ── Contenido ── -->
+    <center>
+        <VBox spacing="0">
+            <padding><Insets bottom="40" left="40" right="40" top="40"/></padding>
 
-    <HBox alignment="CENTER_LEFT" spacing="16">
-        <VBox.margin>
-            <Insets bottom="8" />
-        </VBox.margin>
-        <TextField fx:id="filtroImei" promptText="Filtrar por IMEI" prefWidth="160" styleClass="buscador"/>
-        <MenuButton fx:id="filtroTecnico" text="Técnico" prefWidth="150"/>
-        <Label text="Desde:" style="-fx-font-size: 12px;"/>
-        <DatePicker fx:id="filtroFechaDesde" prefWidth="140"/>
-        <Label text="Hasta:" style="-fx-font-size: 12px;"/>
-        <DatePicker fx:id="filtroFechaHasta" prefWidth="140"/>
-        <MenuButton fx:id="filtroIncidencias" text="Incidencias" prefWidth="150"/>
-        <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar filtros"/>
-    </HBox>
+            <!-- Header siempre visible -->
+            <HBox alignment="CENTER_LEFT" spacing="24">
+                <VBox.margin><Insets bottom="8"/></VBox.margin>
+                <Label fx:id="lblTitulo" styleClass="vista-titulo" text="Historial de reparaciones"/>
+                <HBox HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnDescargar" onAction="#descargarHistorial"
+                        styleClass="btn-secondary" text="Descargar Historial (Formato TXT)"/>
+            </HBox>
 
-    <TableView fx:id="tablaReparaciones" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
-        <columns>
-            <TableColumn fx:id="colAcciones" maxWidth="80" minWidth="80" text="" />
-            <TableColumn fx:id="colIdRep" minWidth="110" text="Id Reparación" />
-            <TableColumn fx:id="colImei" minWidth="130" text="IMEI teléfono" />
-            <TableColumn fx:id="colReparador" minWidth="100" text="Reparador" />
-            <TableColumn fx:id="colFecha" minWidth="110" text="Fecha fin" />
-            <TableColumn fx:id="colComponente" minWidth="150" text="Componente" />
-            <TableColumn fx:id="colObservaciones" minWidth="200" maxWidth="320" text="Observaciones" />
-            <TableColumn fx:id="colIncidencia" minWidth="200" maxWidth="360" text="Incidencia" />
-            <TableColumn fx:id="colIdAnterior" minWidth="150" text="Id Rep. Anterior" />
-        </columns>
-    </TableView>
+            <!-- Paneles intercambiables -->
+            <StackPane VBox.vgrow="ALWAYS">
 
-</VBox>
+                <!-- Panel: Historial -->
+                <VBox fx:id="pnlHistorial" spacing="0" visible="true" managed="true" VBox.vgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="16">
+                        <VBox.margin><Insets bottom="8"/></VBox.margin>
+                        <TextField fx:id="filtroImei" promptText="Filtrar por IMEI" prefWidth="160" styleClass="buscador"/>
+                        <MenuButton fx:id="filtroTecnico" text="Técnico" prefWidth="150"/>
+                        <Label text="Desde:" style="-fx-font-size: 12px;"/>
+                        <DatePicker fx:id="filtroFechaDesde" prefWidth="140"/>
+                        <Label text="Hasta:" style="-fx-font-size: 12px;"/>
+                        <DatePicker fx:id="filtroFechaHasta" prefWidth="140"/>
+                        <MenuButton fx:id="filtroIncidencias" text="Incidencias" prefWidth="150"/>
+                        <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar filtros"/>
+                    </HBox>
+                    <TableView fx:id="tablaReparaciones" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colAcciones" maxWidth="80" minWidth="80" text=""/>
+                            <TableColumn fx:id="colIdRep" minWidth="110" text="Id Reparación"/>
+                            <TableColumn fx:id="colImei" minWidth="130" text="IMEI teléfono"/>
+                            <TableColumn fx:id="colReparador" minWidth="100" text="Reparador"/>
+                            <TableColumn fx:id="colFecha" minWidth="110" text="Fecha fin"/>
+                            <TableColumn fx:id="colComponente" minWidth="150" text="Componente"/>
+                            <TableColumn fx:id="colObservaciones" minWidth="200" maxWidth="320" text="Observaciones"/>
+                            <TableColumn fx:id="colIncidencia" minWidth="200" maxWidth="360" text="Incidencia"/>
+                            <TableColumn fx:id="colIdAnterior" minWidth="150" text="Id Rep. Anterior"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+
+                <!-- Panel: Pendientes admin -->
+                <VBox fx:id="pnlPendientes" visible="false" managed="false" VBox.vgrow="ALWAYS">
+                    <fx:include source="PendientesAdminView.fxml" fx:id="pendientesAdmin"/>
+                </VBox>
+
+                <!-- Panel: Mis pendientes (técnico) -->
+                <VBox fx:id="pnlMisPendientes" visible="false" managed="false" VBox.vgrow="ALWAYS">
+                    <fx:include source="PendientesTecnicoView.fxml" fx:id="misPendientes"/>
+                </VBox>
+
+            </StackPane>
+        </VBox>
+    </center>
+
+</BorderPane>

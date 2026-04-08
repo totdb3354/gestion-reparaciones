@@ -7,12 +7,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +31,7 @@ public class PendientesTecnicoController {
     private CheckBox cbSoloAsignaciones;
 
     private Runnable onCerrar;
+    private Runnable onVolverAHistorial;
 
     @FXML
     public void initialize() {
@@ -77,8 +73,7 @@ public class PendientesTecnicoController {
                              "-fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 4 10 4 10;");
                 btn.setOnAction(e -> {
                     ReparacionResumen asig = getTableView().getItems().get(getIndex());
-                    Stage stage = (Stage) tablaPendientes.getScene().getWindow();
-                    stage.close();
+                    if (onVolverAHistorial != null) onVolverAHistorial.run();
                     FormularioReparacionController.abrir(
                             asig.getImei(), null, asig.getIdRep(), onCerrar);
                 });
@@ -154,7 +149,7 @@ public class PendientesTecnicoController {
 
     // ─── Carga ────────────────────────────────────────────────────────────────
 
-    private void cargar() {
+    public void cargar() {
         try {
             Integer idTec = Sesion.getIdTec();
             if (idTec == null) return;
@@ -168,28 +163,7 @@ public class PendientesTecnicoController {
         this.onCerrar = onCerrar;
     }
 
-    // ─── Apertura del Stage desde fuera ──────────────────────────────────────
-
-    public static void abrir(Runnable onCerrar) {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    PendientesTecnicoController.class.getResource(
-                            "/views/PendientesTecnicoView.fxml"));
-            Parent root = loader.load();
-            PendientesTecnicoController ctrl = loader.getController();
-            ctrl.setOnCerrar(onCerrar);
-
-            Stage stage = new Stage();
-            stage.setTitle("Pendientes");
-            stage.setScene(new Scene(root));
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setResizable(false);
-            // show en vez de showAndWait — no bloquea el hilo
-            // onCerrar lo llama el formulario al guardar, no aquí
-            stage.show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void setOnVolverAHistorial(Runnable onVolverAHistorial) {
+        this.onVolverAHistorial = onVolverAHistorial;
     }
 }

@@ -12,18 +12,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.geometry.Pos;
 
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
@@ -274,7 +269,7 @@ public class PendientesAdminController {
 
     // ─── Carga ────────────────────────────────────────────────────────────────
 
-    private void cargar() {
+    public void cargar() {
         try {
             datos.setAll(reparacionDAO.getAsignaciones());
         } catch (SQLException e) {
@@ -443,23 +438,4 @@ public class PendientesAdminController {
         tablaPendientes.refresh();
     }
 
-    public static void abrir(Runnable onCerrar) {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    PendientesAdminController.class.getResource(
-                            "/views/PendientesAdminView.fxml"));
-            Parent root = loader.load();
-            Stage stage = new Stage();
-            stage.setTitle("Pendientes");
-            stage.setScene(new Scene(root));
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setResizable(false);
-            stage.showAndWait();
-            // Recargar tabla principal al cerrar
-            if (onCerrar != null)
-                onCerrar.run();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }
