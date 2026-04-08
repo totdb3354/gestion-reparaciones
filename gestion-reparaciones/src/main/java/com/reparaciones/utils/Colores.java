@@ -28,12 +28,23 @@ public final class Colores {
     public static final String FILA_REPARADO_BRD = "#C5E1C5";
     public static final String FILA_REPARADO_ICO = "#8AC7AF";
 
-    /** Fila con incidencia activa — fondo rosa frío, borde inferior carmesí */
-    public static final String FILA_INCIDENCIA_BG  = "#F5E6E8";
+    /** Fila pedido recibido — verde sólido */
+    public static final String FILA_RECIBIDO_BG  = "#C8E6C9";
+    public static final String FILA_RECIBIDO_BRD = "#3a7d44";
+
+    /** Fila pedido alterado — ámbar más oscuro que urgente */
+    public static final String FILA_ALTERADO_BG  = "#F5DEB0";
+
+    /** Fila pedido cancelado/devuelto — gris neutro */
+    public static final String FILA_CANCELADO_BG  = "#E0E0E0";
+    public static final String FILA_CANCELADO_BRD = "#9E9E9E";
+
+    /** Fila con incidencia activa — fondo rosa saturado, borde inferior carmesí */
+    public static final String FILA_INCIDENCIA_BG  = "#E8C8CE";
     public static final String FILA_INCIDENCIA_BRD = "#B83746";
 
-    /** Fila con solicitud de pieza pendiente — fondo crema, borde inferior naranja oscuro */
-    public static final String FILA_SOLICITUD_BG   = "#FDF0DC";
+    /** Fila con solicitud de pieza pendiente — fondo ámbar, borde inferior naranja oscuro */
+    public static final String FILA_SOLICITUD_BG   = "#EDD5A0";
     public static final String FILA_SOLICITUD_BRD  = "#C07800";
 
     // ─── Texto funcional ──────────────────────────────────────────────────────

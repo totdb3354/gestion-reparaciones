@@ -56,6 +56,16 @@ public class ReparacionControllerAdmin {
     @FXML private DatePicker filtroFechaDesde;
     @FXML private DatePicker filtroFechaHasta;
     @FXML private MenuButton filtroIncidencias;
+
+    // ── Sidebar + paneles ─────────────────────────────────────────────────────
+    @FXML private Button btnTabHistorial;
+    @FXML private Button btnTabPendientes;
+    @FXML private Button btnTabMisPendientes;
+    @FXML private VBox   pnlHistorial;
+    @FXML private VBox   pnlPendientes;
+    @FXML private VBox   pnlMisPendientes;
+    @FXML private PendientesAdminController   pendientesAdminController;
+    @FXML private PendientesTecnicoController misPendientesController;
     private CheckBox cbIncidenciasAbiertas;
     private CheckBox cbIncidenciasCerradas;
     private CheckBox cbNormales;
@@ -76,6 +86,32 @@ public class ReparacionControllerAdmin {
         configurarFilas();
         configurarFiltros();
         cargarDatos();
+
+        // Callbacks para el panel de mis pendientes embebido
+        misPendientesController.setOnCerrar(this::cargarDatos);
+        misPendientesController.setOnVolverAHistorial(() -> mostrarPanel(pnlHistorial, btnTabHistorial));
+    }
+
+    // ─── Sidebar ─────────────────────────────────────────────────────────────
+
+    @FXML private void mostrarHistorial() {
+        mostrarPanel(pnlHistorial, btnTabHistorial);
+        cargarDatos();
+    }
+
+    @FXML private Button btnDescargar;
+
+    private void mostrarPanel(VBox panel, Button btnActivo) {
+        pnlHistorial    .setVisible(false); pnlHistorial    .setManaged(false);
+        pnlPendientes   .setVisible(false); pnlPendientes   .setManaged(false);
+        pnlMisPendientes.setVisible(false); pnlMisPendientes.setManaged(false);
+        panel.setVisible(true); panel.setManaged(true);
+        btnDescargar.setVisible(panel == pnlHistorial);
+        btnDescargar.setManaged(panel == pnlHistorial);
+        for (Button b : new Button[]{btnTabHistorial, btnTabPendientes, btnTabMisPendientes}) {
+            b.getStyleClass().removeAll("stock-sidebar-btn-active", "stock-sidebar-btn");
+            b.getStyleClass().add(b == btnActivo ? "stock-sidebar-btn-active" : "stock-sidebar-btn");
+        }
     }
 
     // ─── Label expandible (click abre popup de lectura) ───────────────────────
@@ -567,12 +603,14 @@ public class ReparacionControllerAdmin {
 
     @FXML
     private void abrirModalPendientes() {
-        PendientesAdminController.abrir(this::cargarDatos);
+        mostrarPanel(pnlPendientes, btnTabPendientes);
+        pendientesAdminController.cargar();
     }
 
     @FXML
     private void abrirMisPendientes() {
-        PendientesTecnicoController.abrir(this::cargarDatos);
+        mostrarPanel(pnlMisPendientes, btnTabMisPendientes);
+        misPendientesController.cargar();
     }
 
     // ─── Incidencias ──────────────────────────────────────────────────────────
@@ -777,7 +815,7 @@ public class ReparacionControllerAdmin {
 
             TableView<ReparacionResumen> tabla = new TableView<>();
             tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-            tabla.setPrefHeight(300);
+            tabla.setPrefHeight(440);
             tabla.getColumns().addAll(cId, cTecnico, cFecha, cComp, cObs, cIncid);
             tabla.setItems(FXCollections.observableArrayList(historial));
 
@@ -787,7 +825,7 @@ public class ReparacionControllerAdmin {
             Dialog<Void> dialog = new Dialog<>();
             dialog.setTitle("Historial IMEI");
             dialog.getDialogPane().setContent(contenido);
-            dialog.getDialogPane().setPrefWidth(900);
+            dialog.getDialogPane().setPrefWidth(1000);
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
             dialog.showAndWait();
 
