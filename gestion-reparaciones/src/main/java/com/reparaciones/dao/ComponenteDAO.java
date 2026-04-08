@@ -20,6 +20,18 @@ public class ComponenteDAO {
         return lista;
     }
 
+    /** Stock actual: excluye 'otro*' porque su cantidad no se gestiona en el programa. */
+    public List<Componente> getAllGestionados() throws SQLException {
+        List<Componente> lista = new ArrayList<>();
+        String sql = "SELECT * FROM Componente WHERE TIPO NOT LIKE 'otro%'";
+        try (Connection con = Conexion.getConexion();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) lista.add(mapear(rs));
+        }
+        return lista;
+    }
+
     public List<Componente> getStockBajo() throws SQLException {
         List<Componente> lista = new ArrayList<>();
         String sql = "SELECT * FROM Componente WHERE STOCK <= STOCK_MINIMO";
