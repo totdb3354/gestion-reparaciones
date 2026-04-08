@@ -12,11 +12,8 @@
 
     <!-- Cabecera info -->
     <HBox alignment="CENTER_LEFT" spacing="16"
-          style="-fx-background-color: #F3F3F3; -fx-padding: 10 16 10 16;">
+          style="-fx-background-color: #F3F3F3; -fx-padding: 10 16 6 16;">
         <Label fx:id="lblImei" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
-        <Label fx:id="lblIncidencia"
-               style="-fx-text-fill: #FB8888; -fx-font-size: 12px;"
-               visible="false" managed="false"/>
         <HBox HBox.hgrow="ALWAYS"/>
         <!-- Filtro de modelo global — arriba a la derecha -->
         <Label text="Filtrar por modelo:"
@@ -24,6 +21,14 @@
         <ComboBox fx:id="cbFiltroModelo"
                   prefWidth="180"
                   style="-fx-font-size: 11px;"/>
+    </HBox>
+    <!-- Fila de incidencia pendiente — ancho completo, solo visible si hay incidencia -->
+    <HBox alignment="CENTER_LEFT"
+          style="-fx-background-color: #FFF4F4; -fx-padding: 5 16 5 16;"
+          visible="false" managed="false" fx:id="filaIncidencia">
+        <Label fx:id="lblIncidencia"
+               style="-fx-text-fill: #CC4444; -fx-font-size: 12px;"
+               wrapText="true" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
     </HBox>
 
     <!-- Cabecera columnas -->
@@ -35,23 +40,31 @@
         <Label text="SKU"           minWidth="170" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
         <Label text="Stock"         minWidth="70"  style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
         <Label text="¿Reutilizado?" minWidth="110" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
-        <Label text="Observación"   HBox.hgrow="ALWAYS" maxWidth="Infinity"
+        <Label text="Observación"   minWidth="280" maxWidth="280"
                style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
     </HBox>
+
+    <!-- Placeholder hasta seleccionar modelo -->
+    <Label fx:id="lblSeleccionaModelo"
+           text="Selecciona un modelo de iPhone para continuar"
+           maxWidth="Infinity"
+           style="-fx-font-size: 13px; -fx-text-fill: #A9A9A9;
+                  -fx-padding: 40 0 40 0; -fx-alignment: center;"
+           visible="false" managed="false"/>
 
     <!-- Filas de componentes -->
     <VBox fx:id="contenedorFilas"/>
 
     <!-- Botón guardar -->
-    <VBox style="-fx-padding: 12 16 12 16;">
+    <HBox fx:id="zonaGuardar" style="-fx-padding: 12 16 12 16;" spacing="8">
         <Button fx:id="btnGuardar"
                 text="Guardar reparación"
-                maxWidth="Infinity"
                 disable="true"
                 onAction="#guardar"
                 style="-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;
                        -fx-font-size: 12px; -fx-font-weight: bold;
-                       -fx-background-radius: 0; -fx-padding: 10;"/>
-    </VBox>
+                       -fx-background-radius: 0; -fx-padding: 10;"
+                HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+    </HBox>
 
 </VBox>

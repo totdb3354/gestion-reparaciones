@@ -30,7 +30,16 @@ import javafx.util.Duration;
  */
 public class ConfirmDialog {
 
-    private static final int SEGUNDOS = 10;
+    private static final int SEGUNDOS = 1;
+
+    // Estilos del contenedor
+    private static final String ESTILO_CONTENEDOR =
+            "-fx-background-color: " + Colores.CREMA + ";" +
+            "-fx-border-color: #C2C8D0; -fx-border-width: 1;";
+
+    private static final String ESTILO_CONTENEDOR_TEXTO =
+            "-fx-background-color: " + Colores.CREMA + ";" +
+            "-fx-border-color: #C2C8D0; -fx-border-width: 1;";
 
     public static void mostrar(String titulo, String descripcion,
                                String textoAccion, String textoCancel,
@@ -43,11 +52,11 @@ public class ConfirmDialog {
 
         // ── Título + X ────────────────────────────────────────────────────────
         Label lblTitulo = new Label(titulo);
-        lblTitulo.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FB8888;");
+        lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + Colores.TEXTO_ERROR + ";");
         lblTitulo.setWrapText(true);
 
-        Label lblX = new Label("X");
-        lblX.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-text-fill: #333333;");
+        Label lblX = new Label("✕");
+        lblX.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
         lblX.setOnMouseClicked(e -> ventana.close());
 
         HBox spacer = new HBox();
@@ -58,7 +67,7 @@ public class ConfirmDialog {
 
         // ── Descripción ───────────────────────────────────────────────────────
         Label lblDesc = new Label(descripcion);
-        lblDesc.setStyle("-fx-font-size: 16px; -fx-text-fill: #000000;");
+        lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: " + Colores.AZUL_MEDIO + ";");
         lblDesc.setWrapText(true);
         lblDesc.setMaxWidth(352);
 
@@ -68,7 +77,7 @@ public class ConfirmDialog {
         btnAccion.setMaxWidth(Double.MAX_VALUE);
         btnAccion.setDisable(true);
         btnAccion.setStyle(
-                "-fx-background-color: rgba(217,217,217,0.64); -fx-text-fill: #A9A9A9;" +
+                "-fx-background-color: #C2C8D0; -fx-text-fill: " + Colores.AZUL_GRIS + ";" +
                 "-fx-background-radius: 4; -fx-font-size: 12px; -fx-padding: 10;");
 
         Timeline countdown = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -79,7 +88,7 @@ public class ConfirmDialog {
                 btnAccion.setText(textoAccion);
                 btnAccion.setDisable(false);
                 btnAccion.setStyle(
-                        "-fx-background-color: #E7E7E7; -fx-text-fill: #555555;" +
+                        "-fx-background-color: #D9756A; -fx-text-fill: " + Colores.CREMA + ";" +
                         "-fx-background-radius: 4; -fx-font-size: 12px;" +
                         "-fx-padding: 10; -fx-cursor: hand;");
             }
@@ -97,7 +106,8 @@ public class ConfirmDialog {
         Button btnCancelar = new Button(textoCancel);
         btnCancelar.setMaxWidth(Double.MAX_VALUE);
         btnCancelar.setStyle(
-                "-fx-background-color: #A9A9A9; -fx-text-fill: white;" +
+                "-fx-background-color: " + Colores.CREMA + "; -fx-text-fill: " + Colores.AZUL_GRIS + ";" +
+                "-fx-border-color: " + Colores.AZUL_GRIS + "; -fx-border-radius: 4;" +
                 "-fx-background-radius: 4; -fx-font-size: 12px;" +
                 "-fx-padding: 10; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> {
@@ -109,9 +119,7 @@ public class ConfirmDialog {
         VBox contenido = new VBox(10, barraTop, lblDesc, btnAccion, btnCancelar);
         contenido.setPadding(new Insets(24));
         contenido.setPrefWidth(400);
-        contenido.setStyle(
-                "-fx-background-color: #F3F3F3;" +
-                "-fx-border-color: #CCCCCC; -fx-border-width: 1;");
+        contenido.setStyle(ESTILO_CONTENEDOR);
 
         // ── Arrastrar ventana ─────────────────────────────────────────────────
         final double[] drag = new double[2];
@@ -122,7 +130,7 @@ public class ConfirmDialog {
         });
 
         Scene scene = new Scene(contenido);
-        scene.setFill(Color.web("#F3F3F3"));
+        scene.setFill(Color.web(Colores.CREMA));
         ventana.setScene(scene);
         ventana.setOnCloseRequest(e -> countdown.stop());
         ventana.showAndWait();
@@ -142,11 +150,11 @@ public class ConfirmDialog {
         ventana.setResizable(false);
 
         Label lblTitulo = new Label(titulo);
-        lblTitulo.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555555;");
+        lblTitulo.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + Colores.AZUL_MEDIO + ";");
         lblTitulo.setWrapText(true);
 
-        Label lblX = new Label("X");
-        lblX.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-text-fill: #333333;");
+        Label lblX = new Label("✕");
+        lblX.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
         lblX.setOnMouseClicked(e -> ventana.close());
 
         HBox spacer = new HBox();
@@ -161,12 +169,13 @@ public class ConfirmDialog {
         ta.setPrefWidth(380);
         ta.setPrefRowCount(6);
         ta.setStyle("-fx-font-size: 13px; -fx-background-color: white;" +
-                "-fx-border-color: #CCCCCC; -fx-border-width: 1;");
+                "-fx-border-color: #C2C8D0; -fx-border-width: 1;");
 
         Button btnCopiar = new Button("Copiar");
         btnCopiar.setMaxWidth(Double.MAX_VALUE);
-        btnCopiar.setStyle("-fx-background-color: #A9A9A9; -fx-text-fill: white;" +
-                "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+        btnCopiar.setStyle(
+                "-fx-background-color: " + Colores.AZUL_MEDIO + "; -fx-text-fill: " + Colores.CREMA + ";" +
+                "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand; -fx-background-radius: 4;");
         btnCopiar.setOnAction(e -> {
             ClipboardContent cc = new ClipboardContent();
             cc.putString(texto != null ? texto : "");
@@ -177,8 +186,7 @@ public class ConfirmDialog {
         VBox contenido = new VBox(10, barraTop, ta, btnCopiar);
         contenido.setPadding(new Insets(20));
         contenido.setPrefWidth(420);
-        contenido.setStyle("-fx-background-color: #F3F3F3;" +
-                "-fx-border-color: #CCCCCC; -fx-border-width: 1;");
+        contenido.setStyle(ESTILO_CONTENEDOR_TEXTO);
 
         final double[] drag = new double[2];
         contenido.setOnMousePressed(e  -> { drag[0] = e.getSceneX(); drag[1] = e.getSceneY(); });
@@ -188,7 +196,7 @@ public class ConfirmDialog {
         });
 
         Scene scene = new Scene(contenido);
-        scene.setFill(Color.web("#F3F3F3"));
+        scene.setFill(Color.web(Colores.CREMA));
         ventana.setScene(scene);
         ventana.showAndWait();
     }

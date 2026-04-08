@@ -7,7 +7,9 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ReparacionDAO {
 
@@ -21,6 +23,8 @@ public class ReparacionDAO {
                    rc.ES_INCIDENCIA,
                    rc.ES_RESUELTO,
                    rc.INCIDENCIA,
+                   rc.ES_SOLICITUD,
+                   rc.DESCRIPCION_SOLICITUD,
                    r.ID_REP_ANTERIOR AS id_rep_nueva
             FROM Reparacion r
             JOIN Tecnico t ON r.ID_TEC = t.ID_TEC
@@ -44,7 +48,12 @@ public class ReparacionDAO {
                          AND r2.ID_TEC = r.ID_TEC
                          AND rc2.ES_INCIDENCIA = TRUE
                          AND rc2.ES_RESUELTO = FALSE
-                   ) AS ES_INCIDENCIA
+                   ) AS ES_INCIDENCIA,
+                   EXISTS (
+                       SELECT 1 FROM Reparacion_componente rc
+                       WHERE rc.ID_REP = r.ID_REP
+                         AND rc.ES_SOLICITUD = 1
+                   ) AS TIENE_SOLICITUD
             FROM Reparacion r
             JOIN Tecnico t ON r.ID_TEC = t.ID_TEC
             WHERE r.ID_REP LIKE 'A%'
@@ -77,12 +86,12 @@ public class ReparacionDAO {
         return lista;
     }
 
-    public List<ReparacionResumen> getResumenPorImei(long imei) throws SQLException {
+    public List<ReparacionResumen> getResumenPorImei(String imei) throws SQLException {
         List<ReparacionResumen> lista = new ArrayList<>();
         String sql = SQL_RESUMEN + " WHERE r.IMEI = ? AND r.ID_REP LIKE 'R%'" + ORDER_BY_ID;
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, imei);
+            ps.setString(1, imei);
             ResultSet rs = ps.executeQuery();
             while (rs.next())
                 lista.add(mapearResumen(rs));
@@ -115,6 +124,25 @@ public class ReparacionDAO {
         return lista;
     }
 
+    public List<FilaReparacion> getSolicitudesPorAsignacion(String idAsignacion) throws SQLException {
+        List<FilaReparacion> lista = new ArrayList<>();
+        String sql = """
+                SELECT rc.ID_COM, rc.DESCRIPCION_SOLICITUD
+                FROM Reparacion_componente rc
+                WHERE rc.ID_REP = ? AND rc.ES_SOLICITUD = 1
+                """;
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, idAsignacion);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next())
+                lista.add(new FilaReparacion(
+                        rs.getInt("ID_COM"), 0, false, null, null,
+                        true, rs.getString("DESCRIPCION_SOLICITUD")));
+        }
+        return lista;
+    }
+
     public List<Reparacion> getAll() throws SQLException {
         List<Reparacion> lista = new ArrayList<>();
         String sql = "SELECT * FROM Reparacion";
@@ -127,12 +155,12 @@ public class ReparacionDAO {
         return lista;
     }
 
-    public List<Reparacion> getByImei(long imei) throws SQLException {
+    public List<Reparacion> getByImei(String imei) throws SQLException {
         List<Reparacion> lista = new ArrayList<>();
         String sql = "SELECT * FROM Reparacion WHERE IMEI = ?";
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, imei);
+            ps.setString(1, imei);
             ResultSet rs = ps.executeQuery();
             while (rs.next())
                 lista.add(mapear(rs));
@@ -140,11 +168,11 @@ public class ReparacionDAO {
         return lista;
     }
 
-    public int countByImei(long imei) throws SQLException {
+    public int countByImei(String imei) throws SQLException {
         String sql = "SELECT COUNT(*) FROM Reparacion WHERE IMEI = ?";
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, imei);
+            ps.setString(1, imei);
             ResultSet rs = ps.executeQuery();
             if (rs.next())
                 return rs.getInt(1);
@@ -165,20 +193,20 @@ public class ReparacionDAO {
                 ps.setTimestamp(3, Timestamp.valueOf(r.getFechaFin()));
             else
                 ps.setNull(3, Types.TIMESTAMP);
-            ps.setLong(4, r.getImei());
+            ps.setString(4, r.getImei());
             ps.setInt(5, r.getIdTec());
             ps.executeUpdate();
         }
         return idRep;
     }
 
-    public String insertarAsignacion(long imei, int idTec) throws SQLException {
+    public String insertarAsignacion(String imei, int idTec) throws SQLException {
         String idAsig = generarIdAsignacion();
         String sql = "INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC) VALUES (?, NOW(), NULL, ?, ?)";
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, idAsig);
-            ps.setLong(2, imei);
+            ps.setString(2, imei);
             ps.setInt(3, idTec);
             ps.executeUpdate();
         }
@@ -187,6 +215,7 @@ public class ReparacionDAO {
 
     public void eliminarAsignacion(String idAsig) throws SQLException {
         String sqlGetImei    = "SELECT IMEI FROM Reparacion WHERE ID_REP = ?";
+        String sqlBorrarComp = "DELETE FROM Reparacion_componente WHERE ID_REP = ?";
         String sqlBorrar     = "DELETE FROM Reparacion WHERE ID_REP = ?";
         String sqlContarImei = "SELECT COUNT(*) FROM Reparacion WHERE IMEI = ?";
         String sqlBorrarTel  = "DELETE FROM Telefono WHERE IMEI = ?";
@@ -194,24 +223,28 @@ public class ReparacionDAO {
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
             try {
-                long imei = 0;
+                String imei = null;
                 try (PreparedStatement ps = con.prepareStatement(sqlGetImei)) {
                     ps.setString(1, idAsig);
                     ResultSet rs = ps.executeQuery();
                     if (rs.next())
-                        imei = rs.getLong("IMEI");
+                        imei = rs.getString("IMEI");
+                }
+                try (PreparedStatement ps = con.prepareStatement(sqlBorrarComp)) {
+                    ps.setString(1, idAsig);
+                    ps.executeUpdate();
                 }
                 try (PreparedStatement ps = con.prepareStatement(sqlBorrar)) {
                     ps.setString(1, idAsig);
                     ps.executeUpdate();
                 }
-                if (imei != 0) {
+                if (imei != null) {
                     try (PreparedStatement ps = con.prepareStatement(sqlContarImei)) {
-                        ps.setLong(1, imei);
+                        ps.setString(1, imei);
                         ResultSet rs = ps.executeQuery();
                         if (rs.next() && rs.getInt(1) == 0) {
                             try (PreparedStatement psDel = con.prepareStatement(sqlBorrarTel)) {
-                                psDel.setLong(1, imei);
+                                psDel.setString(1, imei);
                                 psDel.executeUpdate();
                             }
                         }
@@ -270,6 +303,118 @@ public class ReparacionDAO {
         return prefijo + "1";
     }
 
+    public void actualizarTecnico(String idRep, int idTec) throws SQLException {
+        String sql = "UPDATE Reparacion SET ID_TEC = ? WHERE ID_REP = ?";
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idTec);
+            ps.setString(2, idRep);
+            ps.executeUpdate();
+        }
+    }
+
+    // ─── Edición de reparación ────────────────────────────────────────────────
+
+    /** Datos del R* necesarios para abrir el modal de edición. */
+    public static class DetalleEdicion {
+        public final String imei;
+        public final int    idTec;
+        public final int    idCom;
+        public final boolean esReutilizado;
+        public final String  observacion;
+        public DetalleEdicion(String imei, int idTec, int idCom,
+                              boolean esReutilizado, String observacion) {
+            this.imei = imei; this.idTec = idTec; this.idCom = idCom;
+            this.esReutilizado = esReutilizado; this.observacion = observacion;
+        }
+    }
+
+    public DetalleEdicion getDetalleEdicion(String idRep) throws SQLException {
+        String sql = """
+                SELECT r.IMEI, r.ID_TEC, rc.ID_COM, rc.ES_REUTILIZADO, rc.OBSERVACIONES
+                FROM Reparacion r
+                JOIN Reparacion_componente rc ON r.ID_REP = rc.ID_REP
+                WHERE r.ID_REP = ? AND rc.ES_SOLICITUD = 0
+                """;
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, idRep);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next())
+                return new DetalleEdicion(
+                        rs.getString("IMEI"), rs.getInt("ID_TEC"),
+                        rs.getInt("ID_COM"), rs.getBoolean("ES_REUTILIZADO"),
+                        rs.getString("OBSERVACIONES"));
+        }
+        return null;
+    }
+
+    public void editarReparacion(String idRep, int idComNuevo, boolean esReutilizadoNuevo,
+            String observacionNueva, boolean piezaViejaRota, int nNuevas) throws SQLException {
+        String sqlGetActual  = """
+                SELECT rc.ID_COM, rc.ES_REUTILIZADO
+                FROM Reparacion_componente rc
+                WHERE rc.ID_REP = ? AND rc.ES_SOLICITUD = 0
+                """;
+        String sqlDevolver   = "UPDATE Componente SET STOCK = STOCK + 1 WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
+        String sqlDescontar  = "UPDATE Componente SET STOCK = STOCK - ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
+        String sqlUpdateComp = """
+                UPDATE Reparacion_componente
+                SET ID_COM = ?, ES_REUTILIZADO = ?, OBSERVACIONES = ?
+                WHERE ID_REP = ? AND ES_SOLICITUD = 0
+                """;
+        String sqlUpdateFecha = "UPDATE Reparacion SET FECHA_FIN = NOW() WHERE ID_REP = ?";
+
+        try (Connection con = Conexion.getConexion()) {
+            con.setAutoCommit(false);
+            try {
+                // 1. Leer estado actual
+                int     idComActual  = -1;
+                boolean eraReutilizado = false;
+                try (PreparedStatement ps = con.prepareStatement(sqlGetActual)) {
+                    ps.setString(1, idRep);
+                    ResultSet rs = ps.executeQuery();
+                    if (rs.next()) {
+                        idComActual    = rs.getInt("ID_COM");
+                        eraReutilizado = rs.getBoolean("ES_REUTILIZADO");
+                    }
+                }
+                // 2. Devolver stock viejo (solo si era normal y no rota)
+                if (!eraReutilizado && !piezaViejaRota) {
+                    try (PreparedStatement ps = con.prepareStatement(sqlDevolver)) {
+                        ps.setInt(1, idComActual);
+                        ps.executeUpdate();
+                    }
+                }
+                // 3. Descontar stock nuevo (solo si no es reutilizada)
+                if (!esReutilizadoNuevo && nNuevas > 0) {
+                    try (PreparedStatement ps = con.prepareStatement(sqlDescontar)) {
+                        ps.setInt(1, nNuevas);
+                        ps.setInt(2, idComNuevo);
+                        ps.executeUpdate();
+                    }
+                }
+                // 4. Actualizar componente
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdateComp)) {
+                    ps.setInt(1, idComNuevo);
+                    ps.setBoolean(2, esReutilizadoNuevo);
+                    ps.setString(3, observacionNueva);
+                    ps.setString(4, idRep);
+                    ps.executeUpdate();
+                }
+                // 5. Actualizar fecha
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdateFecha)) {
+                    ps.setString(1, idRep);
+                    ps.executeUpdate();
+                }
+                con.commit();
+            } catch (SQLException e) {
+                con.rollback();
+                throw e;
+            }
+        }
+    }
+
     // ─── Utilidades ───────────────────────────────────────────────────────────
 
     public String getReferenciadora(String idRep) throws SQLException {
@@ -284,8 +429,35 @@ public class ReparacionDAO {
         return null;
     }
 
+    /** Devuelve los ID_COM ya reparados para un IMEI, excluyendo el R* que se está editando. */
+    public Set<Integer> getIdComsYaReparados(String imei, String idRepExcluir) throws SQLException {
+        String sql = """
+                SELECT DISTINCT rc.ID_COM
+                FROM Reparacion r
+                JOIN Reparacion_componente rc ON r.ID_REP = rc.ID_REP
+                WHERE r.IMEI = ? AND r.ID_REP LIKE 'R%'
+                  AND r.ID_REP != ? AND rc.ES_SOLICITUD = 0
+                """;
+        Set<Integer> ids = new HashSet<>();
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, imei);
+            ps.setString(2, idRepExcluir);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) ids.add(rs.getInt("ID_COM"));
+        }
+        return ids;
+    }
+
     public void eliminar(String idRep) throws SQLException {
         String sqlGetInfo    = "SELECT ID_REP_ANTERIOR, IMEI FROM Reparacion WHERE ID_REP = ?";
+        String sqlGetComps   = """
+                SELECT ID_COM, COUNT(*) AS UNIDADES
+                FROM Reparacion_componente
+                WHERE ID_REP = ? AND ES_REUTILIZADO = FALSE AND ES_SOLICITUD = 0
+                GROUP BY ID_COM
+                """;
+        String sqlDevolverStock = "UPDATE Componente SET STOCK = STOCK + ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
         String sqlComp       = "DELETE FROM Reparacion_componente WHERE ID_REP = ?";
         String sqlRep        = "DELETE FROM Reparacion WHERE ID_REP = ?";
         String sqlRevertir   = "UPDATE Reparacion_componente SET ES_RESUELTO = FALSE WHERE ID_REP = ?";
@@ -297,16 +469,27 @@ public class ReparacionDAO {
             try {
                 // 1. Leer IMEI e ID_REP_ANTERIOR antes de borrar
                 String idRepAnterior = null;
-                long imei = 0;
+                String imei = null;
                 try (PreparedStatement ps = con.prepareStatement(sqlGetInfo)) {
                     ps.setString(1, idRep);
                     ResultSet rs = ps.executeQuery();
                     if (rs.next()) {
                         idRepAnterior = rs.getString("ID_REP_ANTERIOR");
-                        imei = rs.getLong("IMEI");
+                        imei = rs.getString("IMEI");
                     }
                 }
-                // 2. Borrar componentes y reparación
+                // 2. Devolver stock: solo componentes reales (no reutilizados, no solicitudes)
+                try (PreparedStatement psGet = con.prepareStatement(sqlGetComps);
+                     PreparedStatement psUpd = con.prepareStatement(sqlDevolverStock)) {
+                    psGet.setString(1, idRep);
+                    ResultSet rs = psGet.executeQuery();
+                    while (rs.next()) {
+                        psUpd.setInt(1, rs.getInt("UNIDADES"));
+                        psUpd.setInt(2, rs.getInt("ID_COM"));
+                        psUpd.executeUpdate();
+                    }
+                }
+                // 4. Borrar componentes y reparación
                 try (PreparedStatement ps = con.prepareStatement(sqlComp)) {
                     ps.setString(1, idRep);
                     ps.executeUpdate();
@@ -315,21 +498,21 @@ public class ReparacionDAO {
                     ps.setString(1, idRep);
                     ps.executeUpdate();
                 }
-                // 3. Revertir incidencia de la reparación anterior si la había
+                // 5. Revertir incidencia de la reparación anterior si la había
                 if (idRepAnterior != null) {
                     try (PreparedStatement ps = con.prepareStatement(sqlRevertir)) {
                         ps.setString(1, idRepAnterior);
                         ps.executeUpdate();
                     }
                 }
-                // 4. Si ya no quedan reparaciones con ese IMEI, borrar el Telefono
-                if (imei != 0) {
+                // 6. Si ya no quedan reparaciones con ese IMEI, borrar el Telefono
+                if (imei != null) {
                     try (PreparedStatement ps = con.prepareStatement(sqlContarImei)) {
-                        ps.setLong(1, imei);
+                        ps.setString(1, imei);
                         ResultSet rs = ps.executeQuery();
                         if (rs.next() && rs.getInt(1) == 0) {
                             try (PreparedStatement psDel = con.prepareStatement(sqlBorrarTel)) {
-                                psDel.setLong(1, imei);
+                                psDel.setString(1, imei);
                                 psDel.executeUpdate();
                             }
                         }
@@ -343,8 +526,15 @@ public class ReparacionDAO {
         }
     }
 
-    public void insertarCompleta(List<FilaReparacion> filas, long imei, int idTec,
+    public void insertarCompleta(List<FilaReparacion> filas, String imei, int idTec,
             String idRepAnterior, String idAsignacion) throws SQLException {
+
+        List<FilaReparacion> filasNormales   = new ArrayList<>();
+        List<FilaReparacion> filasSolicitud  = new ArrayList<>();
+        for (FilaReparacion f : filas) {
+            if (f.isEsSolicitud()) filasSolicitud.add(f);
+            else                   filasNormales.add(f);
+        }
 
         String sqlRep = """
                 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
@@ -355,40 +545,43 @@ public class ReparacionDAO {
                 (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
                 VALUES (?, ?, ?, FALSE, FALSE, NULL, ?)
                 """;
-        String sqlStock = "UPDATE Componente SET STOCK = STOCK - ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
+        String sqlCompSolicitud = """
+                INSERT INTO Reparacion_componente
+                (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
+                VALUES (?, ?, FALSE, FALSE, FALSE, 1, ?)
+                """;
+        String sqlStock    = "UPDATE Componente SET STOCK = STOCK - ? WHERE ID_COM = ? AND TIPO NOT LIKE 'otro%'";
         String sqlResolver = "UPDATE Reparacion_componente SET ES_RESUELTO = TRUE WHERE ID_REP = ?";
         String sqlBorrarAsig = "DELETE FROM Reparacion WHERE ID_REP = ?";
 
-        // Calcular base del contador fuera de la transacción
+        // Calcular base del contador solo si hay filas normales
         String fechaHoy = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int contadorBase;
-        String sqlCount = "SELECT COUNT(*) FROM Reparacion WHERE ID_REP LIKE ?";
-        try (Connection con = Conexion.getConexion();
-                PreparedStatement ps = con.prepareStatement(sqlCount)) {
-            ps.setString(1, "R" + fechaHoy + "_%");
-            ResultSet rs = ps.executeQuery();
-            contadorBase = rs.next() ? rs.getInt(1) : 0;
+        int contadorBase = 0;
+        if (!filasNormales.isEmpty()) {
+            String sqlCount = "SELECT COUNT(*) FROM Reparacion WHERE ID_REP LIKE ?";
+            try (Connection con = Conexion.getConexion();
+                    PreparedStatement ps = con.prepareStatement(sqlCount)) {
+                ps.setString(1, "R" + fechaHoy + "_%");
+                ResultSet rs = ps.executeQuery();
+                contadorBase = rs.next() ? rs.getInt(1) : 0;
+            }
         }
 
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
             try {
+                // ── Filas normales → nuevos R* ────────────────────────────────
                 int indice = 0;
-                for (FilaReparacion fila : filas) {
-                    String nuevoId = "R" + fechaHoy + "_" + (contadorBase + 1 + indice);
-                    indice++;
-
+                for (FilaReparacion fila : filasNormales) {
+                    String nuevoId = "R" + fechaHoy + "_" + (contadorBase + 1 + indice++);
                     try (PreparedStatement ps = con.prepareStatement(sqlRep)) {
                         ps.setString(1, nuevoId);
-                        ps.setLong(2, imei);
+                        ps.setString(2, imei);
                         ps.setInt(3, idTec);
-                        if (idRepAnterior != null)
-                            ps.setString(4, idRepAnterior);
-                        else
-                            ps.setNull(4, Types.VARCHAR);
+                        if (idRepAnterior != null) ps.setString(4, idRepAnterior);
+                        else                       ps.setNull(4, Types.VARCHAR);
                         ps.executeUpdate();
                     }
-
                     try (PreparedStatement ps = con.prepareStatement(sqlComp)) {
                         ps.setString(1, nuevoId);
                         ps.setInt(2, fila.getIdCom());
@@ -396,7 +589,6 @@ public class ReparacionDAO {
                         ps.setString(4, fila.getObservacion());
                         ps.executeUpdate();
                     }
-
                     if (!fila.isReutilizado() && fila.getCantidad() > 0
                             && !fila.getPrefijo().equals("otro")) {
                         try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
@@ -407,14 +599,41 @@ public class ReparacionDAO {
                     }
                 }
 
-                if (idRepAnterior != null) {
+                // ── Limpiar solicitudes previas de la A* (se reemplazan) ─────
+                if (idAsignacion != null) {
+                    String sqlLimpiarSol =
+                            "DELETE FROM Reparacion_componente WHERE ID_REP = ? AND ES_SOLICITUD = 1";
+                    try (PreparedStatement ps = con.prepareStatement(sqlLimpiarSol)) {
+                        ps.setString(1, idAsignacion);
+                        ps.executeUpdate();
+                    }
+                }
+
+                // ── Filas solicitud → Reparacion_componente sobre A* ──────────
+                if (idAsignacion != null) {
+                    for (FilaReparacion fila : filasSolicitud) {
+                        try (PreparedStatement ps = con.prepareStatement(sqlCompSolicitud)) {
+                            ps.setString(1, idAsignacion);
+                            ps.setInt(2, fila.getIdCom());
+                            if (fila.getDescripcionSolicitud() != null)
+                                ps.setString(3, fila.getDescripcionSolicitud());
+                            else
+                                ps.setNull(3, Types.LONGVARCHAR);
+                            ps.executeUpdate();
+                        }
+                    }
+                }
+
+                // ── Resolver incidencia anterior si hubo filas normales ───────
+                if (idRepAnterior != null && !filasNormales.isEmpty()) {
                     try (PreparedStatement ps = con.prepareStatement(sqlResolver)) {
                         ps.setString(1, idRepAnterior);
                         ps.executeUpdate();
                     }
                 }
 
-                if (idAsignacion != null) {
+                // ── Borrar A* solo si no quedan solicitudes pendientes ────────
+                if (idAsignacion != null && filasSolicitud.isEmpty()) {
                     try (PreparedStatement ps = con.prepareStatement(sqlBorrarAsig)) {
                         ps.setString(1, idAsignacion);
                         ps.executeUpdate();
@@ -436,7 +655,7 @@ public class ReparacionDAO {
         Timestamp tsFin = rs.getTimestamp("FECHA_FIN");
         return new ReparacionResumen(
                 rs.getString("ID_REP"),
-                rs.getLong("IMEI"),
+                rs.getString("IMEI"),
                 rs.getString("nombre_tecnico"),
                 tsAsig != null ? tsAsig.toLocalDateTime() : null,
                 tsFin != null ? tsFin.toLocalDateTime() : null,
@@ -446,7 +665,9 @@ public class ReparacionDAO {
                 rs.getBoolean("ES_RESUELTO"),
                 rs.getString("INCIDENCIA"),
                 rs.getString("id_rep_nueva"),
-                rs.getInt("ID_TEC"));
+                rs.getInt("ID_TEC"),
+                rs.getInt("ES_SOLICITUD"),
+                rs.getString("DESCRIPCION_SOLICITUD"));
     }
 
     private ReparacionResumen mapearAsignacion(ResultSet rs) throws SQLException {
@@ -454,7 +675,7 @@ public class ReparacionDAO {
         Timestamp tsFin = rs.getTimestamp("FECHA_FIN");
         return new ReparacionResumen(
                 rs.getString("ID_REP"),
-                rs.getLong("IMEI"),
+                rs.getString("IMEI"),
                 rs.getString("nombre_tecnico"),
                 tsAsig != null ? tsAsig.toLocalDateTime() : null,
                 tsFin != null ? tsFin.toLocalDateTime() : null,
@@ -464,7 +685,9 @@ public class ReparacionDAO {
                 false,
                 null,
                 rs.getString("id_rep_nueva"),
-                rs.getInt("ID_TEC"));
+                rs.getInt("ID_TEC"),
+                rs.getBoolean("TIENE_SOLICITUD") ? 1 : 0,
+                null);
     }
 
     private Reparacion mapear(ResultSet rs) throws SQLException {
@@ -474,12 +697,12 @@ public class ReparacionDAO {
                 rs.getString("ID_REP"),
                 tsAsig != null ? tsAsig.toLocalDateTime() : null,
                 tsFin != null ? tsFin.toLocalDateTime() : null,
-                rs.getLong("IMEI"),
+                rs.getString("IMEI"),
                 rs.getInt("ID_TEC"));
     }
 
     public void marcarIncidenciaYAsignar(String idRep, String comentario,
-            long imei, int idTec) throws SQLException {
+            String imei, int idTec) throws SQLException {
         String sqlIncidencia = "UPDATE Reparacion_componente " +
                 "SET ES_INCIDENCIA = TRUE, INCIDENCIA = ? WHERE ID_REP = ?";
         String sqlAsignacion = "INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC) " +
@@ -496,7 +719,7 @@ public class ReparacionDAO {
                 String idAsig = generarIdAsignacion();
                 try (PreparedStatement ps = con.prepareStatement(sqlAsignacion)) {
                     ps.setString(1, idAsig);
-                    ps.setLong(2, imei);
+                    ps.setString(2, imei);
                     ps.setInt(3, idTec);
                     ps.executeUpdate();
                 }
@@ -508,14 +731,14 @@ public class ReparacionDAO {
         }
     }
 
-    public boolean existeAsignacionParaTecnico(long imei, int idTec) throws SQLException {
+    public boolean existeAsignacionParaTecnico(String imei, int idTec) throws SQLException {
         String sql = """
                 SELECT COUNT(*) FROM Reparacion
                 WHERE IMEI = ? AND ID_TEC = ? AND ID_REP LIKE 'A%'
                 """;
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, imei);
+            ps.setString(1, imei);
             ps.setInt(2, idTec);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1) > 0;
@@ -523,7 +746,7 @@ public class ReparacionDAO {
         return false;
     }
 
-    public String getIncidenciaActivaPorImei(long imei) throws SQLException {
+    public String getIncidenciaActivaPorImei(String imei) throws SQLException {
         String sql = """
                 SELECT r.ID_REP FROM Reparacion r
                 JOIN Reparacion_componente rc ON r.ID_REP = rc.ID_REP
@@ -534,7 +757,7 @@ public class ReparacionDAO {
                 """;
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, imei);
+            ps.setString(1, imei);
             ResultSet rs = ps.executeQuery();
             if (rs.next())
                 return rs.getString("ID_REP");
@@ -542,7 +765,7 @@ public class ReparacionDAO {
         return null;
     }
 
-    public void borrarIncidenciaPorImei(long imei) throws SQLException {
+    public void borrarIncidenciaPorImei(String imei) throws SQLException {
         String sql = """
                 UPDATE Reparacion_componente SET ES_INCIDENCIA = FALSE
                 WHERE ID_REP = (
@@ -559,7 +782,7 @@ public class ReparacionDAO {
                 """;
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, imei);
+            ps.setString(1, imei);
             int filasAfectadas = ps.executeUpdate();
             System.out.println(">>> borrarIncidenciaPorImei — IMEI=" + imei
                     + " | filas afectadas=" + filasAfectadas);

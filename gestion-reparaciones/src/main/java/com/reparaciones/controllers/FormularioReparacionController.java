@@ -3,9 +3,14 @@ package com.reparaciones.controllers;
 import com.reparaciones.Sesion;
 import com.reparaciones.dao.ComponenteDAO;
 import com.reparaciones.dao.ReparacionDAO;
+import com.reparaciones.dao.TecnicoDAO;
 import com.reparaciones.models.Componente;
 import com.reparaciones.models.FilaReparacion;
+import com.reparaciones.models.Tecnico;
+import com.reparaciones.utils.ConfirmDialog;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -16,31 +21,38 @@ import javafx.stage.Stage;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.geometry.Pos;
+import javafx.util.Duration;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FormularioReparacionController {
 
-    @FXML
-    private Label lblImei;
-    @FXML
-    private Label lblIncidencia;
-    @FXML
-    private VBox contenedorFilas;
-    @FXML
-    private Button btnGuardar;
-    @FXML
-    private ComboBox<String> cbFiltroModelo;
+    @FXML private Label lblImei;
+    @FXML private Label lblIncidencia;
+    @FXML private javafx.scene.layout.HBox filaIncidencia;
+    @FXML private Label lblSeleccionaModelo;
+    @FXML private VBox contenedorFilas;
+    @FXML private Button btnGuardar;
+    @FXML private ComboBox<String> cbFiltroModelo;
+    private boolean tieneSolicitudesIniciales = false;
+    private boolean modoEdicion = false;
+    private String  idRepEditar;
+    private String  imeiEditar;
+    private int     idTecEditar;
+    private boolean esperandoConfirmacion = false;
+    private Timeline timelineReset;
+    private int segundosRestantes;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private final ComponenteDAO componenteDAO = new ComponenteDAO();
 
-    private long imei;
+    private String imei;
     private String idRepAnterior;
     private String idAsignacion;
     private Runnable onGuardado;
@@ -65,7 +77,7 @@ public class FormularioReparacionController {
     // Ejemplo futuro: "17", "17plus", "17pro", "17promax"
     );
 
-    public void init(long imei, String idRepAnterior, String idAsignacion, Runnable onGuardado) {
+    public void init(String imei, String idRepAnterior, String idAsignacion, Runnable onGuardado) {
         this.imei = imei;
         this.idAsignacion = idAsignacion;
         this.onGuardado = onGuardado;
@@ -82,18 +94,104 @@ public class FormularioReparacionController {
         lblImei.setText("IMEI: " + imei);
         if (this.idRepAnterior != null) {
             lblIncidencia.setText("⚠ Resuelve incidencia: " + this.idRepAnterior);
-            lblIncidencia.setVisible(true);
-            lblIncidencia.setManaged(true);
+            filaIncidencia.setVisible(true);
+            filaIncidencia.setManaged(true);
         }
 
         cargarFilas();
-        configurarFiltroModelo();
+        List<FilaReparacion> solicitudesCargadas = null;
+        if (idAsignacion != null) {
+            try {
+                List<FilaReparacion> solicitudes = reparacionDAO.getSolicitudesPorAsignacion(idAsignacion);
+                if (!solicitudes.isEmpty()) {
+                    tieneSolicitudesIniciales = true;
+                    solicitudesCargadas = solicitudes;
+                    // Primera pasada: activar para que configurarFiltroModelo detecte el modelo
+                    for (FilaReparacion sol : solicitudes)
+                        for (FilaUI fila : filasUI)
+                            fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud());
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        configurarFiltroModelo(); // el auto-filtro de modelo dispara aplicarFiltroModelo → resetea solicitudActiva
+        // Segunda pasada: re-activar solicitudes después del reset del filtro
+        if (solicitudesCargadas != null) {
+            for (FilaReparacion sol : solicitudesCargadas)
+                for (FilaUI fila : filasUI)
+                    fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud());
+        }
+    }
+
+    public void initEditar(String idRep, Runnable onGuardado) {
+        this.modoEdicion  = true;
+        this.idRepEditar  = idRep;
+        this.onGuardado   = onGuardado;
+
+        try {
+            ReparacionDAO.DetalleEdicion d = reparacionDAO.getDetalleEdicion(idRep);
+            if (d == null) return;
+            this.imeiEditar = d.imei;
+            this.idTecEditar = d.idTec;
+
+            lblImei.setText("IMEI: " + d.imei + "  ·  Editando " + idRep);
+            btnGuardar.setText("Guardar cambios");
+
+            List<Tecnico> tecnicos = new TecnicoDAO().getAll();
+
+            cargarFilas();
+            Set<Integer> yaReparados = reparacionDAO.getIdComsYaReparados(d.imei, idRep);
+            // Primera pasada: activar solo la fila que tiene el componente editado,
+            // para que configurarFiltroModelo pueda detectar el modelo
+            for (FilaUI fila : filasUI)
+                if (fila.getSkus().stream().anyMatch(c -> c.getIdCom() == d.idCom))
+                    fila.activarModoEdicion(d.idCom, d.esReutilizado, d.observacion);
+            configurarFiltroModelo();
+            // Segunda pasada: re-aplicar tras el reset del filtro de modelo
+            for (FilaUI fila : filasUI) {
+                if (fila.getSkus().stream().anyMatch(c -> c.getIdCom() == d.idCom))
+                    fila.activarModoEdicion(d.idCom, d.esReutilizado, d.observacion);
+                else if (!fila.isModoEdicion() && fila.getSkus().stream()
+                        .anyMatch(c -> yaReparados.contains(c.getIdCom())))
+                    fila.deshabilitarYaReparado();
+                else if (!fila.isModoEdicion())
+                    fila.configurarTecnicoEdicion(tecnicos, d.idTec);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void abrirEditar(String idRep, Runnable onGuardado) {
+        Platform.runLater(() -> {
+            try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                        FormularioReparacionController.class.getResource(
+                                "/views/FormularioReparacionView.fxml"));
+                javafx.scene.Parent root = loader.load();
+                FormularioReparacionController ctrl = loader.getController();
+
+                Stage stage = new Stage();
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setResizable(true);
+                stage.setMinWidth(900);
+                stage.setMinHeight(520);
+
+                ctrl.initEditar(idRep, onGuardado);
+                stage.setTitle("Editar reparación — " + idRep);
+                stage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+                stage.show();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private void cargarFilas() {
         try {
             Map<String, List<Componente>> grupos = componenteDAO.getAgrupadosPorTipo();
-            Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+            Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
             for (Map.Entry<String, List<Componente>> entry : grupos.entrySet()) {
                 if (entry.getValue().isEmpty())
                     continue;
@@ -118,44 +216,85 @@ public class FormularioReparacionController {
                 .filter(modelosEnBD::contains)
                 .collect(Collectors.toList());
 
-        cbFiltroModelo.getItems().add("Todos");
         cbFiltroModelo.getItems().addAll(modelosFiltrados);
-        cbFiltroModelo.setValue("Todos");
+        cbFiltroModelo.setPromptText("— Selecciona modelo —");
 
         cbFiltroModelo.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(String m, boolean empty) {
                 super.updateItem(m, empty);
-                if (empty || m == null) {
-                    setText(null);
-                    return;
-                }
-                setText(m.equals("Todos") ? "Todos los modelos" : traducirModelo(m));
+                setText((empty || m == null) ? null : traducirModelo(m));
             }
         });
         cbFiltroModelo.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(String m, boolean empty) {
                 super.updateItem(m, empty);
-                if (empty || m == null) {
-                    setText(null);
-                    return;
-                }
-                setText(m.equals("Todos") ? "Todos los modelos" : traducirModelo(m));
+                setText((empty || m == null) ? null : traducirModelo(m));
             }
         });
 
         cbFiltroModelo.valueProperty().addListener((obs, o, n) -> {
+            boolean hayModelo = n != null;
+            if (!tieneSolicitudesIniciales && !modoEdicion) {
+                contenedorFilas.setVisible(hayModelo);
+                contenedorFilas.setManaged(hayModelo);
+                lblSeleccionaModelo.setVisible(!hayModelo);
+                lblSeleccionaModelo.setManaged(!hayModelo);
+            }
             for (FilaUI fila : filasUI) {
                 fila.aplicarFiltroModelo(n);
             }
         });
+
+        if (tieneSolicitudesIniciales) {
+            // Auto-detectar modelo desde la solicitud y bloquearlo
+            filasUI.stream()
+                    .filter(FilaUI::isSolicitud)
+                    .map(f -> extraerModelo(f.getComponenteSeleccionado().getTipo(), f.getPrefijo()))
+                    .filter(m -> !m.isEmpty() && cbFiltroModelo.getItems().contains(m))
+                    .findFirst()
+                    .ifPresent(modelo -> {
+                        cbFiltroModelo.setValue(modelo);
+                        cbFiltroModelo.setDisable(true);
+                    });
+        } else if (modoEdicion) {
+            // Auto-detectar modelo desde la fila en edición y bloquearlo
+            filasUI.stream()
+                    .filter(FilaUI::isModoEdicion)
+                    .map(f -> f.getComponenteSeleccionado() != null
+                            ? extraerModelo(f.getComponenteSeleccionado().getTipo(), f.getPrefijo()) : "")
+                    .filter(m -> !m.isEmpty() && cbFiltroModelo.getItems().contains(m))
+                    .findFirst()
+                    .ifPresent(modelo -> {
+                        cbFiltroModelo.setValue(modelo);
+                        cbFiltroModelo.setDisable(true);
+                    });
+        } else {
+            // Flujo normal: ocultar filas hasta que se seleccione modelo
+            contenedorFilas.setVisible(false);
+            contenedorFilas.setManaged(false);
+            lblSeleccionaModelo.setVisible(true);
+            lblSeleccionaModelo.setManaged(true);
+        }
     }
 
     private void actualizarBoton() {
-        boolean activa = filasUI.stream().anyMatch(FilaUI::isActiva);
-        btnGuardar.setDisable(!activa);
-        btnGuardar.setStyle(activa
+        boolean habilitado;
+        if (modoEdicion) {
+            boolean cambioEnEdicion = filasUI.stream()
+                    .filter(FilaUI::isModoEdicion).anyMatch(FilaUI::hayCambio);
+            boolean filasNuevas = filasUI.stream()
+                    .filter(f -> !f.isModoEdicion()).anyMatch(FilaUI::isActiva);
+            habilitado = cambioEnEdicion || filasNuevas;
+        } else {
+            boolean activa = filasUI.stream().anyMatch(FilaUI::isActiva);
+            boolean solicitudesPendientes = tieneSolicitudesIniciales
+                    && filasUI.stream().anyMatch(FilaUI::isSolicitud);
+            habilitado = activa && !solicitudesPendientes;
+        }
+        btnGuardar.setDisable(!habilitado);
+        btnGuardar.setStyle(habilitado
                 ? "-fx-background-color: #8AC7AF; -fx-text-fill: white; -fx-font-size: 12px;" +
                         "-fx-font-weight: bold; -fx-background-radius: 0; -fx-padding: 10; -fx-cursor: hand;"
                 : "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9; -fx-font-size: 12px;" +
@@ -164,6 +303,45 @@ public class FormularioReparacionController {
 
     @FXML
     private void guardar() {
+        if (!esperandoConfirmacion) {
+            activarConfirmacion();
+        } else {
+            ejecutarGuardar();
+        }
+    }
+
+    private void activarConfirmacion() {
+        esperandoConfirmacion = true;
+        btnGuardar.setDisable(true);
+        segundosRestantes = 5;
+        btnGuardar.setText("Guardar (" + segundosRestantes + ")");
+
+        timelineReset = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            segundosRestantes--;
+            if (segundosRestantes > 0) {
+                btnGuardar.setText("Guardar (" + segundosRestantes + ")");
+            } else {
+                timelineReset.stop();
+                btnGuardar.setDisable(false);
+                btnGuardar.setText("✓  Confirmar guardar");
+            }
+        }));
+        timelineReset.setCycleCount(5);
+        timelineReset.play();
+    }
+
+    private void ejecutarGuardar() {
+        if (timelineReset != null) { timelineReset.stop(); timelineReset = null; }
+        esperandoConfirmacion = false;
+
+        if (modoEdicion) {
+            ejecutarGuardarEdicion();
+        } else {
+            ejecutarGuardarNueva();
+        }
+    }
+
+    private void ejecutarGuardarNueva() {
         List<FilaReparacion> filasActivas = new ArrayList<>();
         for (FilaUI fila : filasUI) {
             if (fila.isActiva()) {
@@ -172,7 +350,9 @@ public class FormularioReparacionController {
                         fila.getCantidad(),
                         fila.isReutilizado(),
                         fila.getObservacion(),
-                        fila.getPrefijo()));
+                        fila.getPrefijo(),
+                        fila.isSolicitud(),
+                        fila.getDescripcionSolicitud()));
             }
         }
         try {
@@ -189,7 +369,50 @@ public class FormularioReparacionController {
         }
     }
 
-    public static void abrir(long imei, String idRepAnterior,
+    private void ejecutarGuardarEdicion() {
+        try {
+            // 1. Editar la fila que está en modo edición (si cambió)
+            for (FilaUI fila : filasUI) {
+                if (fila.isModoEdicion() && fila.hayCambio()) {
+                    reparacionDAO.editarReparacion(
+                            idRepEditar,
+                            fila.getIdComSeleccionado(),
+                            fila.isReutilizado(),
+                            fila.getObservacion(),
+                            fila.isPiezaViejaRota(),
+                            fila.getCantidad());
+                    break;
+                }
+            }
+            // 2. Insertar filas nuevas agrupadas por técnico
+            Map<Integer, List<FilaReparacion>> porTecnico = new java.util.LinkedHashMap<>();
+            for (FilaUI fila : filasUI) {
+                if (!fila.isModoEdicion() && fila.isActiva()) {
+                    int idTec = fila.getTecnicoId() != -1 ? fila.getTecnicoId() : idTecEditar;
+                    porTecnico.computeIfAbsent(idTec, k -> new ArrayList<>()).add(
+                            new FilaReparacion(
+                                    fila.getIdComSeleccionado(), fila.getCantidad(),
+                                    fila.isReutilizado(), fila.getObservacion(),
+                                    fila.getPrefijo(), fila.isSolicitud(),
+                                    fila.getDescripcionSolicitud()));
+                }
+            }
+            for (Map.Entry<Integer, List<FilaReparacion>> entry : porTecnico.entrySet()) {
+                reparacionDAO.insertarCompleta(entry.getValue(), imeiEditar,
+                        entry.getKey(), null, null);
+            }
+            Stage stage = (Stage) btnGuardar.getScene().getWindow();
+            stage.close();
+            if (onGuardado != null)
+                onGuardado.run();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            new Alert(Alert.AlertType.ERROR,
+                    "No se pudo guardar: " + ex.getMessage()).showAndWait();
+        }
+    }
+
+    public static void abrir(String imei, String idRepAnterior,
             String idAsignacion, Runnable onGuardado) {
         Platform.runLater(() -> {
             try {
@@ -204,7 +427,7 @@ public class FormularioReparacionController {
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setResizable(true);
                 stage.setMinWidth(900);
-                stage.setMinHeight(400);
+                stage.setMinHeight(520);
 
                 ctrl.init(imei, idRepAnterior, idAsignacion, onGuardado);
 
@@ -283,7 +506,7 @@ public class FormularioReparacionController {
 
         private final String prefijo;
         private final List<Componente> skus;
-        private final HBox root;
+        private final VBox root;
 
         private final Label lblContador;
         private final Button btnMas;
@@ -294,10 +517,29 @@ public class FormularioReparacionController {
         private final Button btnObservacion;
         private final Label lblObservacion;
         private final Button btnBorrarObs;
+        private final Button btnSolicitud;
+
+        private static final String STYLE_SOL_INACTIVA =
+                "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
+                "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+        private static final String STYLE_SOL_ACTIVA =
+                "-fx-background-color: #FFA500; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+
+        private final HBox mainRow;
 
         private int cantidad = 0;
         private String observacion = null;
+        private boolean solicitudActiva = false;
+        private String descripcionSolicitud = null;
         private Runnable onCambio;
+
+        // ── Edición ───────────────────────────────────────────────────────────
+        private boolean modoEdicion = false;
+        private int idComOriginal = -1;
+        private boolean esReutilizadoOriginal = false;
+        private String observacionOriginal = null;
+        private CheckBox chkPiezaViejaRota = null;
 
         FilaUI(String prefijo, List<Componente> skus, Image imgBorrar) {
             this.prefijo = prefijo;
@@ -391,12 +633,12 @@ public class FormularioReparacionController {
                             actualizarContador();
                             if (!chkReutilizado.isSelected())
                                 chkReutilizado.setDisable(false);
-                            notificar();
                         }
                         if (!chkReutilizado.isSelected()) {
                             btnMas.setDisable(cantidad >= n.getStock());
                         }
                     }
+                    notificar();
                 }
             });
 
@@ -410,14 +652,15 @@ public class FormularioReparacionController {
 
             lblObservacion = new Label();
             lblObservacion.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;");
+            lblObservacion.setMinWidth(0);
             lblObservacion.setMaxWidth(Double.MAX_VALUE);
             lblObservacion.setTextOverrun(OverrunStyle.ELLIPSIS);
             lblObservacion.setVisible(false);
             lblObservacion.setManaged(false);
 
             ImageView ivBorrarObs = new ImageView(imgBorrar);
-            ivBorrarObs.setFitWidth(12);
-            ivBorrarObs.setFitHeight(12);
+            ivBorrarObs.setFitWidth(20);
+            ivBorrarObs.setFitHeight(20);
             ivBorrarObs.setPreserveRatio(true);
             btnBorrarObs = new Button();
             btnBorrarObs.setGraphic(ivBorrarObs);
@@ -428,13 +671,21 @@ public class FormularioReparacionController {
 
             HBox wrapObs = new HBox(4, btnObservacion, lblObservacion, btnBorrarObs);
             wrapObs.setAlignment(Pos.CENTER_LEFT);
+            wrapObs.setMaxWidth(280);
             HBox.setHgrow(wrapObs, Priority.ALWAYS);
             HBox.setHgrow(lblObservacion, Priority.ALWAYS);
 
-            root = new HBox(wrapContador, lblNombre, cbSku, lblStock, chkReutilizado, wrapObs);
-            root.setAlignment(Pos.CENTER_LEFT);
-            root.setMinHeight(37);
-            root.setMaxHeight(37);
+            btnSolicitud = new Button("⚠ Solicitud pieza");
+            btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+            btnSolicitud.setMinHeight(27);
+            btnSolicitud.setMaxHeight(27);
+            btnSolicitud.setOnAction(e -> abrirSolicitud());
+
+            mainRow = new HBox(wrapContador, lblNombre, cbSku, lblStock, chkReutilizado, wrapObs, btnSolicitud);
+            mainRow.setAlignment(Pos.CENTER_LEFT);
+            mainRow.setMinHeight(37);
+
+            root = new VBox(mainRow);
             root.setStyle("-fx-background-color: #F3F3F3; " +
                     "-fx-border-color: transparent transparent #E0E0E0 transparent;" +
                     "-fx-border-width: 0 0 1 0;");
@@ -499,8 +750,12 @@ public class FormularioReparacionController {
             actualizarContador();
             chkReutilizado.setSelected(false);
             chkReutilizado.setDisable(false);
+            solicitudActiva = false;
+            descripcionSolicitud = null;
+            btnSolicitud.setText("⚠ Solicitud pieza");
+            btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
 
-            if (modelo == null || modelo.equals("Todos")) {
+            if (modelo == null) {
                 cbSku.getItems().setAll(skus);
                 Componente def = skus.stream()
                         .filter(c -> c.getStock() > 0)
@@ -644,11 +899,15 @@ public class FormularioReparacionController {
         // ── Estado público ────────────────────────────────────────────────────
 
         boolean isActiva() {
-            return cantidad > 0 || chkReutilizado.isSelected();
+            return cantidad > 0 || chkReutilizado.isSelected() || solicitudActiva;
         }
 
         int getIdComSeleccionado() {
             return cbSku.getValue() != null ? cbSku.getValue().getIdCom() : -1;
+        }
+
+        Componente getComponenteSeleccionado() {
+            return cbSku.getValue();
         }
 
         int getCantidad() {
@@ -671,7 +930,252 @@ public class FormularioReparacionController {
             return skus;
         }
 
-        HBox getRoot() {
+        boolean isSolicitud() {
+            return solicitudActiva;
+        }
+
+        String getDescripcionSolicitud() {
+            return descripcionSolicitud;
+        }
+
+        private void abrirSolicitud() {
+            TextArea ta = new TextArea(descripcionSolicitud != null ? descripcionSolicitud : "");
+            ta.setPromptText("Describe la pieza que falta (opcional)...");
+            ta.setWrapText(true);
+            ta.setPrefRowCount(4);
+            ta.setPrefWidth(380);
+            ta.setStyle("-fx-font-size: 13px;");
+
+            Button btnGuardar = new Button(solicitudActiva ? "Guardar cambios" : "Marcar como solicitud");
+            btnGuardar.setMaxWidth(Double.MAX_VALUE);
+            btnGuardar.setStyle("-fx-background-color: #8AC7AF; -fx-text-fill: white;" +
+                    "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Solicitud de pieza");
+            dialog.setHeaderText("Pieza pendiente: " + traducirTipo(prefijo));
+            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+            dialog.getDialogPane().setPrefWidth(440);
+
+            VBox content = new VBox(8, ta, btnGuardar);
+
+            if (solicitudActiva) {
+                Button btnPiezaRecibida = new Button("Pieza recibida — instalar");
+                btnPiezaRecibida.setMaxWidth(Double.MAX_VALUE);
+                btnPiezaRecibida.setStyle("-fx-background-color: #8AC7AF; -fx-text-fill: white;" +
+                        "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+                btnPiezaRecibida.setOnAction(e -> {
+                    solicitudActiva = false;
+                    descripcionSolicitud = null;
+                    btnSolicitud.setText("⚠ Solicitud pieza");
+                    btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+                    Componente sel = cbSku.getValue();
+                    int stock = (sel != null && !prefijo.equals("otro")) ? sel.getStock() : Integer.MAX_VALUE;
+                    if (prefijo.equals("otro") || stock > 0) {
+                        cantidad = 1;
+                        actualizarContador();
+                        btnMas.setDisable(!prefijo.equals("otro") && cantidad >= stock);
+                        btnMenos.setDisable(false);
+                        chkReutilizado.setDisable(true);
+                    } else {
+                        chkReutilizado.setDisable(false);
+                        btnMas.setDisable(true);
+                        btnMenos.setDisable(true);
+                    }
+                    dialog.close();
+                    notificar();
+                });
+                Button btnCancelarSol = new Button("Cancelar solicitud de pieza");
+                btnCancelarSol.setMaxWidth(Double.MAX_VALUE);
+                btnCancelarSol.setStyle("-fx-background-color: #E7E7E7; -fx-text-fill: #555555;" +
+                        "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+                btnCancelarSol.setOnAction(e -> {
+                    dialog.close();
+                    Platform.runLater(() -> ConfirmDialog.mostrar("Cancelar solicitud",
+                            "¿Seguro que quieres cancelar la solicitud de pieza para " + traducirTipo(prefijo) + "?",
+                            "Sí, cancelar", () -> {
+                                solicitudActiva = false;
+                                descripcionSolicitud = null;
+                                btnSolicitud.setText("⚠ Solicitud pieza");
+                                btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+                                chkReutilizado.setDisable(false);
+                                Componente sel = cbSku.getValue();
+                                btnMas.setDisable(!prefijo.equals("otro") &&
+                                        (sel == null || sel.getStock() <= 0));
+                                btnMenos.setDisable(true);
+                                notificar();
+                            }));
+                });
+                content.getChildren().addAll(btnPiezaRecibida, btnCancelarSol);
+            }
+
+            dialog.getDialogPane().setContent(content);
+
+            btnGuardar.setOnAction(e -> {
+                String trimmed = ta.getText().trim();
+                descripcionSolicitud = trimmed.isEmpty() ? null : trimmed;
+                solicitudActiva = true;
+                cantidad = 0;
+                actualizarContador();
+                chkReutilizado.setSelected(false);
+                chkReutilizado.setDisable(true);
+                btnMas.setDisable(true);
+                btnMenos.setDisable(true);
+                btnSolicitud.setText("⚠ Pieza pendiente");
+                btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                dialog.close();
+                notificar();
+            });
+
+            dialog.showAndWait();
+        }
+
+        void deshabilitarYaReparado() {
+            cbSku.setDisable(true);
+            btnMas.setDisable(true);
+            btnMenos.setDisable(true);
+            chkReutilizado.setDisable(true);
+            btnObservacion.setDisable(true);
+            btnSolicitud.setDisable(true);
+            Label lblYaReparado = new Label("✓  Ya reparado");
+            lblYaReparado.setStyle("-fx-font-size: 11px; -fx-text-fill: #4CAF50; -fx-font-weight: bold; -fx-padding: 0 10 0 10;");
+            mainRow.getChildren().add(lblYaReparado);
+            root.setStyle("-fx-background-color: #EBF5EB; " +
+                    "-fx-border-color: transparent transparent #C5E1C5 transparent;" +
+                    "-fx-border-width: 0 0 1 0;");
+        }
+
+        void deshabilitarPorNoImplicada() {
+            cbSku.setDisable(true);
+            btnMas.setDisable(true);
+            btnMenos.setDisable(true);
+            chkReutilizado.setDisable(true);
+            btnObservacion.setDisable(true);
+            btnSolicitud.setDisable(true);
+            root.setOpacity(0.4);
+        }
+
+        void activarSolicitud(int idCom, String descripcion) {
+            for (Componente c : skus) {
+                if (c.getIdCom() == idCom) {
+                    cbSku.setValue(c);
+                    descripcionSolicitud = descripcion;
+                    solicitudActiva = true;
+                    cantidad = 0;
+                    actualizarContador();
+                    chkReutilizado.setSelected(false);
+                    chkReutilizado.setDisable(true);
+                    btnMas.setDisable(true);
+                    btnMenos.setDisable(true);
+                    btnSolicitud.setText("⚠ Pieza pendiente");
+                    btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                    notificar();
+                    return;
+                }
+            }
+        }
+
+
+        // ── Modo edición ──────────────────────────────────────────────────────
+
+        void activarModoEdicion(int idCom, boolean esReutilizado, String observacion) {
+            this.modoEdicion = true;
+            this.idComOriginal = idCom;
+            this.esReutilizadoOriginal = esReutilizado;
+            this.observacionOriginal = observacion;
+
+            // Pre-seleccionar componente
+            skus.stream().filter(c -> c.getIdCom() == idCom).findFirst()
+                    .ifPresent(cbSku::setValue);
+
+            // Contador empieza en 0 — el usuario confirma cuántas piezas nuevas instala
+            cantidad = 0;
+            actualizarContador();
+            Componente sel = cbSku.getValue();
+            int stock = sel != null ? sel.getStock() : 0;
+            btnMas.setDisable(!prefijo.equals("otro") && stock <= 0);
+            chkReutilizado.setSelected(esReutilizado);
+
+            // Pre-rellenar observación
+            this.observacion = observacion;
+            if (observacion != null && !observacion.isBlank()) {
+                lblObservacion.setText(observacion);
+                btnObservacion.setVisible(false);
+                btnObservacion.setManaged(false);
+                lblObservacion.setVisible(true);
+                lblObservacion.setManaged(true);
+                btnBorrarObs.setVisible(true);
+                btnBorrarObs.setManaged(true);
+            }
+
+            // Checkbox pieza vieja rota (solo primera vez, siempre visible en edición)
+            if (chkPiezaViejaRota == null) {
+                chkPiezaViejaRota = new CheckBox("Pieza rota / reutilizada");
+                chkPiezaViejaRota.setStyle("-fx-font-size: 11px; -fx-padding: 0 8 0 8; -fx-text-fill: #CC4444;");
+                chkPiezaViejaRota.setOnAction(e -> notificar());
+                mainRow.getChildren().add(chkPiezaViejaRota);
+            }
+
+            // Ocultar solicitud en modo edición
+            btnSolicitud.setVisible(false);
+            btnSolicitud.setManaged(false);
+
+            // Fondo azul
+            root.setStyle("-fx-background-color: #EBF4FF; " +
+                    "-fx-border-color: transparent transparent #B3D4F5 transparent;" +
+                    "-fx-border-width: 0 0 1 0;");
+        }
+
+        // ── Técnico por fila (solo modo edición, filas grises nuevas) ────────
+
+        private ComboBox<Tecnico> cbTecnicoFila = null;
+        private int idTecFila = -1;
+
+        void configurarTecnicoEdicion(List<Tecnico> tecnicos, int idTecDefault) {
+            idTecFila = idTecDefault;
+            cbTecnicoFila = new ComboBox<>();
+            cbTecnicoFila.getItems().setAll(tecnicos);
+            cbTecnicoFila.setPrefWidth(150);
+            cbTecnicoFila.setStyle("-fx-font-size: 11px;");
+            cbTecnicoFila.setCellFactory(lv -> new ListCell<>() {
+                @Override protected void updateItem(Tecnico t, boolean empty) {
+                    super.updateItem(t, empty);
+                    setText(empty || t == null ? null : t.getNombre());
+                }
+            });
+            cbTecnicoFila.setButtonCell(new ListCell<>() {
+                @Override protected void updateItem(Tecnico t, boolean empty) {
+                    super.updateItem(t, empty);
+                    setText(empty || t == null ? null : t.getNombre());
+                }
+            });
+            tecnicos.stream().filter(t -> t.getIdTec() == idTecDefault)
+                    .findFirst().ifPresent(cbTecnicoFila::setValue);
+            cbTecnicoFila.valueProperty().addListener((obs, o, n) -> {
+                if (n != null) idTecFila = n.getIdTec();
+            });
+            mainRow.getChildren().add(cbTecnicoFila);
+        }
+
+        int getTecnicoId() { return idTecFila; }
+
+        boolean isModoEdicion() { return modoEdicion; }
+
+        boolean hayCambio() {
+            if (!modoEdicion) return false;
+            Componente sel = cbSku.getValue();
+            int idComActual = sel != null ? sel.getIdCom() : -1;
+            return cantidad > 0
+                    || idComActual != idComOriginal
+                    || chkReutilizado.isSelected() != esReutilizadoOriginal
+                    || !Objects.equals(observacion, observacionOriginal);
+        }
+
+        boolean isPiezaViejaRota() {
+            return chkPiezaViejaRota != null && chkPiezaViejaRota.isSelected();
+        }
+
+        VBox getRoot() {
             return root;
         }
 

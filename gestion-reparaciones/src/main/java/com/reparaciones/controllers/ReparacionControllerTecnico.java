@@ -33,7 +33,7 @@ public class ReparacionControllerTecnico {
     @FXML
     private TableColumn<ReparacionResumen, String> colIdRep;
     @FXML
-    private TableColumn<ReparacionResumen, Long> colImei;
+    private TableColumn<ReparacionResumen, String> colImei;
     @FXML
     private TableColumn<ReparacionResumen, String> colReparador;
     @FXML
@@ -52,12 +52,12 @@ public class ReparacionControllerTecnico {
     @FXML private MenuButton filtroIncidencias;
     private CheckBox cbIncidenciasAbiertas;
     private CheckBox cbIncidenciasCerradas;
+    private CheckBox cbNormales;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private final ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
     private FilteredList<ReparacionResumen> datosFiltrados;
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-    private static final DateTimeFormatter FORMATO_FECHA_HOR = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
     @FXML
     public void initialize() {
@@ -96,14 +96,14 @@ public class ReparacionControllerTecnico {
             }
         });
 
-        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/editar.png"));
+        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial32pixeles.png"));
         colImei.setCellFactory(col -> new TableCell<>() {
             private final Label lblImei = new Label();
             private final ImageView ivHist = new ImageView(imgHistorial);
             private final HBox contenedor = new HBox(6, lblImei, ivHist);
             {
-                ivHist.setFitWidth(14);
-                ivHist.setFitHeight(14);
+                ivHist.setFitWidth(20);
+                ivHist.setFitHeight(20);
                 ivHist.setPreserveRatio(true);
                 ivHist.setStyle("-fx-cursor: hand; -fx-opacity: 0.5;");
                 contenedor.setAlignment(Pos.CENTER_LEFT);
@@ -111,13 +111,13 @@ public class ReparacionControllerTecnico {
             }
 
             @Override
-            protected void updateItem(Long item, boolean empty) {
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
                     return;
                 }
-                lblImei.setText(String.valueOf(getTableView().getItems().get(getIndex()).getImei()));
+                lblImei.setText(getTableView().getItems().get(getIndex()).getImei());
                 setGraphic(contenedor);
             }
         });
@@ -233,11 +233,7 @@ public class ReparacionControllerTecnico {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                    setStyle("");
-                    return;
-                }
+                if (empty) { setGraphic(null); setStyle(""); return; }
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
                 if (!rep.isEsIncidencia()) {
                     setGraphic(null);
@@ -286,18 +282,28 @@ public class ReparacionControllerTecnico {
                 });
                 menu.getItems().add(copiar);
                 setContextMenu(menu);
+                selectedProperty().addListener((obs, wasSelected, isSelected) -> aplicarEstilo(getItem(), isEmpty()));
+            }
+
+            private void aplicarEstilo(ReparacionResumen item, boolean empty) {
+                if (empty || item == null) { setStyle(""); return; }
+                if (isSelected()) {
+                    setStyle("-fx-background-color: #2C3B54;" +
+                            "-fx-border-color: transparent transparent #3D5070 transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
+                    setStyle("-fx-background-color: rgba(251,136,136,0.16);" +
+                            "-fx-border-color: transparent transparent #FB8888 transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else {
+                    setStyle("");
+                }
             }
 
             @Override
             protected void updateItem(ReparacionResumen item, boolean empty) {
                 super.updateItem(item, empty);
-                if (!empty && item != null && item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle(
-                            "-fx-background-color: rgba(251,136,136,0.16);" +
-                                    "-fx-border-color: transparent transparent #FB8888 transparent;" +
-                                    "-fx-border-width: 0 0 0.2 0;");
-                } else
-                    setStyle("");
+                aplicarEstilo(item, empty);
             }
         });
     }
@@ -305,15 +311,17 @@ public class ReparacionControllerTecnico {
     private void actualizarTextoFiltroIncidencias() {
         boolean a = cbIncidenciasAbiertas.isSelected();
         boolean c = cbIncidenciasCerradas.isSelected();
-        if (!a && !c)      filtroIncidencias.setText("Incidencias");
-        else if (a && c)   filtroIncidencias.setText("Abiertas + Cerradas");
-        else if (a)        filtroIncidencias.setText("Abiertas");
-        else               filtroIncidencias.setText("Cerradas");
+        boolean n = cbNormales.isSelected();
+        long total = java.util.stream.Stream.of(a, c, n).filter(Boolean::booleanValue).count();
+        if      (total == 0) filtroIncidencias.setText("Incidencias");
+        else if (total == 3) filtroIncidencias.setText("Todas");
+        else if (total == 1) filtroIncidencias.setText(a ? "Abiertas" : c ? "Cerradas" : "Sin incidencia");
+        else                 filtroIncidencias.setText(total + " filtros");
     }
 
     private String textoDeCelda(ReparacionResumen rep, TableColumn<?, ?> col) {
         if (col == colIdRep)         return rep.getIdRep();
-        if (col == colImei)          return String.valueOf(rep.getImei());
+        if (col == colImei)          return rep.getImei();
         if (col == colReparador)     return rep.getNombreTecnico();
         if (col == colFecha)         return rep.getFechaFin() != null ? rep.getFechaFin().format(FORMATO_FECHA) : "";
         if (col == colComponente)    return rep.getTipoComponente();
@@ -374,11 +382,19 @@ public class ReparacionControllerTecnico {
             actualizarTextoFiltroIncidencias();
             aplicarFiltros();
         });
+        cbNormales = new CheckBox("Sin incidencia");
+        cbNormales.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
+        cbNormales.selectedProperty().addListener((obs, o, n) -> {
+            actualizarTextoFiltroIncidencias();
+            aplicarFiltros();
+        });
         CustomMenuItem itemAbiertas = new CustomMenuItem(cbIncidenciasAbiertas, false);
         itemAbiertas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemCerradas = new CustomMenuItem(cbIncidenciasCerradas, false);
         itemCerradas.setStyle("-fx-background-color: white;");
-        filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas);
+        CustomMenuItem itemNormales = new CustomMenuItem(cbNormales, false);
+        itemNormales.setStyle("-fx-background-color: white;");
+        filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas, itemNormales);
     }
 
     private void aplicarFiltros() {
@@ -388,9 +404,10 @@ public class ReparacionControllerTecnico {
         LocalDate hasta = filtroFechaHasta.getValue();
         boolean filtrarAbiertas = cbIncidenciasAbiertas.isSelected();
         boolean filtrarCerradas = cbIncidenciasCerradas.isSelected();
+        boolean filtrarNormales = cbNormales.isSelected();
 
         datosFiltrados.setPredicate(rep -> {
-            if (imeiStr.length() == 15 && !String.valueOf(rep.getImei()).equals(imeiStr))
+            if (imeiStr.length() == 15 && !rep.getImei().equals(imeiStr))
                 return false;
             if (desde != null && rep.getFechaFin() != null
                     && rep.getFechaFin().toLocalDate().isBefore(desde))
@@ -398,10 +415,12 @@ public class ReparacionControllerTecnico {
             if (hasta != null && rep.getFechaFin() != null
                     && rep.getFechaFin().toLocalDate().isAfter(hasta))
                 return false;
-            if (filtrarAbiertas || filtrarCerradas) {
-                if (!rep.isEsIncidencia()) return false;
-                if (!filtrarAbiertas && !rep.isEsResuelto()) return false;
-                if (!filtrarCerradas &&  rep.isEsResuelto()) return false;
+            if (filtrarAbiertas || filtrarCerradas || filtrarNormales) {
+                boolean mostrar = false;
+                if (filtrarNormales && !rep.isEsIncidencia())                        mostrar = true;
+                if (filtrarAbiertas && rep.isEsIncidencia() && !rep.isEsResuelto()) mostrar = true;
+                if (filtrarCerradas && rep.isEsIncidencia() &&  rep.isEsResuelto()) mostrar = true;
+                if (!mostrar) return false;
             }
             return true;
         });
@@ -414,6 +433,7 @@ public class ReparacionControllerTecnico {
         filtroFechaHasta.setValue(null);
         cbIncidenciasAbiertas.setSelected(false);
         cbIncidenciasCerradas.setSelected(false);
+        cbNormales.setSelected(false);
         filtroIncidencias.setText("Incidencias");
         filtroImei.setStyle("");
     }
@@ -427,7 +447,7 @@ public class ReparacionControllerTecnico {
 
     // ─── Historial IMEI ───────────────────────────────────────────────────────
 
-    private void abrirHistorialImei(long imei) {
+    private void abrirHistorialImei(String imei) {
         try {
             List<ReparacionResumen> historial = reparacionDAO.getResumenPorImei(imei);
 

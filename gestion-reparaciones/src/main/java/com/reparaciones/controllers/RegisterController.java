@@ -51,15 +51,15 @@ public class RegisterController {
         colNombreUsuario.setCellValueFactory(
             data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getNombreUsuario()));
 
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
 
         colAcciones.setCellFactory(col -> new TableCell<>() {
             private final ImageView iv = new ImageView(imgBorrar);
             private final HBox contenedor = new HBox(iv);
 
             {
-                iv.setFitWidth(16);
-                iv.setFitHeight(16);
+                iv.setFitWidth(20);
+                iv.setFitHeight(20);
                 iv.setPreserveRatio(true);
                 iv.setStyle("-fx-cursor: hand;");
                 contenedor.setAlignment(javafx.geometry.Pos.CENTER);

@@ -1,25 +1,24 @@
 .navbar {
-    -fx-background-color: #FAFAFA;
-    -fx-border-color: transparent transparent #A9A9A9 transparent;
-    -fx-border-width: 0 0 0.5 0;
+    -fx-background-color: #001232;
+    -fx-border-color: transparent;
     -fx-min-height: 64px;
     -fx-max-height: 64px;
 }
 
 .navbar-logo {
     -fx-font-size: 20px;
-    -fx-text-fill: #333333;
+    -fx-text-fill: #F6F6F6;
 }
 
 .navbar-title {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-text-fill: #333333;
+    -fx-text-fill: #F6F6F6;
 }
 
 .nav-btn {
-    -fx-background-color: #E0E0E0;
-    -fx-text-fill: #333333;
+    -fx-background-color: #2C3B54;
+    -fx-text-fill: #F6F6F6;
     -fx-background-radius: 20;
     -fx-padding: 6 16 6 16;
     -fx-font-size: 12px;
@@ -28,8 +27,8 @@
 }
 
 .nav-btn-active {
-    -fx-background-color: #333333;
-    -fx-text-fill: #FFFFFF;
+    -fx-background-color: #F1E356;
+    -fx-text-fill: #001232;
     -fx-background-radius: 20;
     -fx-padding: 6 16 6 16;
     -fx-font-size: 12px;
@@ -39,11 +38,11 @@
 
 .navbar-user {
     -fx-font-size: 12px;
-    -fx-text-fill: #333333;
+    -fx-text-fill: #F6F6F6;
 }
 
 .navbar-change-user {
     -fx-font-size: 12px;
-    -fx-text-fill: #A9A9A9;
+    -fx-text-fill: #586376;
     -fx-cursor: hand;
 }
