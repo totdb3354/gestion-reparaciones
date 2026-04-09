@@ -14,7 +14,6 @@ import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 
 import java.sql.SQLException;
@@ -40,7 +39,18 @@ public class StockController {
     @FXML private TableColumn<Componente, String>   colEstado;
     @FXML private TableColumn<Componente, Void>     colAccion;
     @FXML private TextField                         txtBuscador;
+    @FXML private MenuButton                        menuFiltroStock;
     @FXML private PieChart                          chartEstado;
+    @FXML private javafx.scene.chart.BarChart<String, Number>       chartSku;
+    @FXML private javafx.scene.chart.CategoryAxis                   chartSkuX;
+    @FXML private javafx.scene.chart.NumberAxis                     chartSkuY;
+    @FXML private Label                             lblChartSku;
+    @FXML private Label                             lblPlaceholder;
+    @FXML private javafx.scene.layout.HBox         pnlLeyenda;
+
+    private CheckBox cbOk;
+    private CheckBox cbBajo;
+    private CheckBox cbSinStock;
 
     // ── Panel Pedidos ─────────────────────────────────────────────────────────
     @FXML private TableView<CompraComponente>             tablaPedidos;
@@ -97,6 +107,17 @@ public class StockController {
         cargarStock();
     }
 
+    private void navegarAComponente(int idCom) {
+        mostrarTabStock();
+        datosStock.stream()
+                .filter(c -> c.getIdCom() == idCom)
+                .findFirst()
+                .ifPresent(c -> {
+                    tablaStock.getSelectionModel().select(c);
+                    tablaStock.scrollTo(c);
+                });
+    }
+
     @FXML private void mostrarTabPedidos() {
         mostrarPanel(pnlPedidos, btnTabPedidos);
         cargarPedidos();
@@ -131,12 +152,7 @@ public class StockController {
                 new javafx.beans.property.SimpleIntegerProperty(c.getValue().getStock()).asObject());
 
         // Estado semáforo
-        colEstado.setCellValueFactory(c -> {
-            Componente comp = c.getValue();
-            if (comp.getStock() == 0)                     return sp("Sin stock");
-            if (comp.getStock() <= comp.getStockMinimo()) return sp("Bajo");
-            return sp("OK");
-        });
+        colEstado.setCellValueFactory(c -> sp(estadoComponente(c.getValue())));
         colEstado.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String val, boolean empty) {
                 super.updateItem(val, empty);
@@ -172,12 +188,79 @@ public class StockController {
             }
         });
 
-        // Filtro buscador
+        // Filtros: buscador + estado (MenuButton con CheckBoxes)
+        menuFiltroStock.setStyle(
+                "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;");
+
+        cbOk       = new CheckBox("OK");
+        cbBajo     = new CheckBox("Bajo");
+        cbSinStock = new CheckBox("Sin stock");
+        for (CheckBox cb : new CheckBox[]{cbOk, cbBajo, cbSinStock})
+            cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
+
         FilteredList<Componente> filtrada = new FilteredList<>(datosStock, c -> true);
-        txtBuscador.textProperty().addListener((obs, old, text) ->
-                filtrada.setPredicate(c -> text.isBlank() ||
-                        c.getTipo().toLowerCase().contains(text.toLowerCase().trim())));
+
+        Runnable aplicarFiltros = () -> {
+            boolean ok  = cbOk.isSelected();
+            boolean baj = cbBajo.isSelected();
+            boolean sin = cbSinStock.isSelected();
+            boolean ninguno = !ok && !baj && !sin;
+            actualizarTextoFiltroStock(ok, baj, sin, ninguno);
+            filtrada.setPredicate(c -> {
+                String texto = txtBuscador.getText();
+                boolean coincideTexto = texto == null || texto.isBlank() ||
+                        c.getTipo().toLowerCase().contains(texto.toLowerCase().trim());
+                String est = estadoComponente(c);
+                boolean coincideEstado = ninguno ||
+                        (ok && "OK".equals(est)) ||
+                        (baj && "Bajo".equals(est)) ||
+                        (sin && "Sin stock".equals(est));
+                return coincideTexto && coincideEstado;
+            });
+        };
+
+        for (CheckBox cb : new CheckBox[]{cbOk, cbBajo, cbSinStock})
+            cb.selectedProperty().addListener((obs, o, n) -> aplicarFiltros.run());
+        txtBuscador.textProperty().addListener((obs, old, val) -> aplicarFiltros.run());
+
+        CustomMenuItem itemOk  = new CustomMenuItem(cbOk,       false);
+        CustomMenuItem itemBaj = new CustomMenuItem(cbBajo,     false);
+        CustomMenuItem itemSin = new CustomMenuItem(cbSinStock, false);
+        for (CustomMenuItem mi : new CustomMenuItem[]{itemOk, itemBaj, itemSin})
+            mi.setStyle("-fx-background-color: white;");
+        menuFiltroStock.getItems().addAll(itemOk, itemBaj, itemSin);
+
+        tablaStock.setRowFactory(tv -> new TableRow<>() {
+            {
+                selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
+            }
+            private void actualizarEstilo() {
+                if (isEmpty() || getItem() == null) { setStyle(""); return; }
+                if (isSelected()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else {
+                    setStyle("");
+                }
+            }
+            @Override protected void updateItem(Componente item, boolean empty) {
+                super.updateItem(item, empty);
+                actualizarEstilo();
+            }
+        });
+
         tablaStock.setItems(filtrada);
+
+        // Listener selección → gráfica SKU
+        tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+            if (sel == null) {
+                mostrarPlaceholderSku();
+            } else {
+                cargarChartSku(sel);
+            }
+        });
     }
 
     private void cargarStock() {
@@ -207,6 +290,87 @@ public class StockController {
                 "CHART_COLOR_2: #c77a00; " +
                 "CHART_COLOR_3: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";"
         );
+
+        // Leyenda manual
+        pnlLeyenda.getChildren().setAll(
+                leyendaItem("#3a7d44", "OK (" + ok + ")"),
+                leyendaItem("#c77a00", "Bajo (" + bajo + ")"),
+                leyendaItem(com.reparaciones.utils.Colores.ROJO_SIN_STOCK, "Sin stock (" + sinStock + ")")
+        );
+    }
+
+    private javafx.scene.layout.HBox leyendaItem(String color, String texto) {
+        javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(10, 10);
+        rect.setFill(javafx.scene.paint.Color.web(color));
+        Label lbl = new Label(texto);
+        lbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #2C3B54;");
+        javafx.scene.layout.HBox hb = new javafx.scene.layout.HBox(4, rect, lbl);
+        hb.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        return hb;
+    }
+
+    private void mostrarPlaceholderSku() {
+        lblChartSku.setText("Selecciona un componente");
+        chartSku.setVisible(false);
+        chartSku.setManaged(false);
+        lblPlaceholder.setVisible(true);
+        lblPlaceholder.setManaged(true);
+    }
+
+    private void cargarChartSku(Componente c) {
+        int pendiente = 0;
+        try {
+            pendiente = compraDAO.getCantidadPendientePorComponente(c.getIdCom());
+        } catch (SQLException e) {
+            mostrarError(e);
+            return;
+        }
+        lblChartSku.setText(c.getTipo());
+        lblPlaceholder.setVisible(false);
+        lblPlaceholder.setManaged(false);
+
+        javafx.scene.chart.XYChart.Series<String, Number> serie = new javafx.scene.chart.XYChart.Series<>();
+        serie.getData().add(new javafx.scene.chart.XYChart.Data<>("Stock", c.getStock()));
+        serie.getData().add(new javafx.scene.chart.XYChart.Data<>("Pedido", pendiente));
+
+        int maxVal = Math.max(c.getStock(), pendiente);
+        chartSkuY.setAutoRanging(false);
+        chartSkuY.setLowerBound(0);
+        chartSkuY.setUpperBound(maxVal == 0 ? 1 : maxVal);
+        chartSkuY.setTickUnit(Math.max(1, maxVal / 5));
+
+        chartSku.getData().setAll(java.util.List.of(serie));
+        chartSku.setVisible(true);
+        chartSku.setManaged(true);
+
+        String colorStock = switch (estadoComponente(c)) {
+            case "Sin stock" -> com.reparaciones.utils.Colores.ROJO_SIN_STOCK;
+            case "Bajo"      -> "#c77a00";
+            default          -> "#3a7d44";
+        };
+
+        // Los nodos se crean tras el layout — usamos listener para aplicar color y etiqueta
+        for (int i = 0; i < serie.getData().size(); i++) {
+            final String color = i == 0 ? colorStock : com.reparaciones.utils.Colores.TEXTO_ACCION;
+            final int valor = serie.getData().get(i).getYValue().intValue();
+            javafx.scene.chart.XYChart.Data<String, Number> dato = serie.getData().get(i);
+            Runnable aplicar = () -> {
+                javafx.scene.Node nodo = dato.getNode();
+                if (nodo == null) return;
+                nodo.setStyle("-fx-bar-fill: " + color + ";");
+                Label etiqueta = new Label(String.valueOf(valor));
+                etiqueta.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+                javafx.scene.layout.StackPane bar = (javafx.scene.layout.StackPane) nodo;
+                bar.getChildren().add(etiqueta);
+                javafx.scene.layout.StackPane.setAlignment(etiqueta, javafx.geometry.Pos.TOP_CENTER);
+                etiqueta.setTranslateY(-16);
+            };
+            if (dato.getNode() != null) {
+                aplicar.run();
+            } else {
+                dato.nodeProperty().addListener((obs, o, node) -> { if (node != null) aplicar.run(); });
+            }
+        }
     }
 
     private void pedirComponente(Componente c) {
@@ -239,6 +403,24 @@ public class StockController {
         cpId.setCellValueFactory(c ->
                 new javafx.beans.property.SimpleIntegerProperty(c.getValue().getIdCompra()).asObject());
         cpComponente.setCellValueFactory(c -> sp(c.getValue().getTipoComponente()));
+        cpComponente.setCellFactory(col -> new TableCell<>() {
+            private final Label lbl = new Label();
+            {
+                lbl.setStyle("-fx-cursor: hand;");
+                lbl.setOnMouseEntered(e -> lbl.setStyle("-fx-cursor: hand; -fx-underline: true;"));
+                lbl.setOnMouseExited(e  -> lbl.setStyle("-fx-cursor: hand; -fx-underline: false;"));
+                lbl.setOnMouseClicked(e -> {
+                    CompraComponente pedido = getTableView().getItems().get(getIndex());
+                    navegarAComponente(pedido.getIdCom());
+                });
+            }
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setGraphic(null); return; }
+                lbl.setText(item);
+                setGraphic(lbl);
+            }
+        });
         cpProveedor.setCellValueFactory(c ->  sp(c.getValue().getNombreProveedor()));
         cpCantidad.setCellValueFactory(c ->
                 new javafx.beans.property.SimpleIntegerProperty(c.getValue().getCantidad()).asObject());
@@ -254,9 +436,18 @@ public class StockController {
 
         // Color fila por estado
         tablaPedidos.setRowFactory(tv -> new TableRow<>() {
-            @Override protected void updateItem(CompraComponente item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) { setStyle(""); return; }
+            {
+                selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
+            }
+            private void actualizarEstilo() {
+                CompraComponente item = getItem();
+                if (isEmpty() || item == null) { setStyle(""); return; }
+                if (isSelected()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                    return;
+                }
                 String brd = "-fx-border-width: 0 0 0.3 0; -fx-border-color: transparent transparent ";
                 setStyle(switch (item.getEstado()) {
                     case pendiente -> item.isEsUrgente()
@@ -271,6 +462,10 @@ public class StockController {
                          devuelto  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_CANCELADO_BG + ";" +
                                      brd + com.reparaciones.utils.Colores.FILA_CANCELADO_BRD + " transparent;";
                 });
+            }
+            @Override protected void updateItem(CompraComponente item, boolean empty) {
+                super.updateItem(item, empty);
+                actualizarEstilo();
             }
         });
 
@@ -425,6 +620,23 @@ public class StockController {
                         : "-fx-text-fill:#9e9e9e;");
             }
         });
+        tablaProveedores.setRowFactory(tv -> new TableRow<>() {
+            {
+                selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
+            }
+            private void actualizarEstilo() {
+                if (isEmpty() || getItem() == null) { setStyle(""); return; }
+                setStyle(isSelected()
+                        ? "-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                          "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                          "-fx-border-width: 0 0 0.2 0;"
+                        : "");
+            }
+            @Override protected void updateItem(Proveedor item, boolean empty) {
+                super.updateItem(item, empty);
+                actualizarEstilo();
+            }
+        });
         tablaProveedores.setItems(datosProveedores);
         tablaProveedores.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
             btnActivarProveedor.setDisable(sel == null);
@@ -490,12 +702,24 @@ public class StockController {
 
     // ─── Util ─────────────────────────────────────────────────────────────────
 
+    private static String estadoComponente(Componente c) {
+        if (c.getStock() == 0)                    return "Sin stock";
+        if (c.getStock() <= c.getStockMinimo())   return "Bajo";
+        return "OK";
+    }
+
     private static javafx.beans.property.SimpleStringProperty sp(String v) {
         return new javafx.beans.property.SimpleStringProperty(v);
     }
 
+    private void actualizarTextoFiltroStock(boolean ok, boolean baj, boolean sin, boolean ninguno) {
+        int total = (ok ? 1 : 0) + (baj ? 1 : 0) + (sin ? 1 : 0);
+        if (ninguno || total == 3) menuFiltroStock.setText("Estado");
+        else if (total == 1)      menuFiltroStock.setText(ok ? "OK" : baj ? "Bajo" : "Sin stock");
+        else                      menuFiltroStock.setText(total + " estados");
+    }
+
     private void mostrarError(SQLException e) {
-        e.printStackTrace();
         new Alert(Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }

@@ -170,19 +170,36 @@ public class CompraComponenteDAO {
     // ─── Devolver ─────────────────────────────────────────────────────────────
 
     public void devolver(int idCompra, int cantidadDevuelta) throws SQLException {
+        String sqlStock = """
+                SELECT c.STOCK FROM Componente c
+                JOIN Compra_componente cc ON cc.ID_COM = c.ID_COM
+                WHERE cc.ID_COMPRA = ?
+                """;
         String sqlUpdate = "UPDATE Compra_componente SET ESTADO = 'devuelto' WHERE ID_COMPRA = ?";
-        String sqlStock  = """
+        String sqlDesc   = """
                 UPDATE Componente SET STOCK = STOCK - ?
                 WHERE ID_COM = (SELECT ID_COM FROM Compra_componente WHERE ID_COMPRA = ?)
                 """;
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
             try {
+                int stockActual;
+                try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
+                    ps.setInt(1, idCompra);
+                    ResultSet rs = ps.executeQuery();
+                    if (!rs.next()) throw new SQLException("Pedido no encontrado.");
+                    stockActual = rs.getInt(1);
+                }
+                if (cantidadDevuelta > stockActual) {
+                    throw new SQLException(
+                            "No se puede devolver " + cantidadDevuelta + " ud(s): " +
+                            "el stock actual del componente es " + stockActual + ".");
+                }
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setInt(1, idCompra);
                     ps.executeUpdate();
                 }
-                try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
+                try (PreparedStatement ps = con.prepareStatement(sqlDesc)) {
                     ps.setInt(1, cantidadDevuelta);
                     ps.setInt(2, idCompra);
                     ps.executeUpdate();
@@ -192,6 +209,18 @@ public class CompraComponenteDAO {
                 con.rollback();
                 throw e;
             }
+        }
+    }
+
+    // ─── Consultas auxiliares ─────────────────────────────────────────────────
+
+    public int getCantidadPendientePorComponente(int idCom) throws SQLException {
+        String sql = "SELECT COALESCE(SUM(CANTIDAD), 0) FROM Compra_componente WHERE ID_COM = ? AND ESTADO = 'pendiente'";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idCom);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt(1) : 0;
         }
     }
 

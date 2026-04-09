@@ -128,16 +128,16 @@ public class ReparacionControllerTecnico {
             }
         });
 
-        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial32pixeles.png"));
+        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial.png"));
         colImei.setCellFactory(col -> new TableCell<>() {
             private final Label lblImei = new Label();
             private final ImageView ivHist = new ImageView(imgHistorial);
             private final HBox contenedor = new HBox(6, lblImei, ivHist);
             {
-                ivHist.setFitWidth(20);
-                ivHist.setFitHeight(20);
+                ivHist.setFitWidth(25);
+                ivHist.setFitHeight(25);
                 ivHist.setPreserveRatio(true);
-                ivHist.setStyle("-fx-cursor: hand; -fx-opacity: 0.5;");
+                ivHist.setStyle("-fx-cursor: hand;");
                 contenedor.setAlignment(Pos.CENTER_LEFT);
                 ivHist.setOnMouseClicked(e -> abrirHistorialImei(getTableView().getItems().get(getIndex()).getImei()));
             }

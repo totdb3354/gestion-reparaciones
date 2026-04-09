@@ -118,6 +118,7 @@ CREATE TABLE Reparacion_componente (
     OBSERVACIONES        TEXT,
     ES_SOLICITUD         BOOLEAN      NOT NULL DEFAULT FALSE,
     DESCRIPCION_SOLICITUD TEXT,
+    CANTIDAD             INT          NOT NULL DEFAULT 1,
     PRIMARY KEY (ID_RC),
     CONSTRAINT fk_rc_reparacion  FOREIGN KEY (ID_REP) REFERENCES Reparacion (ID_REP),
     CONSTRAINT fk_rc_componente  FOREIGN KEY (ID_COM) REFERENCES Componente  (ID_COM)
