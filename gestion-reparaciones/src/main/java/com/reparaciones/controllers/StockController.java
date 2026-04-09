@@ -108,6 +108,10 @@ public class StockController {
     }
 
     private void navegarAComponente(int idCom) {
+        cbOk.setSelected(false);
+        cbBajo.setSelected(false);
+        cbSinStock.setSelected(false);
+        txtBuscador.clear();
         mostrarTabStock();
         datosStock.stream()
                 .filter(c -> c.getIdCom() == idCom)
