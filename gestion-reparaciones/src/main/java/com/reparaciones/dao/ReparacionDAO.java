@@ -39,6 +39,7 @@ public class ReparacionDAO {
 
     private static final String SQL_ASIGNACIONES = """
             SELECT r.ID_REP, r.IMEI, r.FECHA_ASIG, r.FECHA_FIN, r.ID_TEC,
+                   r.UPDATED_AT,
                    t.NOMBRE AS nombre_tecnico,
                    r.ID_REP_ANTERIOR AS id_rep_nueva,
                    EXISTS (
@@ -303,13 +304,17 @@ public class ReparacionDAO {
         return prefijo + "1";
     }
 
-    public void actualizarTecnico(String idRep, int idTec) throws SQLException {
-        String sql = "UPDATE Reparacion SET ID_TEC = ? WHERE ID_REP = ?";
+    public void actualizarTecnico(String idRep, int idTec, java.time.LocalDateTime updatedAt)
+            throws SQLException, com.reparaciones.utils.StaleDataException {
+        String sql = "UPDATE Reparacion SET ID_TEC = ? WHERE ID_REP = ? AND UPDATED_AT = ?";
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, idTec);
             ps.setString(2, idRep);
-            ps.executeUpdate();
+            ps.setTimestamp(3, java.sql.Timestamp.valueOf(updatedAt));
+            if (ps.executeUpdate() == 0)
+                throw new com.reparaciones.utils.StaleDataException(
+                        "La asignación fue modificada por otro usuario. Recarga los datos e inténtalo de nuevo.");
         }
     }
 
@@ -668,18 +673,19 @@ public class ReparacionDAO {
                 rs.getString("id_rep_nueva"),
                 rs.getInt("ID_TEC"),
                 rs.getInt("ES_SOLICITUD"),
-                rs.getString("DESCRIPCION_SOLICITUD"));
+                rs.getString("DESCRIPCION_SOLICITUD"),
+                null);
     }
 
     private ReparacionResumen mapearAsignacion(ResultSet rs) throws SQLException {
         Timestamp tsAsig = rs.getTimestamp("FECHA_ASIG");
-        Timestamp tsFin = rs.getTimestamp("FECHA_FIN");
+        Timestamp tsFin  = rs.getTimestamp("FECHA_FIN");
         return new ReparacionResumen(
                 rs.getString("ID_REP"),
                 rs.getString("IMEI"),
                 rs.getString("nombre_tecnico"),
                 tsAsig != null ? tsAsig.toLocalDateTime() : null,
-                tsFin != null ? tsFin.toLocalDateTime() : null,
+                tsFin  != null ? tsFin.toLocalDateTime()  : null,
                 null,
                 null,
                 rs.getBoolean("ES_INCIDENCIA"),
@@ -688,18 +694,20 @@ public class ReparacionDAO {
                 rs.getString("id_rep_nueva"),
                 rs.getInt("ID_TEC"),
                 rs.getBoolean("TIENE_SOLICITUD") ? 1 : 0,
-                null);
+                null,
+                rs.getTimestamp("UPDATED_AT").toLocalDateTime());
     }
 
     private Reparacion mapear(ResultSet rs) throws SQLException {
         Timestamp tsAsig = rs.getTimestamp("FECHA_ASIG");
-        Timestamp tsFin = rs.getTimestamp("FECHA_FIN");
+        Timestamp tsFin  = rs.getTimestamp("FECHA_FIN");
         return new Reparacion(
                 rs.getString("ID_REP"),
                 tsAsig != null ? tsAsig.toLocalDateTime() : null,
-                tsFin != null ? tsFin.toLocalDateTime() : null,
+                tsFin  != null ? tsFin.toLocalDateTime()  : null,
                 rs.getString("IMEI"),
-                rs.getInt("ID_TEC"));
+                rs.getInt("ID_TEC"),
+                rs.getTimestamp("UPDATED_AT").toLocalDateTime());
     }
 
     public void marcarIncidenciaYAsignar(String idRep, String comentario,

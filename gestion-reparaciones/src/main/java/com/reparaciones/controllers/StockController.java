@@ -533,9 +533,11 @@ public class StockController {
         d.setContentText("Observación (opcional):");
         d.showAndWait().ifPresent(obs -> {
             try {
-                compraDAO.confirmarRecibido(sel.getIdCompra(), obs.isBlank() ? null : obs);
+                compraDAO.confirmarRecibido(sel, obs.isBlank() ? null : obs);
                 cargarPedidos();
                 cargarStock();
+            } catch (com.reparaciones.utils.StaleDataException e) {
+                mostrarConflicto(); cargarPedidos();
             } catch (SQLException e) { mostrarError(e); }
         });
     }
@@ -565,10 +567,11 @@ public class StockController {
         if (rObs.isEmpty()) return;
 
         try {
-            compraDAO.confirmarAlterado(sel.getIdCompra(), cant,
-                    rObs.get().isBlank() ? null : rObs.get());
+            compraDAO.confirmarAlterado(sel, cant, rObs.get().isBlank() ? null : rObs.get());
             cargarPedidos();
             cargarStock();
+        } catch (com.reparaciones.utils.StaleDataException e) {
+            mostrarConflicto(); cargarPedidos();
         } catch (SQLException e) { mostrarError(e); }
     }
 
@@ -581,8 +584,10 @@ public class StockController {
                 "Cancelar pedido",
                 () -> {
                     try {
-                        compraDAO.cancelar(sel.getIdCompra());
+                        compraDAO.cancelar(sel);
                         cargarPedidos();
+                    } catch (com.reparaciones.utils.StaleDataException e) {
+                        mostrarConflicto(); cargarPedidos();
                     } catch (SQLException e) { mostrarError(e); }
                 });
     }
@@ -600,11 +605,13 @@ public class StockController {
         d.showAndWait().ifPresent(s -> {
             try {
                 int cant = Integer.parseInt(s.trim());
-                compraDAO.devolver(sel.getIdCompra(), cant);
+                compraDAO.devolver(sel, cant);
                 cargarPedidos();
                 cargarStock();
             } catch (NumberFormatException ex) {
                 new Alert(Alert.AlertType.WARNING, "Cantidad no válida.").showAndWait();
+            } catch (com.reparaciones.utils.StaleDataException e) {
+                mostrarConflicto(); cargarPedidos();
             } catch (SQLException e) { mostrarError(e); }
         });
     }
@@ -725,5 +732,11 @@ public class StockController {
 
     private void mostrarError(SQLException e) {
         new Alert(Alert.AlertType.ERROR, e.getMessage()).showAndWait();
+    }
+
+    private void mostrarConflicto() {
+        new Alert(Alert.AlertType.WARNING,
+                "Este pedido fue modificado por otro usuario. Los datos se han recargado.")
+                .showAndWait();
     }
 }

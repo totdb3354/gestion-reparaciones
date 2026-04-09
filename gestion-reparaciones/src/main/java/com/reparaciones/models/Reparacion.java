@@ -9,13 +9,16 @@ public class Reparacion {
     private LocalDateTime fechaFin;
     private String        imei;
     private int           idTec;
+    private LocalDateTime updatedAt;
 
-    public Reparacion(String idRep, LocalDateTime fechaAsig, LocalDateTime fechaFin, String imei, int idTec) {
+    public Reparacion(String idRep, LocalDateTime fechaAsig, LocalDateTime fechaFin,
+                      String imei, int idTec, LocalDateTime updatedAt) {
         this.idRep     = idRep;
         this.fechaAsig = fechaAsig;
         this.fechaFin  = fechaFin;
         this.imei      = imei;
         this.idTec     = idTec;
+        this.updatedAt = updatedAt;
     }
 
     public String getIdRep()                    { return idRep; }
@@ -32,4 +35,5 @@ public class Reparacion {
 
     public int getIdTec()                       { return idTec; }
     public void setIdTec(int idTec)             { this.idTec = idTec; }
+    public LocalDateTime getUpdatedAt()         { return updatedAt; }
 }
