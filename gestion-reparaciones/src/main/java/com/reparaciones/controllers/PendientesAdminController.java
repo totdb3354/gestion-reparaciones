@@ -104,33 +104,43 @@ public class PendientesAdminController {
         tablaPendientes.setItems(datosFiltrados);
 
         tablaPendientes.setRowFactory(tv -> new TableRow<>() {
-            @Override
-            protected void updateItem(ReparacionResumen item, boolean empty) {
-                super.updateItem(item, empty);
-                if (!empty && item != null) {
-                    if (item.getEsSolicitud() == 1) {
-                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
-                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
-                                "-fx-border-width: 0 0 0.2 0;");
-                    } else if (item.isEsIncidencia()) {
-                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
-                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
-                                "-fx-border-width: 0 0 0.2 0;");
-                    } else {
-                        setStyle("");
-                    }
+            {
+                selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
+            }
+            private void actualizarEstilo() {
+                ReparacionResumen item = getItem();
+                if (isEmpty() || item == null) { setStyle(""); return; }
+                if (isSelected()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                    return;
+                }
+                if (item.getEsSolicitud() == 1) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else if (item.isEsIncidencia()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
                 } else {
                     setStyle("");
                 }
             }
+            @Override
+            protected void updateItem(ReparacionResumen item, boolean empty) {
+                super.updateItem(item, empty);
+                actualizarEstilo();
+            }
         });
 
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
         cAccion.setCellFactory(col -> new TableCell<>() {
             private final ImageView iv  = new ImageView(imgBorrar);
             private final HBox      box = new HBox(iv);
             {
-                iv.setFitWidth(20); iv.setFitHeight(20); iv.setPreserveRatio(true);
+                iv.setFitWidth(25); iv.setFitHeight(25); iv.setPreserveRatio(true);
                 iv.setStyle("-fx-cursor: hand;");
                 box.setAlignment(Pos.CENTER);
                 iv.setOnMouseClicked(e -> {

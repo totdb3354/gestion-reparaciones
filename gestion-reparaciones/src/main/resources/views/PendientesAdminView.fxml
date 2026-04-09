@@ -7,25 +7,18 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       xmlns="http://javafx.com/javafx/25"
       fx:controller="com.reparaciones.controllers.PendientesAdminController"
-      spacing="10" VBox.vgrow="ALWAYS"
-      style="-fx-padding: 16;">
+      spacing="12" VBox.vgrow="ALWAYS"
+      stylesheets="@../styles/reparacion.css">
 
-    <Label text="Asignaciones pendientes"
-           style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+    <Label text="Asignaciones pendientes" styleClass="vista-titulo"/>
 
     <HBox spacing="8" alignment="CENTER_LEFT">
-        <MenuButton fx:id="filtroTecnico" text="Técnico" prefWidth="130"
-                    style="-fx-background-color: white; -fx-border-color: #A9A9A9;
-                           -fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;"/>
-        <MenuButton fx:id="filtroSolicitud" text="Tipo" prefWidth="130"
-                    style="-fx-background-color: white; -fx-border-color: #A9A9A9;
-                           -fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;"/>
-        <Button onAction="#limpiarFiltros" text="Limpiar filtros"
-                style="-fx-background-color: #E7E7E7; -fx-text-fill: #555555;
-                       -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 10 6 10;"/>
+        <MenuButton fx:id="filtroTecnico"   text="Técnico" prefWidth="130"/>
+        <MenuButton fx:id="filtroSolicitud" text="Tipo"    prefWidth="130"/>
+        <Button onAction="#limpiarFiltros" text="Limpiar filtros" styleClass="btn-secondary"/>
     </HBox>
 
-    <TableView fx:id="tablaPendientes" VBox.vgrow="ALWAYS" prefHeight="250">
+    <TableView fx:id="tablaPendientes" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="cId"      text="Id Asignación"    minWidth="130"/>
             <TableColumn fx:id="cTecnico" text="Técnico"          minWidth="120"/>
@@ -40,17 +33,13 @@
         <Button fx:id="btnAsignar"
                 text="Asignar reparación +"
                 onAction="#abrirFormularioAsignacion"
-                style="-fx-background-color: #8AC7AF; -fx-text-fill: white;
-                       -fx-font-weight: bold; -fx-font-size: 12px;
-                       -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14 6 14;"/>
+                styleClass="btn-primary"/>
         <HBox HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnConfirmarCambios"
                 text="Confirmar cambios"
                 onAction="#confirmarCambiosTecnico"
                 visible="false" managed="false"
-                style="-fx-background-color: #5A9BD5; -fx-text-fill: white;
-                       -fx-font-weight: bold; -fx-font-size: 12px;
-                       -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14 6 14;"/>
+                styleClass="btn-primary"/>
     </HBox>
 
 </VBox>

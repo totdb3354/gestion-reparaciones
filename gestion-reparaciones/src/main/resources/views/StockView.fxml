@@ -30,6 +30,7 @@
             <VBox fx:id="pnlStock" spacing="12" visible="true" managed="true">
                 <HBox alignment="CENTER_LEFT" spacing="12">
                     <Label text="Stock actual" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
+                    <MenuButton fx:id="menuFiltroStock" text="Estado" prefWidth="130"/>
                     <TextField fx:id="txtBuscador" promptText="Buscar componente…"
                                styleClass="buscador" prefWidth="220"/>
                 </HBox>
@@ -43,14 +44,35 @@
                         </columns>
                         <placeholder><Label text="Sin componentes"/></placeholder>
                     </TableView>
-                    <VBox fx:id="pnlChart" spacing="8" prefWidth="220" minWidth="220"
+                    <VBox fx:id="pnlChart" spacing="0" prefWidth="240" minWidth="240"
                           style="-fx-background-color:white; -fx-background-radius:6;
                                  -fx-border-color:#C2C8D0; -fx-border-radius:6; -fx-padding:16;">
-                        <Label text="Estado del stock"
-                               style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
-                        <PieChart fx:id="chartEstado" labelsVisible="false"
-                                  legendVisible="true" animated="false"
-                                  VBox.vgrow="ALWAYS"/>
+                        <!-- Mitad superior: tarta -->
+                        <VBox spacing="6" VBox.vgrow="ALWAYS">
+                            <Label text="Estado del stock"
+                                   style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
+                            <PieChart fx:id="chartEstado" labelsVisible="false"
+                                      legendVisible="false" animated="false"
+                                      VBox.vgrow="ALWAYS"/>
+                            <HBox fx:id="pnlLeyenda" spacing="8"/>
+                        </VBox>
+                        <Separator style="-fx-padding: 4 0 4 0;"/>
+                        <!-- Mitad inferior: barras por SKU -->
+                        <VBox spacing="6" VBox.vgrow="ALWAYS">
+                            <Label fx:id="lblChartSku"
+                                   text="Selecciona un componente"
+                                   style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
+                            <StackPane VBox.vgrow="ALWAYS">
+                                <Label fx:id="lblPlaceholder" text="↑ Haz clic en una fila"
+                                       style="-fx-text-fill:#A9A9A9; -fx-font-size:11px;"
+                                       visible="true" managed="true"/>
+                                <BarChart fx:id="chartSku" animated="false"
+                                          legendVisible="false" visible="false" managed="false">
+                                    <xAxis><CategoryAxis fx:id="chartSkuX"/></xAxis>
+                                    <yAxis><NumberAxis fx:id="chartSkuY" label="Unidades" tickUnit="1" minorTickCount="0"/></yAxis>
+                                </BarChart>
+                            </StackPane>
+                        </VBox>
                     </VBox>
                 </HBox>
             </VBox>

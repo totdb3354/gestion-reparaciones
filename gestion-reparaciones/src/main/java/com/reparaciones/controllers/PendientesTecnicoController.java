@@ -49,28 +49,38 @@ public class PendientesTecnicoController {
         tablaPendientes.setItems(datosFiltrados);
 
         tablaPendientes.setRowFactory(tv -> new TableRow<>() {
+            {
+                selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
+            }
+            private void actualizarEstilo() {
+                ReparacionResumen item = getItem();
+                if (isEmpty() || item == null) { setStyle(""); return; }
+                if (isSelected()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                    return;
+                }
+                if (item.getEsSolicitud() == 1) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else if (item.isEsIncidencia()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 0;");
+                } else setStyle("");
+            }
             @Override protected void updateItem(ReparacionResumen item, boolean empty) {
                 super.updateItem(item, empty);
-                if (!empty && item != null) {
-                    if (item.getEsSolicitud() == 1) {
-                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
-                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
-                                "-fx-border-width: 0 0 0.2 0;");
-                    } else if (item.isEsIncidencia()) {
-                        setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
-                                "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
-                                "-fx-border-width: 0 0 0.2 0;");
-                    } else setStyle("");
-                } else setStyle("");
+                actualizarEstilo();
             }
         });
 
         cAccion.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button("Añadir reparación");
             {
-                btn.setStyle("-fx-background-color: #8AC7AF; -fx-text-fill: white;" +
-                             "-fx-font-size: 11px; -fx-font-weight: bold;" +
-                             "-fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 4 10 4 10;");
+                btn.getStyleClass().add("btn-primary");
                 btn.setOnAction(e -> {
                     ReparacionResumen asig = getTableView().getItems().get(getIndex());
                     if (onVolverAHistorial != null) onVolverAHistorial.run();

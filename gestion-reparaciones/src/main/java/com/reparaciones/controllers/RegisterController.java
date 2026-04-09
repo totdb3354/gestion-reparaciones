@@ -51,7 +51,7 @@ public class RegisterController {
         colNombreUsuario.setCellValueFactory(
             data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getNombreUsuario()));
 
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
 
         colAcciones.setCellFactory(col -> new TableCell<>() {
             private final ImageView iv = new ImageView(imgBorrar);

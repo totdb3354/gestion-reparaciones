@@ -32,15 +32,23 @@
             <Button fx:id="btnStock" text="Stock"
                     styleClass="nav-btn"
                     onAction="#mostrarStock"/>
+            <Label fx:id="lblAlertaStock" text="⚠" visible="false" managed="false"
+                   style="-fx-text-fill: #F1E356; -fx-font-size: 16px; -fx-cursor: hand;"/>
 
             <!-- Espaciador -->
             <HBox HBox.hgrow="ALWAYS"/>
 
             <!-- Usuario + Logout -->
             <Label fx:id="lblUsuario" styleClass="navbar-user"/>
-            <Button fx:id="btnLogout" text="Cerrar sesión"
-                    styleClass="navbar-change-user"
-                    onAction="#cerrarSesion"/>
+            <Button fx:id="btnLogout" onAction="#cerrarSesion"
+                    style="-fx-background-color: transparent; -fx-border-color: transparent;
+                           -fx-padding: 4; -fx-cursor: hand;">
+                <graphic>
+                    <ImageView fitHeight="130" fitWidth="130" preserveRatio="true">
+                        <image><Image url="@/images/cerrarSesion.png"/></image>
+                    </ImageView>
+                </graphic>
+            </Button>
         </HBox>
     </top>
 
