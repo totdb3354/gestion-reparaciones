@@ -2,6 +2,7 @@ package com.reparaciones.dao;
 
 import com.reparaciones.models.CompraComponente;
 import com.reparaciones.models.CompraComponente.Estado;
+import com.reparaciones.utils.StaleDataException;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -65,13 +66,14 @@ public class CompraComponenteDAO {
 
     // ─── Editar pedido pendiente ──────────────────────────────────────────────
 
-    public void editar(int idCompra, int idProv, int cantidad, boolean esUrgente,
-                       double precioUnidad, String divisa, double precioEur) throws SQLException {
+    public void editar(CompraComponente pedido, int idProv, int cantidad, boolean esUrgente,
+                       double precioUnidad, String divisa, double precioEur)
+            throws SQLException, StaleDataException {
         String sql = """
                 UPDATE Compra_componente
                 SET ID_PROV = ?, CANTIDAD = ?, ES_URGENTE = ?,
                     PRECIO_UNIDAD_PEDIDO = ?, DIVISA = ?, PRECIO_EUR = ?
-                WHERE ID_COMPRA = ? AND ESTADO = 'pendiente'
+                WHERE ID_COMPRA = ? AND ESTADO = 'pendiente' AND UPDATED_AT = ?
                 """;
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -81,19 +83,23 @@ public class CompraComponenteDAO {
             ps.setDouble(4, precioUnidad);
             ps.setString(5, divisa);
             ps.setDouble(6, precioEur);
-            ps.setInt(7, idCompra);
-            ps.executeUpdate();
+            ps.setInt(7, pedido.getIdCompra());
+            ps.setTimestamp(8, Timestamp.valueOf(pedido.getUpdatedAt()));
+            if (ps.executeUpdate() == 0)
+                throw new StaleDataException(
+                        "El pedido fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
         }
     }
 
     // ─── Confirmar llegada ────────────────────────────────────────────────────
 
-    public void confirmarRecibido(int idCompra, String observacion) throws SQLException {
+    public void confirmarRecibido(CompraComponente pedido, String observacion)
+            throws SQLException, StaleDataException {
         String sqlUpdate = """
                 UPDATE Compra_componente
                 SET ESTADO = 'recibido', FECHA_LLEGADA = NOW(),
                     CANTIDAD_RECIBIDA = CANTIDAD, OBSERVACION_LLEGADA = ?
-                WHERE ID_COMPRA = ?
+                WHERE ID_COMPRA = ? AND UPDATED_AT = ?
                 """;
         String sqlStock = """
                 UPDATE Componente SET STOCK = STOCK + (
@@ -105,14 +111,18 @@ public class CompraComponenteDAO {
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
             try {
+                int rows;
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setString(1, observacion);
-                    ps.setInt(2, idCompra);
-                    ps.executeUpdate();
+                    ps.setInt(2, pedido.getIdCompra());
+                    ps.setTimestamp(3, Timestamp.valueOf(pedido.getUpdatedAt()));
+                    rows = ps.executeUpdate();
                 }
+                if (rows == 0) throw new StaleDataException(
+                        "El pedido fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
                 try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
-                    ps.setInt(1, idCompra);
-                    ps.setInt(2, idCompra);
+                    ps.setInt(1, pedido.getIdCompra());
+                    ps.setInt(2, pedido.getIdCompra());
                     ps.executeUpdate();
                 }
                 con.commit();
@@ -123,12 +133,13 @@ public class CompraComponenteDAO {
         }
     }
 
-    public void confirmarAlterado(int idCompra, int cantidadRecibida, String observacion) throws SQLException {
+    public void confirmarAlterado(CompraComponente pedido, int cantidadRecibida, String observacion)
+            throws SQLException, StaleDataException {
         String sqlUpdate = """
                 UPDATE Compra_componente
                 SET ESTADO = 'alterado', FECHA_LLEGADA = NOW(),
                     CANTIDAD_RECIBIDA = ?, OBSERVACION_LLEGADA = ?
-                WHERE ID_COMPRA = ?
+                WHERE ID_COMPRA = ? AND UPDATED_AT = ?
                 """;
         String sqlStock = """
                 UPDATE Componente SET STOCK = STOCK + ?
@@ -137,15 +148,19 @@ public class CompraComponenteDAO {
         try (Connection con = Conexion.getConexion()) {
             con.setAutoCommit(false);
             try {
+                int rows;
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setInt(1, cantidadRecibida);
                     ps.setString(2, observacion);
-                    ps.setInt(3, idCompra);
-                    ps.executeUpdate();
+                    ps.setInt(3, pedido.getIdCompra());
+                    ps.setTimestamp(4, Timestamp.valueOf(pedido.getUpdatedAt()));
+                    rows = ps.executeUpdate();
                 }
+                if (rows == 0) throw new StaleDataException(
+                        "El pedido fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
                 try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
                     ps.setInt(1, cantidadRecibida);
-                    ps.setInt(2, idCompra);
+                    ps.setInt(2, pedido.getIdCompra());
                     ps.executeUpdate();
                 }
                 con.commit();
@@ -158,24 +173,27 @@ public class CompraComponenteDAO {
 
     // ─── Cancelar ─────────────────────────────────────────────────────────────
 
-    public void cancelar(int idCompra) throws SQLException {
-        String sql = "UPDATE Compra_componente SET ESTADO = 'cancelado' WHERE ID_COMPRA = ? AND ESTADO = 'pendiente'";
+    public void cancelar(CompraComponente pedido) throws SQLException, StaleDataException {
+        String sql = "UPDATE Compra_componente SET ESTADO = 'cancelado' WHERE ID_COMPRA = ? AND ESTADO = 'pendiente' AND UPDATED_AT = ?";
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, idCompra);
-            ps.executeUpdate();
+            ps.setInt(1, pedido.getIdCompra());
+            ps.setTimestamp(2, Timestamp.valueOf(pedido.getUpdatedAt()));
+            if (ps.executeUpdate() == 0)
+                throw new StaleDataException(
+                        "El pedido fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
         }
     }
 
     // ─── Devolver ─────────────────────────────────────────────────────────────
 
-    public void devolver(int idCompra, int cantidadDevuelta) throws SQLException {
+    public void devolver(CompraComponente pedido, int cantidadDevuelta) throws SQLException, StaleDataException {
         String sqlStock = """
                 SELECT c.STOCK FROM Componente c
                 JOIN Compra_componente cc ON cc.ID_COM = c.ID_COM
                 WHERE cc.ID_COMPRA = ?
                 """;
-        String sqlUpdate = "UPDATE Compra_componente SET ESTADO = 'devuelto' WHERE ID_COMPRA = ?";
+        String sqlUpdate = "UPDATE Compra_componente SET ESTADO = 'devuelto' WHERE ID_COMPRA = ? AND UPDATED_AT = ?";
         String sqlDesc   = """
                 UPDATE Componente SET STOCK = STOCK - ?
                 WHERE ID_COM = (SELECT ID_COM FROM Compra_componente WHERE ID_COMPRA = ?)
@@ -185,7 +203,7 @@ public class CompraComponenteDAO {
             try {
                 int stockActual;
                 try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
-                    ps.setInt(1, idCompra);
+                    ps.setInt(1, pedido.getIdCompra());
                     ResultSet rs = ps.executeQuery();
                     if (!rs.next()) throw new SQLException("Pedido no encontrado.");
                     stockActual = rs.getInt(1);
@@ -195,13 +213,17 @@ public class CompraComponenteDAO {
                             "No se puede devolver " + cantidadDevuelta + " ud(s): " +
                             "el stock actual del componente es " + stockActual + ".");
                 }
+                int rows;
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
-                    ps.setInt(1, idCompra);
-                    ps.executeUpdate();
+                    ps.setInt(1, pedido.getIdCompra());
+                    ps.setTimestamp(2, Timestamp.valueOf(pedido.getUpdatedAt()));
+                    rows = ps.executeUpdate();
                 }
+                if (rows == 0) throw new StaleDataException(
+                        "El pedido fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
                 try (PreparedStatement ps = con.prepareStatement(sqlDesc)) {
                     ps.setInt(1, cantidadDevuelta);
-                    ps.setInt(2, idCompra);
+                    ps.setInt(2, pedido.getIdCompra());
                     ps.executeUpdate();
                 }
                 con.commit();
@@ -243,7 +265,8 @@ public class CompraComponenteDAO {
                 rs.getString("DIVISA"),
                 rs.getDouble("PRECIO_EUR"),
                 Estado.valueOf(rs.getString("ESTADO")),
-                rs.getString("OBSERVACION_LLEGADA")
+                rs.getString("OBSERVACION_LLEGADA"),
+                rs.getTimestamp("UPDATED_AT").toLocalDateTime()
         );
     }
 }

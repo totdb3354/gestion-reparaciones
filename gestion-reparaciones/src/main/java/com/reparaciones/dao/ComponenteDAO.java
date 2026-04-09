@@ -66,15 +66,18 @@ public class ComponenteDAO {
         }
     }
 
-    public void actualizar(Componente c) throws SQLException {
-        String sql = "UPDATE Componente SET TIPO=?, STOCK=?, STOCK_MINIMO=? WHERE ID_COM=?";
+    public void actualizar(Componente c) throws SQLException, com.reparaciones.utils.StaleDataException {
+        String sql = "UPDATE Componente SET TIPO=?, STOCK=?, STOCK_MINIMO=? WHERE ID_COM=? AND UPDATED_AT=?";
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, c.getTipo());
             ps.setInt(2, c.getStock());
             ps.setInt(3, c.getStockMinimo());
             ps.setInt(4, c.getIdCom());
-            ps.executeUpdate();
+            ps.setTimestamp(5, java.sql.Timestamp.valueOf(c.getUpdatedAt()));
+            if (ps.executeUpdate() == 0)
+                throw new com.reparaciones.utils.StaleDataException(
+                        "El componente fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
         }
     }
 
@@ -113,7 +116,8 @@ public class ComponenteDAO {
                 rs.getString("TIPO"),
                 rs.getTimestamp("FECHA_REGISTRO").toLocalDateTime(),
                 rs.getInt("STOCK"),
-                rs.getInt("STOCK_MINIMO"));
+                rs.getInt("STOCK_MINIMO"),
+                rs.getTimestamp("UPDATED_AT").toLocalDateTime());
     }
 
     /**

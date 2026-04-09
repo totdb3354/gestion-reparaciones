@@ -444,17 +444,28 @@ public class PendientesAdminController {
 
     @FXML
     private void confirmarCambiosTecnico() {
-        cambiosPendientes.forEach((idRep, tecnico) -> {
+        boolean huboConflicto = false;
+        for (Map.Entry<String, Tecnico> entry : new java.util.ArrayList<>(cambiosPendientes.entrySet())) {
+            String idRep   = entry.getKey();
+            Tecnico tecnico = entry.getValue();
+            ReparacionResumen rep = datos.stream()
+                    .filter(r -> r.getIdRep().equals(idRep)).findFirst().orElse(null);
+            if (rep == null) continue;
             try {
-                reparacionDAO.actualizarTecnico(idRep, tecnico.getIdTec());
-                datos.stream().filter(r -> r.getIdRep().equals(idRep)).findFirst()
-                        .ifPresent(r -> {
-                            r.setIdTec(tecnico.getIdTec());
-                            r.setNombreTecnico(tecnico.getNombre());
-                        });
+                reparacionDAO.actualizarTecnico(idRep, tecnico.getIdTec(), rep.getUpdatedAt());
+                rep.setIdTec(tecnico.getIdTec());
+                rep.setNombreTecnico(tecnico.getNombre());
+                cambiosPendientes.remove(idRep);
+            } catch (com.reparaciones.utils.StaleDataException e) {
+                huboConflicto = true;
             } catch (SQLException e) { e.printStackTrace(); }
-        });
-        cambiosPendientes.clear();
+        }
+        if (huboConflicto) {
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.WARNING,
+                    "Algunas asignaciones fueron modificadas por otro usuario y no se guardaron.\n" +
+                    "Los datos se han recargado.").showAndWait();
+            cargar();
+        }
         actualizarVisibilidadConfirmar();
         tablaPendientes.refresh();
     }

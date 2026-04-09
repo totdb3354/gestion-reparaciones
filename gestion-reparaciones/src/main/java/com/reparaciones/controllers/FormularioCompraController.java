@@ -151,11 +151,15 @@ public class FormularioCompraController {
                 compraDAO.insertar(comp.getIdCom(), prov.getIdProv(), cant,
                         chkUrgente.isSelected(), precio, divisa, precioEur);
             } else {
-                compraDAO.editar(pedidoEditar.getIdCompra(), prov.getIdProv(), cant,
+                compraDAO.editar(pedidoEditar, prov.getIdProv(), cant,
                         chkUrgente.isSelected(), precio, divisa, precioEur);
             }
             onGuardado.run();
             cerrarVentana();
+        } catch (com.reparaciones.utils.StaleDataException e) {
+            new Alert(Alert.AlertType.WARNING,
+                    "El pedido fue modificado por otro usuario. Cierra y recarga los datos.")
+                    .showAndWait();
         } catch (SQLException e) {
             new Alert(Alert.AlertType.ERROR, "Error al guardar: " + e.getMessage()).showAndWait();
         }
