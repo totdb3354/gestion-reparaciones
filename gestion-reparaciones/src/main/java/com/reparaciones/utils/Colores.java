@@ -47,6 +47,10 @@ public final class Colores {
     public static final String FILA_SOLICITUD_BG   = "#EDD5A0";
     public static final String FILA_SOLICITUD_BRD  = "#C07800";
 
+    /** Fila con cambio pendiente de confirmar — fondo cyan claro, borde teal */
+    public static final String FILA_MODIFICADA_BG  = "#E0F7FA";
+    public static final String FILA_MODIFICADA_BRD = "#00838F";
+
     // ─── Texto funcional ──────────────────────────────────────────────────────
 
     /** Texto de advertencia / incidencia / error de validación */
