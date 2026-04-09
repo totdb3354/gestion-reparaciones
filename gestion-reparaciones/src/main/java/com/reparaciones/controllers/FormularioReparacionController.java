@@ -180,7 +180,7 @@ public class FormularioReparacionController {
 
                 ctrl.initEditar(idRep, onGuardado);
                 stage.setTitle("Editar reparación — " + idRep);
-                stage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+                stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
                 stage.show();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -191,7 +191,7 @@ public class FormularioReparacionController {
     private void cargarFilas() {
         try {
             Map<String, List<Componente>> grupos = componenteDAO.getAgrupadosPorTipo();
-            Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
+            Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
             for (Map.Entry<String, List<Componente>> entry : grupos.entrySet()) {
                 if (entry.getValue().isEmpty())
                     continue;
@@ -431,7 +431,7 @@ public class FormularioReparacionController {
 
                 ctrl.init(imei, idRepAnterior, idAsignacion, onGuardado);
 
-                stage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+                stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
                 stage.show();
 
             } catch (Exception e) {

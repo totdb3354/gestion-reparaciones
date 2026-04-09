@@ -186,7 +186,7 @@ public class FormularioCompraController {
                         : "Pedir: " + preselect.getTipo());
                 stage.setScene(new Scene(root));
                 stage.setResizable(false);
-                stage.initModality(Modality.WINDOW_MODAL);
+                stage.initModality(Modality.APPLICATION_MODAL);
 
                 ctrl.init(preselect, null, onGuardado);
                 stage.show();
@@ -208,7 +208,7 @@ public class FormularioCompraController {
                 stage.setTitle("Editar pedido #" + pedido.getIdCompra());
                 stage.setScene(new Scene(root));
                 stage.setResizable(false);
-                stage.initModality(Modality.WINDOW_MODAL);
+                stage.initModality(Modality.APPLICATION_MODAL);
 
                 ctrl.init(null, pedido, onGuardado);
                 stage.show();

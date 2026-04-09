@@ -7,27 +7,22 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       xmlns="http://javafx.com/javafx/25"
       fx:controller="com.reparaciones.controllers.PendientesTecnicoController"
-      spacing="8" VBox.vgrow="ALWAYS"
-      style="-fx-padding: 16;">
+      spacing="12" VBox.vgrow="ALWAYS"
+      stylesheets="@../styles/reparacion.css">
 
-    <Label text="Mis asignaciones pendientes"
-           style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+    <Label text="Mis asignaciones pendientes" styleClass="vista-titulo"/>
 
     <HBox spacing="8" alignment="CENTER_LEFT">
-        <MenuButton fx:id="filtroSolicitud" text="Tipo" prefWidth="130"
-                    style="-fx-background-color: white; -fx-border-color: #A9A9A9;
-                           -fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;"/>
-        <Button onAction="#limpiarFiltros" text="Limpiar filtros"
-                style="-fx-background-color: #E7E7E7; -fx-text-fill: #555555;
-                       -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 10 6 10;"/>
+        <MenuButton fx:id="filtroSolicitud" text="Tipo" prefWidth="130"/>
+        <Button onAction="#limpiarFiltros" text="Limpiar filtros" styleClass="btn-secondary"/>
     </HBox>
 
-    <TableView fx:id="tablaPendientes" VBox.vgrow="ALWAYS" prefHeight="300">
+    <TableView fx:id="tablaPendientes" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="cId"     text="Id Asignación"   minWidth="130"/>
-            <TableColumn fx:id="cImei"   text="IMEI"            minWidth="150"/>
+            <TableColumn fx:id="cId"     text="Id Asignación"    minWidth="130"/>
+            <TableColumn fx:id="cImei"   text="IMEI"             minWidth="150"/>
             <TableColumn fx:id="cFecha"  text="Fecha asignación" minWidth="160"/>
-            <TableColumn fx:id="cAccion" text=""                 minWidth="160"/>
+            <TableColumn fx:id="cAccion" text=""                  minWidth="160"/>
         </columns>
         <placeholder><Label text="No tienes asignaciones pendientes"/></placeholder>
     </TableView>

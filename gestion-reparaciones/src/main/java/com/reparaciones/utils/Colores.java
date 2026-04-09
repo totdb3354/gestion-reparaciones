@@ -58,6 +58,20 @@ public final class Colores {
     /** Verde confirmación */
     public static final String VERDE_OK       = "#4CAF50";
 
+    // ─── UI genérica ──────────────────────────────────────────────────────────
+
+    /** Fondo muy claro para inputs y filtros */
+    public static final String FONDO_INPUT       = "#F3F3F3";
+
+    /** Borde y texto de controles deshabilitados o neutros */
+    public static final String GRIS_BORDE        = "#A9A9A9";
+
+    /** Fondo de botón / elemento deshabilitado */
+    public static final String GRIS_DISABLED     = "#E7E7E7";
+
+    /** Borde inferior de fila seleccionada (azul oscuro) */
+    public static final String FILA_SELECTED_BRD = "#3D5070";
+
     // ─── Acciones destructivas ────────────────────────────────────────────────
 
     /** Botón de acción destructiva (ConfirmDialog borrar) */

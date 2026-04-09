@@ -360,25 +360,32 @@ INSERT INTO Telefono (IMEI) VALUES ('333333333333333');
 -- ── Escenario 1: Reparación normal sin incidencia ─────────────────────────────
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260210_1', '2026-02-10 09:00:00', '2026-02-10 10:00:00', '987654321000003', 1, NULL);
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
-VALUES ('R20260210_1', 36, FALSE, FALSE, FALSE, NULL, 'Batería sustituida correctamente', 0, NULL);
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD, CANTIDAD)
+VALUES ('R20260210_1', 36, FALSE, FALSE, FALSE, NULL, 'Batería sustituida correctamente', 0, NULL, 1);
 
 -- ── Escenario 2: Incidencia abierta ──────────────────────────────────────────
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260211_1', '2026-02-11 10:00:00', '2026-02-11 11:00:00', '345234532340002', 2, NULL);
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
-VALUES ('R20260211_1', 52, FALSE, TRUE, FALSE, 'No se ha pegado bien la batería', 'El dispositivo se reinicia', 0, NULL);
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD, CANTIDAD)
+VALUES ('R20260211_1', 52, FALSE, TRUE, FALSE, 'No se ha pegado bien la batería', 'El dispositivo se reinicia', 0, NULL, 1);
 
 -- ── Escenario 3: Incidencia resuelta ─────────────────────────────────────────
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260215_1', '2026-02-15 08:00:00', '2026-02-15 09:00:00', '122323525560001', 1, NULL);
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
-VALUES ('R20260215_1', 70, FALSE, TRUE, TRUE, 'Pantalla no encendía tras la reparación', 'Pantalla instalada pero sin retroiluminación', 0, NULL);
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD, CANTIDAD)
+VALUES ('R20260215_1', 70, FALSE, TRUE, TRUE, 'Pantalla no encendía tras la reparación', 'Pantalla instalada pero sin retroiluminación', 0, NULL, 1);
 
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('R20260216_1', '2026-02-16 09:00:00', '2026-02-16 10:00:00', '122323525560001', 1, 'R20260215_1');
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
-VALUES ('R20260216_1', 70, FALSE, FALSE, FALSE, NULL, 'Incidencia resuelta, pantalla recolocada y retroiluminación restaurada', 0, NULL);
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD, CANTIDAD)
+VALUES ('R20260216_1', 70, FALSE, FALSE, FALSE, NULL, 'Incidencia resuelta, pantalla recolocada y retroiluminación restaurada', 0, NULL, 1);
+
+-- ── Escenario 4 (bis): Componente roto durante instalación — se usaron 2 unidades ──
+-- Primera pantalla se fisuró al encajar el conector; se instaló una segunda
+INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
+VALUES ('R20260301_1', '2026-03-01 09:00:00', '2026-03-01 11:30:00', '987654321000003', 2, NULL);
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD, CANTIDAD)
+VALUES ('R20260301_1', 70, FALSE, FALSE, FALSE, NULL, 'Primera pantalla fisurada al encajar conector; se instaló segunda unidad sin incidencias', 0, NULL, 2);
 
 -- ── Escenario 4: Asignaciones pendientes ─────────────────────────────────────
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
@@ -393,8 +400,8 @@ VALUES ('A20260313_3', '2026-03-13 10:00:00', NULL, '345234532340002', 2, NULL);
 -- ── Escenario 5: Asignación con solicitud de pieza ────────────────────────────
 INSERT INTO Reparacion (ID_REP, FECHA_ASIG, FECHA_FIN, IMEI, ID_TEC, ID_REP_ANTERIOR)
 VALUES ('A20260318_1', '2026-03-18 11:00:00', NULL, '333333333333333', 1, NULL);
-INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD)
-VALUES ('A20260318_1', 36, FALSE, FALSE, FALSE, NULL, NULL, 1, 'La batería del proveedor habitual está agotada. Pendiente de reposición.');
+INSERT INTO Reparacion_componente (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, ES_SOLICITUD, DESCRIPCION_SOLICITUD, CANTIDAD)
+VALUES ('A20260318_1', 36, FALSE, FALSE, FALSE, NULL, NULL, 1, 'La batería del proveedor habitual está agotada. Pendiente de reposición.', 1);
 
 -- ── Proveedores ───────────────────────────────────────────────────────────────
 INSERT INTO Proveedor (NOMBRE, ACTIVO) VALUES ('iPartsBuy', TRUE);

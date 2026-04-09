@@ -140,16 +140,16 @@ public class ReparacionControllerAdmin {
             }
         });
 
-        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial32pixeles.png"));
+        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial.png"));
         colImei.setCellFactory(col -> new TableCell<>() {
             private final Label lblImei = new Label();
             private final ImageView ivHist = new ImageView(imgHistorial);
             private final HBox contenedor = new HBox(6, lblImei, ivHist);
             {
-                ivHist.setFitWidth(20);
-                ivHist.setFitHeight(20);
+                ivHist.setFitWidth(25);
+                ivHist.setFitHeight(25);
                 ivHist.setPreserveRatio(true);
-                ivHist.setStyle("-fx-cursor: hand; -fx-opacity: 0.5;");
+                ivHist.setStyle("-fx-cursor: hand;");
                 contenedor.setAlignment(Pos.CENTER_LEFT);
                 ivHist.setOnMouseClicked(e -> abrirHistorialImei(getTableView().getItems().get(getIndex()).getImei()));
             }
@@ -214,13 +214,13 @@ public class ReparacionControllerAdmin {
         colIdAnterior.setCellFactory(col -> new TableCell<>() {
             private final Label lblLink = new Label();
             {
-                lblLink.setStyle("-fx-text-fill: #5B8CFF; -fx-cursor: hand;");
+                lblLink.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-cursor: hand;");
                 lblLink.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
                 lblLink.setMaxWidth(Double.MAX_VALUE);
                 lblLink.setOnMouseEntered(
-                        e -> lblLink.setStyle("-fx-text-fill: #5B8CFF; -fx-cursor: hand; -fx-underline: true;"));
+                        e -> lblLink.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-cursor: hand; -fx-underline: true;"));
                 lblLink.setOnMouseExited(
-                        e -> lblLink.setStyle("-fx-text-fill: #5B8CFF; -fx-cursor: hand; -fx-underline: false;"));
+                        e -> lblLink.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-cursor: hand; -fx-underline: false;"));
                 lblLink.setOnMouseClicked(e -> {
                     String idAnterior = getTableView().getItems().get(getIndex()).getIdRepAnterior();
                     if (idAnterior == null)
@@ -257,19 +257,19 @@ public class ReparacionControllerAdmin {
     }
 
     private void configurarColAcciones() {
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
         Image imgEditar = new Image(getClass().getResourceAsStream("/images/editar32pixeles.png"));
         colAcciones.setCellFactory(col -> new TableCell<>() {
             private final ImageView ivBorrar = new ImageView(imgBorrar);
             private final ImageView ivEditar = new ImageView(imgEditar);
             private final HBox contenedor = new HBox(6, ivEditar, ivBorrar);
             {
-                ivBorrar.setFitWidth(20);
-                ivBorrar.setFitHeight(20);
+                ivBorrar.setFitWidth(25);
+                ivBorrar.setFitHeight(25);
                 ivBorrar.setPreserveRatio(true);
                 ivBorrar.setStyle("-fx-cursor: hand;");
-                ivEditar.setFitWidth(20);
-                ivEditar.setFitHeight(20);
+                ivEditar.setFitWidth(25);
+                ivEditar.setFitHeight(25);
                 ivEditar.setPreserveRatio(true);
                 ivEditar.setStyle("-fx-cursor: hand;");
                 contenedor.setAlignment(Pos.CENTER);
@@ -298,39 +298,35 @@ public class ReparacionControllerAdmin {
     }
 
     private void configurarColIncidencia() {
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar32pixeles.png"));
-        Image imgLapiz = new Image(getClass().getResourceAsStream("/images/añadir_incidencia32pixeles.png"));
+        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        Image imgAniadir = new Image(getClass().getResourceAsStream("/images/añadir_incidencia.png"));
 
         colIncidencia.setCellFactory(col -> new TableCell<>() {
-            private final ImageView ivLapiz = new ImageView(imgLapiz);
-            private final Button btnAniadir = new Button("Añadir una incidencia");
+            private final ImageView ivAniadir = new ImageView(imgAniadir);
+            private final Button btnAniadir = new Button();
             private final ImageView ivBorrar = new ImageView(imgBorrar);
             private final Button btnBorrarIncidencia = new Button();
             private final Label lblComentario = new Label();
             private final HBox casoUno = new HBox(btnAniadir);
             private final HBox casoDos = new HBox(8, btnBorrarIncidencia, lblComentario);
             {
-                ivLapiz.setFitWidth(20);
-                ivLapiz.setFitHeight(20);
-                ivLapiz.setPreserveRatio(true);
-                btnAniadir.setGraphic(ivLapiz);
-                btnAniadir.setContentDisplay(ContentDisplay.LEFT);
+                ivAniadir.setFitHeight(32);
+                ivAniadir.setPreserveRatio(true);
+                btnAniadir.setGraphic(ivAniadir);
                 btnAniadir.setStyle(
-                        "-fx-background-color: " + com.reparaciones.utils.Colores.ROJO_ACCION + "; -fx-text-fill: white;" +
-                                "-fx-font-weight: bold; -fx-font-size: 12px;" +
-                                "-fx-cursor: hand; -fx-background-radius: 0;");
+                        "-fx-background-color: transparent; -fx-border-color: transparent;" +
+                        "-fx-cursor: hand; -fx-padding: 0;");
                 HBox.setHgrow(btnAniadir, Priority.ALWAYS);
                 btnAniadir.setMaxWidth(Double.MAX_VALUE);
                 casoUno.setMaxWidth(Double.MAX_VALUE);
 
-                ivBorrar.setFitWidth(20);
-                ivBorrar.setFitHeight(20);
+                ivBorrar.setFitWidth(25);
+                ivBorrar.setFitHeight(25);
                 ivBorrar.setPreserveRatio(true);
                 btnBorrarIncidencia.setGraphic(ivBorrar);
                 btnBorrarIncidencia.setStyle(
-                        "-fx-background-color: " + com.reparaciones.utils.Colores.ROJO_ACCION + "; -fx-background-radius: 2;" +
-                                "-fx-min-width: 35; -fx-max-width: 35;" +
-                                "-fx-min-height: 35; -fx-max-height: 35; -fx-cursor: hand;");
+                        "-fx-background-color: transparent; -fx-border-color: transparent;" +
+                        "-fx-cursor: hand; -fx-padding: 0;");
                 lblComentario.setMaxWidth(Double.MAX_VALUE);
                 lblComentario.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
                 HBox.setHgrow(lblComentario, Priority.ALWAYS);
@@ -349,12 +345,12 @@ public class ReparacionControllerAdmin {
                 if (rep.isEsIncidencia()) {
                     String texto = rep.getIncidencia() != null ? rep.getIncidencia() : "";
                     lblComentario.setText(texto);
-                    lblComentario.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;" +
+                    lblComentario.setStyle("-fx-font-size: 12px; -fx-text-fill: black;" +
                             (!texto.isEmpty() ? " -fx-cursor: hand;" : ""));
                     lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
                             e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
                     if (rep.isEsResuelto()) {
-                        casoDos.setStyle("-fx-background-color: #E7E7E7;");
+                        casoDos.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.GRIS_DISABLED + ";");
                         btnBorrarIncidencia.setVisible(false);
                         btnBorrarIncidencia.setManaged(false);
                     } else {
@@ -400,8 +396,8 @@ public class ReparacionControllerAdmin {
             private void aplicarEstilo(ReparacionResumen item, boolean empty) {
                 if (empty || item == null) { setStyle(""); return; }
                 if (isSelected()) {
-                    setStyle("-fx-background-color: #2C3B54;" +
-                            "-fx-border-color: transparent transparent #3D5070 transparent;" +
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
                             "-fx-border-width: 0 0 0.2 0;");
                 } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
@@ -450,7 +446,7 @@ public class ReparacionControllerAdmin {
     private void configurarFiltros() {
         // Cargar checkboxes de técnicos en el MenuButton
         filtroTecnico.setStyle(
-                "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+                "-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
                 "-fx-border-radius: 4; -fx-background-radius: 4;" +
                 "-fx-font-size: 12px;");
         try {
@@ -481,10 +477,10 @@ public class ReparacionControllerAdmin {
             if (val.isEmpty())
                 filtroImei.setStyle("");
             else if (val.length() < 15)
-                filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
+                filtroImei.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
                         "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
             else
-                filtroImei.setStyle("-fx-background-color: #F3F3F3; -fx-border-color: #8AC7AF;" +
+                filtroImei.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";" +
                         "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
             aplicarFiltros();
         });
@@ -496,7 +492,7 @@ public class ReparacionControllerAdmin {
         filtroFechaDesde.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
         filtroFechaHasta.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
         filtroIncidencias.setStyle(
-                "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+                "-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
                 "-fx-border-radius: 4; -fx-background-radius: 4;" +
                 "-fx-font-size: 12px;");
         cbIncidenciasAbiertas = new CheckBox("Abiertas");
@@ -624,14 +620,14 @@ public class ReparacionControllerAdmin {
         tfComentario.setPromptText("Describe la incidencia...");
         tfComentario.setWrapText(true);
         tfComentario.setPrefRowCount(4);
-        tfComentario.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+        tfComentario.setStyle("-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
                 "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 13px;");
 
         // ── Selector técnico ──────────────────────────────────────────────────
         Label lblTecnico = new Label("Técnico asignado");
         ComboBox<Tecnico> cbTecnico = new ComboBox<>();
         cbTecnico.setMaxWidth(Double.MAX_VALUE);
-        cbTecnico.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
+        cbTecnico.setStyle("-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
                 "-fx-border-radius: 4; -fx-background-radius: 4;");
 
         try {
@@ -664,16 +660,16 @@ public class ReparacionControllerAdmin {
         // ── Botón confirmar ───────────────────────────────────────────────────
         Button btnConfirmar = new Button("Añadir incidencia y asignar");
         btnConfirmar.setMaxWidth(Double.MAX_VALUE);
-        btnConfirmar.setStyle("-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
+        btnConfirmar.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.GRIS_DISABLED + "; -fx-text-fill: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
                 "-fx-font-size: 12px; -fx-background-radius: 4; -fx-padding: 8;");
 
         Runnable validar = () -> {
             boolean ok = !tfComentario.getText().trim().isEmpty() && cbTecnico.getValue() != null;
             btnConfirmar.setDisable(!ok);
             btnConfirmar.setStyle(ok
-                    ? "-fx-background-color: #8AC7AF; -fx-text-fill: white; -fx-font-size: 12px;" +
+                    ? "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + "; -fx-text-fill: white; -fx-font-size: 12px;" +
                             "-fx-background-radius: 4; -fx-padding: 8; -fx-cursor: hand;"
-                    : "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9; -fx-font-size: 12px;" +
+                    : "-fx-background-color: " + com.reparaciones.utils.Colores.GRIS_DISABLED + "; -fx-text-fill: " + com.reparaciones.utils.Colores.GRIS_BORDE + "; -fx-font-size: 12px;" +
                             "-fx-background-radius: 4; -fx-padding: 8;");
         };
 
@@ -687,7 +683,7 @@ public class ReparacionControllerAdmin {
                 lblTecnico, cbTecnico,
                 btnConfirmar);
         form.setPadding(new Insets(16));
-        form.setStyle("-fx-background-color: #F0F0F0; -fx-background-radius: 8;");
+        form.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-background-radius: 8;");
         form.setPrefWidth(480);
 
         Dialog<Void> dialog = new Dialog<>();

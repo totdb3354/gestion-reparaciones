@@ -542,8 +542,8 @@ public class ReparacionDAO {
                 """;
         String sqlComp = """
                 INSERT INTO Reparacion_componente
-                (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES)
-                VALUES (?, ?, ?, FALSE, FALSE, NULL, ?)
+                (ID_REP, ID_COM, ES_REUTILIZADO, ES_INCIDENCIA, ES_RESUELTO, INCIDENCIA, OBSERVACIONES, CANTIDAD)
+                VALUES (?, ?, ?, FALSE, FALSE, NULL, ?, ?)
                 """;
         String sqlCompSolicitud = """
                 INSERT INTO Reparacion_componente
@@ -587,6 +587,7 @@ public class ReparacionDAO {
                         ps.setInt(2, fila.getIdCom());
                         ps.setBoolean(3, fila.isReutilizado());
                         ps.setString(4, fila.getObservacion());
+                        ps.setInt(5, fila.getCantidad() > 0 ? fila.getCantidad() : 1);
                         ps.executeUpdate();
                     }
                     if (!fila.isReutilizado() && fila.getCantidad() > 0
