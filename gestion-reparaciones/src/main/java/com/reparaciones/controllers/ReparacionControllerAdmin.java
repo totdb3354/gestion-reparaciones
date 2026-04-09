@@ -96,12 +96,13 @@ public class ReparacionControllerAdmin {
 
     @FXML private void mostrarHistorial() {
         mostrarPanel(pnlHistorial, btnTabHistorial);
-        cargarDatos();
     }
 
     @FXML private Button btnDescargar;
 
     private void mostrarPanel(VBox panel, Button btnActivo) {
+        if (pnlPendientes.isVisible() && panel != pnlPendientes)
+            pendientesAdminController.resetearCambios();
         pnlHistorial    .setVisible(false); pnlHistorial    .setManaged(false);
         pnlPendientes   .setVisible(false); pnlPendientes   .setManaged(false);
         pnlMisPendientes.setVisible(false); pnlMisPendientes.setManaged(false);
@@ -112,6 +113,9 @@ public class ReparacionControllerAdmin {
             b.getStyleClass().removeAll("stock-sidebar-btn-active", "stock-sidebar-btn");
             b.getStyleClass().add(b == btnActivo ? "stock-sidebar-btn-active" : "stock-sidebar-btn");
         }
+        if      (panel == pnlHistorial)    cargarDatos();
+        else if (panel == pnlPendientes)   pendientesAdminController.cargar();
+        else                               misPendientesController.cargar();
     }
 
     // ─── Label expandible (click abre popup de lectura) ───────────────────────
@@ -600,13 +604,11 @@ public class ReparacionControllerAdmin {
     @FXML
     private void abrirModalPendientes() {
         mostrarPanel(pnlPendientes, btnTabPendientes);
-        pendientesAdminController.cargar();
     }
 
     @FXML
     private void abrirMisPendientes() {
         mostrarPanel(pnlMisPendientes, btnTabMisPendientes);
-        misPendientesController.cargar();
     }
 
     // ─── Incidencias ──────────────────────────────────────────────────────────
