@@ -76,6 +76,7 @@ public class PendientesAdminController {
                         cambiosPendientes.remove(rep.getIdRep());
                     }
                     actualizarVisibilidadConfirmar();
+                    tablaPendientes.refresh();
                 });
             }
             @Override
@@ -93,6 +94,10 @@ public class PendientesAdminController {
                                 .findFirst().orElse(null));
                 cb.setValue(mostrar);
                 actualizando = false;
+                boolean modificada = cambiosPendientes.containsKey(rep.getIdRep());
+                setStyle(modificada
+                        ? "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_MODIFICADA_BG + ";"
+                        : "");
                 setGraphic(cb);
             }
         });
@@ -423,6 +428,12 @@ public class PendientesAdminController {
         formDialog.getDialogPane().setPrefWidth(600);
         formDialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         formDialog.showAndWait();
+    }
+
+    public void resetearCambios() {
+        cambiosPendientes.clear();
+        actualizarVisibilidadConfirmar();
+        tablaPendientes.refresh();
     }
 
     private void actualizarVisibilidadConfirmar() {

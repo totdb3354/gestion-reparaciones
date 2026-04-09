@@ -173,10 +173,10 @@ public class StockController {
             private final javafx.scene.layout.HBox box;
             {
                 btnPedir.setStyle("-fx-font-size:11px; -fx-padding:4 10 4 10;" +
-                        "-fx-background-color:#2C3B54; -fx-text-fill:white;" +
+                        "-fx-background-color:#3A6186; -fx-text-fill:white;" +
                         "-fx-background-radius:4; -fx-cursor:hand;");
                 btnMin.setStyle("-fx-font-size:11px; -fx-padding:4 8 4 8;" +
-                        "-fx-background-color:#586376; -fx-text-fill:white;" +
+                        "-fx-background-color:" + com.reparaciones.utils.Colores.AZUL_GRIS + "; -fx-text-fill:white;" +
                         "-fx-background-radius:4; -fx-cursor:hand;");
                 btnPedir.setOnAction(e -> pedirComponente(getTableView().getItems().get(getIndex())));
                 btnMin  .setOnAction(e -> ajustarMinimo(getTableView().getItems().get(getIndex())));
