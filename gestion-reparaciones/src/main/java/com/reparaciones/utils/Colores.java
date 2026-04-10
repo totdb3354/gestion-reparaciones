@@ -32,8 +32,13 @@ public final class Colores {
     public static final String FILA_RECIBIDO_BG  = "#C8E6C9";
     public static final String FILA_RECIBIDO_BRD = "#3a7d44";
 
-    /** Fila pedido alterado — ámbar más oscuro que urgente */
-    public static final String FILA_ALTERADO_BG  = "#F5DEB0";
+    /** Fila pedido alterado — naranja salmón, distinto del ámbar de solicitudes */
+    public static final String FILA_ALTERADO_BG  = "#FAD9C1";
+    public static final String FILA_ALTERADO_BRD = "#C0622A";
+
+    /** Fila pedido parcial — lila claro */
+    public static final String FILA_PARCIAL_BG  = "#E8E0F7";
+    public static final String FILA_PARCIAL_BRD = "#7B5EA7";
 
     /** Fila pedido cancelado/devuelto — gris neutro */
     public static final String FILA_CANCELADO_BG  = "#E0E0E0";
@@ -43,9 +48,9 @@ public final class Colores {
     public static final String FILA_INCIDENCIA_BG  = "#E8C8CE";
     public static final String FILA_INCIDENCIA_BRD = "#B83746";
 
-    /** Fila con solicitud de pieza pendiente — fondo ámbar, borde inferior naranja oscuro */
-    public static final String FILA_SOLICITUD_BG   = "#EDD5A0";
-    public static final String FILA_SOLICITUD_BRD  = "#C07800";
+    /** Fila con solicitud de pieza pendiente — fondo rojizo desaturado, borde carmesí */
+    public static final String FILA_SOLICITUD_BG   = "#F2CACA";
+    public static final String FILA_SOLICITUD_BRD  = "#C0392B";
 
     /** Fila con cambio pendiente de confirmar — fondo cyan claro, borde teal */
     public static final String FILA_MODIFICADA_BG  = "#E0F7FA";

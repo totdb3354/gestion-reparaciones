@@ -7,51 +7,40 @@
       fx:controller="com.reparaciones.controllers.FormularioCompraController"
       styleClass="vista-container"
       stylesheets="@../styles/reparacion.css"
-      spacing="20" prefWidth="520">
+      spacing="16" prefWidth="700">
     <padding><Insets top="28" right="28" bottom="28" left="28"/></padding>
 
     <Label fx:id="lblTitulo" text="Nuevo pedido" styleClass="vista-titulo"/>
 
-    <GridPane hgap="14" vgap="12">
-        <columnConstraints>
-            <ColumnConstraints minWidth="130" maxWidth="130"/>
-            <ColumnConstraints hgrow="ALWAYS"/>
-        </columnConstraints>
+    <!-- Cabecera: proveedor + divisa (comunes a todas las líneas) -->
+    <HBox spacing="16" alignment="CENTER_LEFT">
+        <Label text="Proveedor:" styleClass="form-label" minWidth="90"/>
+        <ComboBox fx:id="cmbProveedor" prefWidth="220"/>
+        <Label text="Divisa:" styleClass="form-label"/>
+        <ComboBox fx:id="cmbDivisa" prefWidth="84"/>
+        <Label fx:id="lblTasa" style="-fx-font-size:11px; -fx-text-fill:#A0A0A0;"/>
+    </HBox>
 
-        <!-- Componente -->
-        <Label text="Componente:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="form-label"/>
-        <ComboBox fx:id="cmbComponente" GridPane.rowIndex="0" GridPane.columnIndex="1" maxWidth="Infinity"/>
+    <!-- Tabla de líneas -->
+    <TableView fx:id="tablaLineas" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS"
+               editable="true" prefHeight="220">
+        <columns>
+            <TableColumn fx:id="colComponente" text="Componente"  prefWidth="240"/>
+            <TableColumn fx:id="colCantidad"   text="Cant."       prefWidth="60"/>
+            <TableColumn fx:id="colPrecio"     text="P.Unit."     prefWidth="90"/>
+            <TableColumn fx:id="colUrgente"    text="Urg."        prefWidth="50"/>
+            <TableColumn fx:id="colTotalEur"   text="Total EUR"   prefWidth="100"/>
+            <TableColumn fx:id="colQuitar"     text=""            prefWidth="40"/>
+        </columns>
+        <placeholder><Label text="Añade al menos una línea"/></placeholder>
+    </TableView>
 
-        <!-- Proveedor -->
-        <Label text="Proveedor:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="form-label"/>
-        <ComboBox fx:id="cmbProveedor" GridPane.rowIndex="1" GridPane.columnIndex="1" maxWidth="Infinity"/>
-
-        <!-- Cantidad -->
-        <Label text="Cantidad:" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="form-label"/>
-        <TextField fx:id="txtCantidad" GridPane.rowIndex="2" GridPane.columnIndex="1"
-                   styleClass="buscador" promptText="Ej. 10"/>
-
-        <!-- Urgente -->
-        <Label text="Urgente:" GridPane.rowIndex="3" GridPane.columnIndex="0" styleClass="form-label"/>
-        <CheckBox fx:id="chkUrgente" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
-
-        <!-- Precio + divisa -->
-        <Label text="Precio unidad:" GridPane.rowIndex="4" GridPane.columnIndex="0" styleClass="form-label"/>
-        <HBox GridPane.rowIndex="4" GridPane.columnIndex="1" spacing="8" alignment="CENTER_LEFT">
-            <TextField fx:id="txtPrecio" styleClass="buscador" promptText="0.00" HBox.hgrow="ALWAYS"/>
-            <ComboBox fx:id="cmbDivisa" prefWidth="84"/>
-        </HBox>
-
-        <!-- Total EUR (calculado) -->
-        <Label text="Total EUR:" GridPane.rowIndex="5" GridPane.columnIndex="0" styleClass="form-label"/>
-        <Label fx:id="lblTotalEur" text="—" GridPane.rowIndex="5" GridPane.columnIndex="1"
-               style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
-    </GridPane>
+    <Button text="+ Añadir línea" styleClass="btn-secondary" onAction="#anadirLinea"/>
 
     <!-- Botones -->
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <Button text="Cancelar"  styleClass="btn-secondary" onAction="#cancelar"/>
-        <Button text="Confirmar" styleClass="btn-primary"   onAction="#confirmar"/>
+        <Button fx:id="btnConfirmar" text="Confirmar pedido" styleClass="btn-primary" onAction="#confirmar"/>
     </HBox>
 
 </VBox>

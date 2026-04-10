@@ -27,4 +27,8 @@
         <placeholder><Label text="No tienes asignaciones pendientes"/></placeholder>
     </TableView>
 
+    <Label fx:id="lblUltimaActualizacion"
+           style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+           alignment="CENTER_RIGHT" maxWidth="Infinity"/>
+
 </VBox>

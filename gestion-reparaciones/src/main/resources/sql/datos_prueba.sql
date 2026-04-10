@@ -414,13 +414,7 @@ INSERT INTO Proveedor (NOMBRE, ACTIVO) VALUES ('Fix Phone Parts', FALSE);
 -- ID_COM=46 bati13          (32+14=46)
 -- ID_COM=83 lcdi16pronegraic (63+20=83)
 
--- Pedido 1: urgente, pendiente (bati14pro × 20 u., EUR)
-INSERT INTO Compra_componente
-    (ID_COM, ID_PROV, CANTIDAD, ES_URGENTE, FECHA_PEDIDO,
-     PRECIO_UNIDAD_PEDIDO, DIVISA, PRECIO_EUR, ESTADO)
-VALUES (52, 1, 20, TRUE, '2026-04-01 09:00:00', 8.50, 'EUR', 8.50, 'pendiente');
-
--- Pedido 2: recibido completo (lcdi15pronegraic × 5 u., USD)
+-- Pedido 1: recibido completo (lcdi15pronegraic × 5 u., USD)
 INSERT INTO Compra_componente
     (ID_COM, ID_PROV, CANTIDAD, ES_URGENTE, FECHA_PEDIDO,
      PRECIO_UNIDAD_PEDIDO, DIVISA, PRECIO_EUR,
@@ -429,11 +423,17 @@ VALUES (79, 2, 5, FALSE, '2026-03-15 10:00:00',
         18.00, 'USD', 16.56,
         'recibido', '2026-03-22 16:30:00', 5, 'Pedido recibido sin incidencias.');
 
--- Pedido 3: cancelado (bati13 × 10 u., EUR)
+-- Pedido 2: cancelado (bati13 × 10 u., EUR)
 INSERT INTO Compra_componente
     (ID_COM, ID_PROV, CANTIDAD, ES_URGENTE, FECHA_PEDIDO,
      PRECIO_UNIDAD_PEDIDO, DIVISA, PRECIO_EUR, ESTADO)
 VALUES (46, 3, 10, FALSE, '2026-03-20 11:00:00', 7.00, 'EUR', 7.00, 'cancelado');
+
+-- Pedido 3: urgente, pendiente (bati14pro × 20 u., EUR)
+INSERT INTO Compra_componente
+    (ID_COM, ID_PROV, CANTIDAD, ES_URGENTE, FECHA_PEDIDO,
+     PRECIO_UNIDAD_PEDIDO, DIVISA, PRECIO_EUR, ESTADO)
+VALUES (52, 1, 20, TRUE, '2026-04-01 09:00:00', 8.50, 'EUR', 8.50, 'pendiente');
 
 -- Pedido 4: urgente, pendiente (lcdi16pronegraic × 3 u., USD)
 INSERT INTO Compra_componente

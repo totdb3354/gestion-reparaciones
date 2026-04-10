@@ -57,7 +57,7 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableColumn<CompraComponente, Integer>  cpId;
     @FXML private TableColumn<CompraComponente, String>   cpComponente;
     @FXML private TableColumn<CompraComponente, String>   cpProveedor;
-    @FXML private TableColumn<CompraComponente, Integer>  cpCantidad;
+    @FXML private TableColumn<CompraComponente, Object>   cpCantidad;
     @FXML private TableColumn<CompraComponente, String>   cpUrgente;
     @FXML private TableColumn<CompraComponente, String>   cpFecha;
     @FXML private TableColumn<CompraComponente, String>   cpPrecio;
@@ -66,6 +66,8 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableColumn<CompraComponente, String>   cpEstado;
     @FXML private ComboBox<String>                        cmbFiltroEstado;
     @FXML private Button btnConfirmarRecibido;
+    @FXML private Button btnConfirmarParcial;
+    @FXML private Button btnRecibirResto;
     @FXML private Button btnConfirmarAlterado;
     @FXML private Button btnEditarPedido;
     @FXML private Button btnCancelarPedido;
@@ -454,8 +456,13 @@ public class StockController implements com.reparaciones.utils.Recargable {
             }
         });
         cpProveedor.setCellValueFactory(c ->  sp(c.getValue().getNombreProveedor()));
-        cpCantidad.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getCantidad()).asObject());
+        cpCantidad.setCellValueFactory(c -> {
+            CompraComponente p = c.getValue();
+            String texto = p.getEstado() == Estado.parcial && p.getCantidadRecibida() != null
+                    ? p.getCantidadRecibida() + "/" + p.getCantidad()
+                    : String.valueOf(p.getCantidad());
+            return new javafx.beans.property.SimpleObjectProperty<>(texto);
+        });
         cpUrgente.setCellValueFactory(c ->  sp(c.getValue().isEsUrgente() ? "Sí" : "—"));
         cpFecha.setCellValueFactory(c ->
                 sp(c.getValue().getFechaPedido().format(FMT)));
@@ -489,7 +496,9 @@ public class StockController implements com.reparaciones.utils.Recargable {
                     case recibido  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_RECIBIDO_BG + ";" +
                                      brd + com.reparaciones.utils.Colores.FILA_RECIBIDO_BRD + " transparent;";
                     case alterado  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_ALTERADO_BG + ";" +
-                                     brd + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;";
+                                     brd + com.reparaciones.utils.Colores.FILA_ALTERADO_BRD + " transparent;";
+                    case parcial   -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_PARCIAL_BG + ";" +
+                                     brd + com.reparaciones.utils.Colores.FILA_PARCIAL_BRD + " transparent;";
                     case cancelado,
                          devuelto  -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_CANCELADO_BG + ";" +
                                      brd + com.reparaciones.utils.Colores.FILA_CANCELADO_BRD + " transparent;";
@@ -503,7 +512,7 @@ public class StockController implements com.reparaciones.utils.Recargable {
 
         // Filtro por estado
         cmbFiltroEstado.getItems().setAll(
-                "Todos", "pendiente", "recibido", "alterado", "devuelto", "cancelado");
+                "Todos", "pendiente", "parcial", "recibido", "alterado", "devuelto", "cancelado");
         cmbFiltroEstado.setValue("Todos");
         FilteredList<CompraComponente> filtrada = new FilteredList<>(datosPedidos, p -> true);
         cmbFiltroEstado.valueProperty().addListener((obs, old, val) ->
@@ -517,10 +526,13 @@ public class StockController implements com.reparaciones.utils.Recargable {
 
     private void actualizarBotonesPedido(CompraComponente sel) {
         boolean esPendiente = sel != null && sel.getEstado() == Estado.pendiente;
+        boolean esParcial   = sel != null && sel.getEstado() == Estado.parcial;
         boolean esRecibido  = sel != null &&
                 (sel.getEstado() == Estado.recibido || sel.getEstado() == Estado.alterado);
         btnConfirmarRecibido.setDisable(!esPendiente);
-        btnConfirmarAlterado.setDisable(!esPendiente);
+        btnConfirmarParcial .setDisable(!esPendiente);
+        btnRecibirResto     .setDisable(!esParcial);
+        btnConfirmarAlterado.setDisable(!esParcial);
         btnEditarPedido     .setDisable(!esPendiente);
         btnCancelarPedido   .setDisable(!esPendiente);
         btnDevolverPedido   .setDisable(!esRecibido);
@@ -575,17 +587,45 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private void confirmarAlterado() {
         CompraComponente sel = tablaPedidos.getSelectionModel().getSelectedItem();
         if (sel == null) return;
+        // Cierra un pedido parcial como definitivo — no llega más mercancía
+        int recibidas = sel.getCantidadRecibida() != null ? sel.getCantidadRecibida() : 0;
+        TextInputDialog dObs = new TextInputDialog();
+        dObs.setTitle("Cerrar sin resto");
+        dObs.setHeaderText("Pedido #" + sel.getIdCompra() + " — " + sel.getTipoComponente()
+                + "\nRecibidas: " + recibidas + " de " + sel.getCantidad() + ". El pedido quedará cerrado.");
+        dObs.setContentText("Observación (opcional):");
+        Optional<String> rObs = dObs.showAndWait();
+        if (rObs.isEmpty()) return;
 
-        // Diálogo simple: cantidad recibida
-        TextInputDialog dCant = new TextInputDialog(String.valueOf(sel.getCantidad()));
-        dCant.setTitle("Cantidad alterada");
-        dCant.setHeaderText("Pedido #" + sel.getIdCompra() + " — ¿Cuántas unidades llegaron?");
-        dCant.setContentText("Cantidad recibida:");
+        try {
+            compraDAO.confirmarAlterado(sel, recibidas, rObs.get().isBlank() ? null : rObs.get());
+            cargarPedidos();
+            cargarStock();
+        } catch (com.reparaciones.utils.StaleDataException e) {
+            mostrarConflicto(); cargarPedidos();
+        } catch (SQLException e) { mostrarError(e); }
+    }
+
+    @FXML private void confirmarParcial() {
+        CompraComponente sel = tablaPedidos.getSelectionModel().getSelectedItem();
+        if (sel == null) return;
+
+        TextInputDialog dCant = new TextInputDialog();
+        dCant.setTitle("Recepción parcial");
+        dCant.setHeaderText("Pedido #" + sel.getIdCompra() + " — " + sel.getTipoComponente()
+                + " (" + sel.getCantidad() + " pedidas)");
+        dCant.setContentText("Cantidad recibida ahora:");
         Optional<String> rCant = dCant.showAndWait();
         if (rCant.isEmpty()) return;
         int cant;
-        try { cant = Integer.parseInt(rCant.get().trim()); }
-        catch (NumberFormatException e) {
+        try {
+            cant = Integer.parseInt(rCant.get().trim());
+            if (cant <= 0 || cant >= sel.getCantidad()) {
+                new Alert(Alert.AlertType.WARNING,
+                        "La cantidad debe ser mayor que 0 y menor que " + sel.getCantidad() + ".").showAndWait();
+                return;
+            }
+        } catch (NumberFormatException e) {
             new Alert(Alert.AlertType.WARNING, "Cantidad no válida.").showAndWait();
             return;
         }
@@ -597,7 +637,46 @@ public class StockController implements com.reparaciones.utils.Recargable {
         if (rObs.isEmpty()) return;
 
         try {
-            compraDAO.confirmarAlterado(sel, cant, rObs.get().isBlank() ? null : rObs.get());
+            compraDAO.confirmarParcial(sel, cant, rObs.get().isBlank() ? null : rObs.get());
+            cargarPedidos();
+            cargarStock();
+        } catch (com.reparaciones.utils.StaleDataException e) {
+            mostrarConflicto(); cargarPedidos();
+        } catch (SQLException e) { mostrarError(e); }
+    }
+
+    @FXML private void recibirResto() {
+        CompraComponente sel = tablaPedidos.getSelectionModel().getSelectedItem();
+        if (sel == null) return;
+        int restante = sel.getCantidad() - (sel.getCantidadRecibida() != null ? sel.getCantidadRecibida() : 0);
+
+        TextInputDialog dCant = new TextInputDialog(String.valueOf(restante));
+        dCant.setTitle("Recibir resto");
+        dCant.setHeaderText("Pedido #" + sel.getIdCompra() + " — " + sel.getTipoComponente()
+                + " (recibidas: " + sel.getCantidadRecibida() + "/" + sel.getCantidad() + ")");
+        dCant.setContentText("Cantidad que llega ahora:");
+        Optional<String> rCant = dCant.showAndWait();
+        if (rCant.isEmpty()) return;
+        int cant;
+        try {
+            cant = Integer.parseInt(rCant.get().trim());
+            if (cant <= 0) {
+                new Alert(Alert.AlertType.WARNING, "La cantidad debe ser mayor que 0.").showAndWait();
+                return;
+            }
+        } catch (NumberFormatException e) {
+            new Alert(Alert.AlertType.WARNING, "Cantidad no válida.").showAndWait();
+            return;
+        }
+
+        TextInputDialog dObs = new TextInputDialog();
+        dObs.setTitle("Observación");
+        dObs.setContentText("Observación (opcional):");
+        Optional<String> rObs = dObs.showAndWait();
+        if (rObs.isEmpty()) return;
+
+        try {
+            compraDAO.recibirResto(sel, cant, rObs.get().isBlank() ? null : rObs.get());
             cargarPedidos();
             cargarStock();
         } catch (com.reparaciones.utils.StaleDataException e) {

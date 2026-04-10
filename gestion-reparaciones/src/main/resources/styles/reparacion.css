@@ -130,6 +130,23 @@
 }
 
 /* ── Formulario compra ──────────────────────────────────────────────────────── */
+/* ── ComboBox popup dentro de tabla ─────────────────────────────────────────── */
+.combo-box-popup .list-view .list-cell {
+    -fx-text-fill: #2C3B54;
+    -fx-background-color: #FFFFFF;
+}
+
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: #DDE1E7;
+    -fx-text-fill: #2C3B54;
+}
+
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: #3A6186;
+    -fx-text-fill: #F6F6F6;
+}
+
+/* ── Formulario compra ──────────────────────────────────────────────────────── */
 .form-label {
     -fx-font-size: 12px;
     -fx-text-fill: #586376;
