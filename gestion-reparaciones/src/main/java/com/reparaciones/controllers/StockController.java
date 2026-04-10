@@ -20,7 +20,7 @@ import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
-public class StockController {
+public class StockController implements com.reparaciones.utils.Recargable {
 
     // ── Sidebar ──────────────────────────────────────────────────────────────
     @FXML private Button btnTabStock;
@@ -78,6 +78,11 @@ public class StockController {
     @FXML private Button btnActivarProveedor;
     @FXML private Button btnBorrarProveedor;
 
+    // ── Última actualización ──────────────────────────────────────────────────
+    @FXML private Label lblUltimaActStock;
+    @FXML private Label lblUltimaActPedidos;
+    @FXML private Label lblUltimaActProveedores;
+
     // ── DAOs ──────────────────────────────────────────────────────────────────
     private final ComponenteDAO     componenteDAO = new ComponenteDAO();
     private final CompraComponenteDAO compraDAO   = new CompraComponenteDAO();
@@ -90,6 +95,13 @@ public class StockController {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm");
 
+    private final java.util.concurrent.ScheduledExecutorService poller =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "poller-stock");
+                t.setDaemon(true);
+                return t;
+            });
+
     // ─── Init ─────────────────────────────────────────────────────────────────
 
     @FXML
@@ -98,9 +110,23 @@ public class StockController {
         configurarTablaPedidos();
         configurarTablaProveedores();
         cargarStock();
+
+        poller.scheduleAtFixedRate(
+                () -> javafx.application.Platform.runLater(this::recargar),
+                60, 60, java.util.concurrent.TimeUnit.SECONDS);
     }
 
+    @Override
+    public void detenerPolling() { poller.shutdownNow(); }
+
     // ─── Sidebar ──────────────────────────────────────────────────────────────
+
+    @Override
+    public void recargar() {
+        if (pnlPedidos.isVisible())       cargarPedidos();
+        else if (pnlProveedores.isVisible()) cargarProveedores();
+        else                               cargarStock();
+    }
 
     @FXML private void mostrarTabStock() {
         mostrarPanel(pnlStock, btnTabStock);
@@ -271,6 +297,8 @@ public class StockController {
         try {
             datosStock.setAll(componenteDAO.getAllGestionados());
             actualizarChart();
+            String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            if (lblUltimaActStock != null) lblUltimaActStock.setText("Actualizado " + hora);
         } catch (SQLException e) {
             mostrarError(e);
         }
@@ -501,6 +529,8 @@ public class StockController {
     private void cargarPedidos() {
         try {
             datosPedidos.setAll(compraDAO.getAll());
+            String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            if (lblUltimaActPedidos != null) lblUltimaActPedidos.setText("Actualizado " + hora);
         } catch (SQLException e) {
             mostrarError(e);
         }
@@ -658,6 +688,8 @@ public class StockController {
     private void cargarProveedores() {
         try {
             datosProveedores.setAll(proveedorDAO.getAll());
+            String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            if (lblUltimaActProveedores != null) lblUltimaActProveedores.setText("Actualizado " + hora);
         } catch (SQLException e) {
             mostrarError(e);
         }

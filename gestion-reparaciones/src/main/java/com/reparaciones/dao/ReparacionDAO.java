@@ -112,6 +112,17 @@ public class ReparacionDAO {
         return lista;
     }
 
+    public java.util.Optional<ReparacionResumen> getAsignacionById(String idRep) throws SQLException {
+        String sql = SQL_ASIGNACIONES + " AND r.ID_REP = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, idRep);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return java.util.Optional.of(mapearAsignacion(rs));
+        }
+        return java.util.Optional.empty();
+    }
+
     public List<ReparacionResumen> getAsignacionesPorTecnico(int idTec) throws SQLException {
         List<ReparacionResumen> lista = new ArrayList<>();
         String sql = SQL_ASIGNACIONES + " AND r.ID_TEC = ? ORDER BY r.FECHA_ASIG ASC";
