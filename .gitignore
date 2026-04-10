@@ -1,0 +1,5 @@
+# Compilados Maven
+gestion-reparaciones/target/
+
+# Configuración local de herramientas
+gestion-reparaciones/.claude/
