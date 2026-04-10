@@ -181,8 +181,6 @@ public class PendientesAdminController {
 
     private void configurarFiltros() {
         // Filtro técnico
-        filtroTecnico.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;");
         try {
             tecnicos.addAll(tecnicoDAO.getAll());
             for (Tecnico t : tecnicos) {
@@ -194,14 +192,11 @@ public class PendientesAdminController {
                 });
                 cbsTecnico.add(cb);
                 CustomMenuItem item = new CustomMenuItem(cb, false);
-                item.setStyle("-fx-background-color: white;");
                 filtroTecnico.getItems().add(item);
             }
         } catch (SQLException e) { e.printStackTrace(); }
 
         // Filtro tipo
-        filtroSolicitud.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;");
         cbSoloSolicitudes = new CheckBox("Solicitudes pieza");
         cbSoloSolicitudes.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
         cbSoloSolicitudes.selectedProperty().addListener((obs, o, n) -> {
@@ -220,12 +215,9 @@ public class PendientesAdminController {
             actualizarTextoFiltroSolicitud();
             aplicarFiltros();
         });
-        CustomMenuItem itemSol = new CustomMenuItem(cbSoloSolicitudes, false);
-        itemSol.setStyle("-fx-background-color: white;");
-        CustomMenuItem itemInc = new CustomMenuItem(cbSoloIncidencias, false);
-        itemInc.setStyle("-fx-background-color: white;");
+        CustomMenuItem itemSol  = new CustomMenuItem(cbSoloSolicitudes, false);
+        CustomMenuItem itemInc  = new CustomMenuItem(cbSoloIncidencias, false);
         CustomMenuItem itemAsig = new CustomMenuItem(cbSoloAsignaciones, false);
-        itemAsig.setStyle("-fx-background-color: white;");
         filtroSolicitud.getItems().addAll(itemSol, itemInc, itemAsig);
     }
 

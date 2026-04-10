@@ -109,14 +109,10 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         cargarDatos();
     }
 
-    @FXML private Button btnDescargar;
-
     private void mostrarPanel(VBox panel, Button btnActivo) {
         pnlHistorial    .setVisible(false); pnlHistorial    .setManaged(false);
         pnlMisPendientes.setVisible(false); pnlMisPendientes.setManaged(false);
         panel.setVisible(true); panel.setManaged(true);
-        btnDescargar.setVisible(panel == pnlHistorial);
-        btnDescargar.setManaged(panel == pnlHistorial);
         for (Button b : new Button[]{btnTabHistorial, btnTabMisPendientes}) {
             b.getStyleClass().removeAll("stock-sidebar-btn-active", "stock-sidebar-btn");
             b.getStyleClass().add(b == btnActivo ? "stock-sidebar-btn-active" : "stock-sidebar-btn");
@@ -422,10 +418,6 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         filtroFechaHasta.getEditor().setOpacity(1.0);
         filtroFechaDesde.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
         filtroFechaHasta.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
-        filtroIncidencias.setStyle(
-                "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4;" +
-                "-fx-font-size: 12px;");
         cbIncidenciasAbiertas = new CheckBox("Abiertas");
         cbIncidenciasAbiertas.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
         cbIncidenciasAbiertas.selectedProperty().addListener((obs, o, n) -> {
@@ -445,11 +437,8 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             aplicarFiltros();
         });
         CustomMenuItem itemAbiertas = new CustomMenuItem(cbIncidenciasAbiertas, false);
-        itemAbiertas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemCerradas = new CustomMenuItem(cbIncidenciasCerradas, false);
-        itemCerradas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemNormales = new CustomMenuItem(cbNormales, false);
-        itemNormales.setStyle("-fx-background-color: white;");
         filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas, itemNormales);
     }
 

@@ -102,8 +102,6 @@ public class PendientesTecnicoController {
     // ─── Filtros ──────────────────────────────────────────────────────────────
 
     private void configurarFiltros() {
-        filtroSolicitud.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;");
 
         cbSoloSolicitudes  = new CheckBox("Solicitudes pieza");
         cbSoloIncidencias  = new CheckBox("Incidencias");
@@ -116,7 +114,6 @@ public class PendientesTecnicoController {
                 aplicarFiltros();
             });
             CustomMenuItem item = new CustomMenuItem(cb, false);
-            item.setStyle("-fx-background-color: white;");
             filtroSolicitud.getItems().add(item);
         }
     }

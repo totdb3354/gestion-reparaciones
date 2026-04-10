@@ -6,7 +6,7 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.reparaciones.controllers.MainController"
-            stylesheets="@../styles/main.css">
+            stylesheets="@../styles/app.css">
 
     <top>
         <HBox fx:id="navbar" styleClass="navbar" alignment="CENTER_LEFT" spacing="10">

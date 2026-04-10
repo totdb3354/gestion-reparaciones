@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane styleClass="vista-container" stylesheets="@/styles/reparacion.css"
+<BorderPane styleClass="vista-container" stylesheets="@../styles/app.css"
             xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/25"
             fx:controller="com.reparaciones.controllers.ReparacionControllerTecnico">
 
@@ -32,29 +32,21 @@
         <VBox spacing="0">
             <padding><Insets bottom="40" left="40" right="40" top="40"/></padding>
 
-            <!-- Header siempre visible -->
-            <HBox alignment="CENTER_LEFT" spacing="24">
-                <VBox.margin><Insets bottom="8"/></VBox.margin>
-                <Label fx:id="lblTitulo" styleClass="vista-titulo" text="Mis reparaciones"/>
-                <HBox HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnDescargar" onAction="#descargarHistorial"
-                        styleClass="btn-secondary" text="Descargar Historial (Formato TXT)"/>
-            </HBox>
-
             <!-- Paneles intercambiables -->
             <StackPane VBox.vgrow="ALWAYS">
 
                 <!-- Panel: Historial -->
                 <VBox fx:id="pnlHistorial" spacing="0" visible="true" managed="true" VBox.vgrow="ALWAYS">
-                    <HBox alignment="CENTER_LEFT" spacing="16">
+                    <HBox alignment="CENTER_LEFT" spacing="12">
                         <VBox.margin><Insets bottom="8"/></VBox.margin>
+                        <Label styleClass="vista-titulo" text="Mis reparaciones" HBox.hgrow="ALWAYS"/>
                         <TextField fx:id="filtroImei" promptText="Filtrar por IMEI" prefWidth="160" styleClass="buscador"/>
                         <Label text="Desde:" style="-fx-font-size: 12px;"/>
-                        <DatePicker fx:id="filtroFechaDesde" prefWidth="140"/>
+                        <DatePicker fx:id="filtroFechaDesde" prefWidth="130"/>
                         <Label text="Hasta:" style="-fx-font-size: 12px;"/>
-                        <DatePicker fx:id="filtroFechaHasta" prefWidth="140"/>
-                        <MenuButton fx:id="filtroIncidencias" text="Incidencias" prefWidth="150"/>
-                        <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar filtros"/>
+                        <DatePicker fx:id="filtroFechaHasta" prefWidth="130"/>
+                        <MenuButton fx:id="filtroIncidencias" text="Incidencias" prefWidth="130"/>
+                        <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar"/>
                     </HBox>
                     <TableView fx:id="tablaReparaciones" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                         <columns>

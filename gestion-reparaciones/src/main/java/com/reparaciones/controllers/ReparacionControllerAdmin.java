@@ -120,7 +120,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         mostrarPanel(pnlHistorial, btnTabHistorial);
     }
 
-    @FXML private Button btnDescargar;
 
     private void mostrarPanel(VBox panel, Button btnActivo) {
         if (pnlPendientes.isVisible() && panel != pnlPendientes)
@@ -129,8 +128,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         pnlPendientes   .setVisible(false); pnlPendientes   .setManaged(false);
         pnlMisPendientes.setVisible(false); pnlMisPendientes.setManaged(false);
         panel.setVisible(true); panel.setManaged(true);
-        btnDescargar.setVisible(panel == pnlHistorial);
-        btnDescargar.setManaged(panel == pnlHistorial);
         for (Button b : new Button[]{btnTabHistorial, btnTabPendientes, btnTabMisPendientes}) {
             b.getStyleClass().removeAll("stock-sidebar-btn-active", "stock-sidebar-btn");
             b.getStyleClass().add(b == btnActivo ? "stock-sidebar-btn-active" : "stock-sidebar-btn");
@@ -473,10 +470,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
 
     private void configurarFiltros() {
         // Cargar checkboxes de técnicos en el MenuButton
-        filtroTecnico.setStyle(
-                "-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
-                "-fx-border-radius: 4; -fx-background-radius: 4;" +
-                "-fx-font-size: 12px;");
         try {
             List<com.reparaciones.models.Tecnico> tecnicos = tecnicoDAO.getAll();
             for (com.reparaciones.models.Tecnico t : tecnicos) {
@@ -488,7 +481,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                 });
                 checksTecnico.add(cb);
                 CustomMenuItem item = new CustomMenuItem(cb, false);
-                item.setStyle("-fx-background-color: white;");
                 filtroTecnico.getItems().add(item);
             }
         } catch (SQLException e) {
@@ -519,10 +511,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         filtroFechaHasta.getEditor().setOpacity(1.0);
         filtroFechaDesde.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
         filtroFechaHasta.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
-        filtroIncidencias.setStyle(
-                "-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.GRIS_BORDE + ";" +
-                "-fx-border-radius: 4; -fx-background-radius: 4;" +
-                "-fx-font-size: 12px;");
         cbIncidenciasAbiertas = new CheckBox("Abiertas");
         cbIncidenciasAbiertas.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
         cbIncidenciasAbiertas.selectedProperty().addListener((obs, o, n) -> {
@@ -542,11 +530,9 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
             aplicarFiltros();
         });
         CustomMenuItem itemAbiertas = new CustomMenuItem(cbIncidenciasAbiertas, false);
-        itemAbiertas.setStyle("-fx-background-color: white;");
+
         CustomMenuItem itemCerradas = new CustomMenuItem(cbIncidenciasCerradas, false);
-        itemCerradas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemNormales = new CustomMenuItem(cbNormales, false);
-        itemNormales.setStyle("-fx-background-color: white;");
         filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas, itemNormales);
     }
 

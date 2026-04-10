@@ -1,0 +1,380 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   app.css  —  Hoja de estilos global de la aplicación
+   Secciones:
+     1. Layout global
+     2. Navbar
+     3. Botones
+     4. Inputs
+     5. Tabla
+     6. Sidebar (Stock / Reparaciones)
+     7. ComboBox
+     8. DatePicker
+     9. MenuButton
+    10. ContextMenu / Popups
+    11. Específicos de vistas
+   ════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ── 1. Layout global ───────────────────────────────────────────────────────── */
+
+.vista-container {
+    -fx-background-color: #DDE1E7;
+}
+
+.vista-titulo {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3B54;
+}
+
+
+/* ── 2. Navbar ──────────────────────────────────────────────────────────────── */
+
+.navbar {
+    -fx-background-color: #001232;
+    -fx-border-color: transparent;
+    -fx-min-height: 64px;
+    -fx-max-height: 64px;
+}
+
+.navbar-logo {
+    -fx-font-size: 20px;
+    -fx-text-fill: #F6F6F6;
+}
+
+.navbar-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #F6F6F6;
+}
+
+.navbar-user {
+    -fx-font-size: 12px;
+    -fx-text-fill: #F6F6F6;
+}
+
+.navbar-change-user {
+    -fx-font-size: 12px;
+    -fx-text-fill: #586376;
+    -fx-cursor: hand;
+}
+
+.nav-btn {
+    -fx-background-color: #2C3B54;
+    -fx-text-fill: #F6F6F6;
+    -fx-background-radius: 20;
+    -fx-padding: 6 16 6 16;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+}
+
+.nav-btn-active {
+    -fx-background-color: #F1E356;
+    -fx-text-fill: #001232;
+    -fx-background-radius: 20;
+    -fx-padding: 6 16 6 16;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+}
+
+
+/* ── 3. Botones ─────────────────────────────────────────────────────────────── */
+
+.btn-primary {
+    -fx-background-color: #001232;
+    -fx-text-fill: #FFFFFF;
+    -fx-background-radius: 24;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #0A2040;
+}
+
+.btn-secondary {
+    -fx-background-color: #F6F6F6;
+    -fx-text-fill: #001232;
+    -fx-border-color: #001232;
+    -fx-border-radius: 24;
+    -fx-background-radius: 24;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #E8EAF0;
+}
+
+
+/* ── 4. Inputs ──────────────────────────────────────────────────────────────── */
+
+.buscador {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #586376;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 10;
+    -fx-font-size: 12px;
+    -fx-text-fill: #2C3B54;
+}
+
+.form-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #586376;
+    -fx-font-weight: bold;
+}
+
+.paginacion-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #586376;
+}
+
+
+/* ── 5. Tabla ───────────────────────────────────────────────────────────────── */
+
+.tabla-reparaciones {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C2C8D0;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.tabla-reparaciones .column-header {
+    -fx-background-color: #F6F6F6;
+    -fx-border-color: transparent transparent #586376 transparent;
+    -fx-border-width: 0 0 0.2 0;
+}
+
+.tabla-reparaciones .column-header-background {
+    -fx-background-color: #F6F6F6;
+}
+
+.tabla-reparaciones .column-header .label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #586376;
+}
+
+.tabla-reparaciones .table-row-cell {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: transparent transparent #586376 transparent;
+    -fx-border-width: 0 0 0.2 0;
+    -fx-cell-size: 35px;
+}
+
+.tabla-reparaciones .table-row-cell:selected .text {
+    -fx-fill: #F6F6F6;
+}
+
+
+/* ── 6. Sidebar ─────────────────────────────────────────────────────────────── */
+
+.stock-sidebar {
+    -fx-background-color: #2C3B54;
+    -fx-min-width: 160px;
+    -fx-max-width: 160px;
+    -fx-pref-width: 160px;
+}
+
+.stock-sidebar-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #C8CFDA;
+    -fx-font-size: 13px;
+    -fx-padding: 14 20 14 20;
+    -fx-alignment: CENTER_LEFT;
+    -fx-cursor: hand;
+    -fx-max-width: Infinity;
+    -fx-border-color: transparent transparent rgba(255,255,255,0.08) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.stock-sidebar-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.07);
+    -fx-text-fill: #F6F6F6;
+}
+
+.stock-sidebar-btn-active {
+    -fx-background-color: rgba(241,227,86,0.10);
+    -fx-text-fill: #F1E356;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 14 20 14 17;
+    -fx-alignment: CENTER_LEFT;
+    -fx-cursor: hand;
+    -fx-max-width: Infinity;
+    -fx-border-color: transparent transparent rgba(255,255,255,0.08) #F1E356;
+    -fx-border-width: 0 0 1 3;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+
+/* ── 7. ComboBox ────────────────────────────────────────────────────────────── */
+
+.combo-box-base {
+    -fx-background-color: #001232;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-border-radius: 24;
+    -fx-background-radius: 24;
+    -fx-cursor: hand;
+}
+
+.combo-box-base .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FAFAFA;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 4 12;
+}
+
+.combo-box-base .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 24;
+    -fx-padding: 4 12 4 4;
+}
+
+.combo-box-base .arrow {
+    -fx-background-color: #F5F5F5;
+}
+
+.combo-box-base:hover {
+    -fx-background-color: #0A2040;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C2C8D0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 8, 0, 0, 2);
+}
+
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #001232;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 12 6 12;
+}
+
+.combo-box-popup .list-view .list-cell:filled:hover,
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: #001232;
+    -fx-background-radius: 8;
+    -fx-background-insets: 2 6 2 6;
+    -fx-text-fill: #FFFFFF;
+}
+
+
+/* ── 8. DatePicker ──────────────────────────────────────────────────────────── */
+
+.date-picker .text-field {
+    -fx-background-radius: 24 0 0 24;
+    -fx-border-color: transparent;
+}
+
+.date-picker .arrow-button {
+    -fx-background-radius: 0 24 24 0;
+}
+
+
+/* ── 9. MenuButton ──────────────────────────────────────────────────────────── */
+
+.menu-button {
+    -fx-background-color: #001232;
+    -fx-border-color: transparent;
+    -fx-border-radius: 24;
+    -fx-background-radius: 24;
+    -fx-cursor: hand;
+}
+
+.menu-button .label {
+    -fx-text-fill: #FAFAFA;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.menu-button .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 24;
+}
+
+.menu-button .arrow {
+    -fx-background-color: #F5F5F5;
+}
+
+.menu-button:hover {
+    -fx-background-color: #0A2040;
+}
+
+
+/* ── 10. ContextMenu / Popups ───────────────────────────────────────────────── */
+
+.context-menu {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C2C8D0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 8, 0, 0, 2);
+    -fx-padding: 4 0 4 0;
+}
+
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-padding: 6 12 6 12;
+}
+
+.menu-item .label {
+    -fx-text-fill: #001232;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.menu-item:focused,
+.menu-item:hover {
+    -fx-background-color: #001232;
+    -fx-background-radius: 8;
+    -fx-background-insets: 2 6 2 6;
+}
+
+.menu-item:focused .label,
+.menu-item:hover .label {
+    -fx-text-fill: #FFFFFF;
+}
+
+.custom-menu-item:focused,
+.custom-menu-item:hover {
+    -fx-background-color: #001232;
+    -fx-background-radius: 8;
+    -fx-background-insets: 2 6 2 6;
+}
+
+.custom-menu-item:focused .check-box .label,
+.custom-menu-item:hover .check-box .label {
+    -fx-text-fill: #FFFFFF;
+}
+
+.custom-menu-item:focused .check-box .box,
+.custom-menu-item:hover .check-box .box {
+    -fx-border-color: #FFFFFF;
+    -fx-background-color: transparent;
+}
+
+
+/* ── 11. Específicos de vistas ──────────────────────────────────────────────── */
+
+/* FormularioCompra — celda editable seleccionada */
+/* (estilos inline en FormularioCompraController via ESTILO_EDITABLE) */

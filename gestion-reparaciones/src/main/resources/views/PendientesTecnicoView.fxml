@@ -8,11 +8,10 @@
       xmlns="http://javafx.com/javafx/25"
       fx:controller="com.reparaciones.controllers.PendientesTecnicoController"
       spacing="12" VBox.vgrow="ALWAYS"
-      stylesheets="@../styles/reparacion.css">
+      stylesheets="@../styles/app.css">
 
-    <Label text="Mis asignaciones pendientes" styleClass="vista-titulo"/>
-
-    <HBox spacing="8" alignment="CENTER_LEFT">
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label text="Mis asignaciones pendientes" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
         <MenuButton fx:id="filtroSolicitud" text="Tipo" prefWidth="130"/>
         <Button onAction="#limpiarFiltros" text="Limpiar filtros" styleClass="btn-secondary"/>
     </HBox>
