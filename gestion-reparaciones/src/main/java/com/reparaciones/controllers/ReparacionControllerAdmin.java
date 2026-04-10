@@ -29,7 +29,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 
-public class ReparacionControllerAdmin {
+public class ReparacionControllerAdmin implements com.reparaciones.utils.Recargable {
 
     @FXML
     private TableView<ReparacionResumen> tablaReparaciones;
@@ -52,6 +52,7 @@ public class ReparacionControllerAdmin {
     @FXML
     private TableColumn<ReparacionResumen, String> colIdAnterior;
     @FXML private TextField  filtroImei;
+    @FXML private Label      lblUltimaActualizacion;
     @FXML private MenuButton filtroTecnico;
     @FXML private DatePicker filtroFechaDesde;
     @FXML private DatePicker filtroFechaHasta;
@@ -79,6 +80,13 @@ public class ReparacionControllerAdmin {
     private final List<CheckBox> checksTecnico = new java.util.ArrayList<>();
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
+    private final java.util.concurrent.ScheduledExecutorService poller =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "poller-reparaciones-admin");
+                t.setDaemon(true);
+                return t;
+            });
+
     @FXML
     public void initialize() {
         tablaReparaciones.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -90,9 +98,23 @@ public class ReparacionControllerAdmin {
         // Callbacks para el panel de mis pendientes embebido
         misPendientesController.setOnCerrar(this::cargarDatos);
         misPendientesController.setOnVolverAHistorial(() -> mostrarPanel(pnlHistorial, btnTabHistorial));
+
+        poller.scheduleAtFixedRate(
+                () -> javafx.application.Platform.runLater(this::recargar),
+                60, 60, java.util.concurrent.TimeUnit.SECONDS);
     }
 
+    @Override
+    public void detenerPolling() { poller.shutdownNow(); }
+
     // ─── Sidebar ─────────────────────────────────────────────────────────────
+
+    @Override
+    public void recargar() {
+        if (pnlPendientes.isVisible())        pendientesAdminController.cargar();
+        else if (pnlMisPendientes.isVisible()) misPendientesController.cargar();
+        else                                   cargarDatos();
+    }
 
     @FXML private void mostrarHistorial() {
         mostrarPanel(pnlHistorial, btnTabHistorial);
@@ -440,6 +462,8 @@ public class ReparacionControllerAdmin {
                 tablaReparaciones.setItems(datosFiltrados);
             }
             aplicarFiltros();
+            lblUltimaActualizacion.setText("Actualizado " +
+                    java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
         } catch (SQLException e) {
             e.printStackTrace();
         }

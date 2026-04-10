@@ -72,6 +72,9 @@
                             <TableColumn fx:id="colIdAnterior" minWidth="150" text="Id Rep. Anterior"/>
                         </columns>
                     </TableView>
+                    <Label fx:id="lblUltimaActualizacion"
+                           style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+                           alignment="CENTER_RIGHT" maxWidth="Infinity"/>
                 </VBox>
 
                 <!-- Panel: Pendientes admin -->

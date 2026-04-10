@@ -24,13 +24,15 @@ public class ReparacionResumen {
     private int           idTec;
     private int           esSolicitud;
     private String        descripcionSolicitud;
+    private LocalDateTime updatedAt;
 
     public ReparacionResumen(String idRep, String imei, String nombreTecnico,
                              LocalDateTime fechaAsig, LocalDateTime fechaFin,
                              String tipoComponente, String observaciones,
                              boolean esIncidencia, boolean esResuelto,
                              String incidencia, String idRepAnterior, int idTec,
-                             int esSolicitud, String descripcionSolicitud) {
+                             int esSolicitud, String descripcionSolicitud,
+                             LocalDateTime updatedAt) {
         this.idRep                = idRep;
         this.imei                 = imei;
         this.nombreTecnico        = nombreTecnico;
@@ -45,6 +47,7 @@ public class ReparacionResumen {
         this.idTec                = idTec;
         this.esSolicitud          = esSolicitud;
         this.descripcionSolicitud = descripcionSolicitud;
+        this.updatedAt            = updatedAt;
     }
 
     public String        getIdRep()           { return idRep; }
@@ -72,4 +75,5 @@ public class ReparacionResumen {
     public void setDescripcionSolicitud(String descripcionSolicitud){ this.descripcionSolicitud = descripcionSolicitud; }
     public void setIdTec(int idTec)                                { this.idTec = idTec; }
     public void setNombreTecnico(String nombreTecnico)             { this.nombreTecnico = nombreTecnico; }
+    public LocalDateTime getUpdatedAt()                            { return updatedAt; }
 }

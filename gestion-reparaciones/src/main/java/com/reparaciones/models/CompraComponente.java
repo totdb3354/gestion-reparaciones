@@ -21,6 +21,7 @@ public class CompraComponente {
     private double        precioEur;
     private Estado        estado;
     private String        observacionLlegada; // nullable
+    private LocalDateTime updatedAt;
 
     public CompraComponente(int idCompra, int idCom, String tipoComponente,
                              int idProv, String nombreProveedor,
@@ -28,7 +29,8 @@ public class CompraComponente {
                              boolean esUrgente, LocalDateTime fechaPedido,
                              LocalDateTime fechaLlegada,
                              double precioUnidadPedido, String divisa, double precioEur,
-                             Estado estado, String observacionLlegada) {
+                             Estado estado, String observacionLlegada,
+                             LocalDateTime updatedAt) {
         this.idCompra            = idCompra;
         this.idCom               = idCom;
         this.tipoComponente      = tipoComponente;
@@ -44,6 +46,7 @@ public class CompraComponente {
         this.precioEur           = precioEur;
         this.estado              = estado;
         this.observacionLlegada  = observacionLlegada;
+        this.updatedAt           = updatedAt;
     }
 
     // ── Getters y setters ─────────────────────────────────────────────────────
@@ -75,6 +78,7 @@ public class CompraComponente {
     public void setObservacionLlegada(String obs)              { this.observacionLlegada = obs; }
     public void setIdProv(int idProv)                          { this.idProv = idProv; }
     public void setNombreProveedor(String nombre)              { this.nombreProveedor = nombre; }
+    public LocalDateTime getUpdatedAt()                        { return updatedAt; }
 
     // ── Calculados ────────────────────────────────────────────────────────────
 

@@ -25,7 +25,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 
-public class ReparacionControllerTecnico {
+public class ReparacionControllerTecnico implements com.reparaciones.utils.Recargable {
 
     @FXML
     private TableView<ReparacionResumen> tablaReparaciones;
@@ -57,6 +57,7 @@ public class ReparacionControllerTecnico {
     @FXML private Button btnTabMisPendientes;
     @FXML private VBox   pnlHistorial;
     @FXML private VBox   pnlMisPendientes;
+    @FXML private Label  lblUltimaActualizacion;
     @FXML private PendientesTecnicoController misPendientesController;
     private CheckBox cbIncidenciasAbiertas;
     private CheckBox cbIncidenciasCerradas;
@@ -66,6 +67,13 @@ public class ReparacionControllerTecnico {
     private final ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
     private FilteredList<ReparacionResumen> datosFiltrados;
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+
+    private final java.util.concurrent.ScheduledExecutorService poller =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "poller-reparaciones-tecnico");
+                t.setDaemon(true);
+                return t;
+            });
 
     @FXML
     public void initialize() {
@@ -79,9 +87,22 @@ public class ReparacionControllerTecnico {
 
         misPendientesController.setOnCerrar(this::cargarDatos);
         misPendientesController.setOnVolverAHistorial(() -> mostrarPanel(pnlHistorial, btnTabHistorial));
+
+        poller.scheduleAtFixedRate(
+                () -> javafx.application.Platform.runLater(this::recargar),
+                60, 60, java.util.concurrent.TimeUnit.SECONDS);
     }
 
+    @Override
+    public void detenerPolling() { poller.shutdownNow(); }
+
     // ─── Sidebar ─────────────────────────────────────────────────────────────
+
+    @Override
+    public void recargar() {
+        if (pnlMisPendientes.isVisible()) misPendientesController.cargar();
+        else                              cargarDatos();
+    }
 
     @FXML private void mostrarHistorial() {
         mostrarPanel(pnlHistorial, btnTabHistorial);
@@ -369,6 +390,9 @@ public class ReparacionControllerTecnico {
             if (idTec == null) return;
             datos.setAll(reparacionDAO.getReparacionesPorTecnico(idTec));
             aplicarFiltros();
+            String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            if (lblUltimaActualizacion != null)
+                lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
             e.printStackTrace();
         }

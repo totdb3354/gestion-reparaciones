@@ -9,14 +9,16 @@ public class Componente {
     private LocalDateTime fechaRegistro;
     private int stock;
     private int stockMinimo;
+    private LocalDateTime updatedAt;
 
     public Componente(int idCom, String tipo, LocalDateTime fechaRegistro,
-                      int stock, int stockMinimo) {
+                      int stock, int stockMinimo, LocalDateTime updatedAt) {
         this.idCom = idCom;
         this.tipo = tipo;
         this.fechaRegistro = fechaRegistro;
         this.stock = stock;
         this.stockMinimo = stockMinimo;
+        this.updatedAt = updatedAt;
     }
 
     public int getIdCom() { return idCom; }
@@ -26,6 +28,7 @@ public class Componente {
     public void setStock(int stock) { this.stock = stock; }
     public int getStockMinimo() { return stockMinimo; }
     public void setStockMinimo(int stockMinimo) { this.stockMinimo = stockMinimo; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public String toString() { return tipo; }

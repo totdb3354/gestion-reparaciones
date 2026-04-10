@@ -160,7 +160,7 @@ public class PendientesAdminController {
                                     if (rep.isEsIncidencia())
                                         reparacionDAO.borrarIncidenciaPorImei(rep.getImei());
                                     reparacionDAO.eliminarAsignacion(rep.getIdRep());
-                                    datos.remove(rep);
+                                    cargar();
                                 } catch (SQLException ex) { ex.printStackTrace(); }
                             });
                 });
@@ -444,19 +444,46 @@ public class PendientesAdminController {
 
     @FXML
     private void confirmarCambiosTecnico() {
-        cambiosPendientes.forEach((idRep, tecnico) -> {
+        List<String> conflictos = new ArrayList<>();
+        for (Map.Entry<String, Tecnico> entry : new java.util.ArrayList<>(cambiosPendientes.entrySet())) {
+            String  idRep   = entry.getKey();
+            Tecnico tecnico = entry.getValue();
+            ReparacionResumen rep = datos.stream()
+                    .filter(r -> r.getIdRep().equals(idRep)).findFirst().orElse(null);
+            if (rep == null) continue;
             try {
-                reparacionDAO.actualizarTecnico(idRep, tecnico.getIdTec());
-                datos.stream().filter(r -> r.getIdRep().equals(idRep)).findFirst()
-                        .ifPresent(r -> {
-                            r.setIdTec(tecnico.getIdTec());
-                            r.setNombreTecnico(tecnico.getNombre());
-                        });
+                reparacionDAO.actualizarTecnico(idRep, tecnico.getIdTec(), rep.getUpdatedAt());
+                rep.setIdTec(tecnico.getIdTec());
+                rep.setNombreTecnico(tecnico.getNombre());
+                cambiosPendientes.remove(idRep);
+            } catch (com.reparaciones.utils.StaleDataException e) {
+                conflictos.add(mensajeConflicto(idRep, tecnico));
             } catch (SQLException e) { e.printStackTrace(); }
-        });
-        cambiosPendientes.clear();
+        }
+        if (!conflictos.isEmpty()) {
+            String detalle = String.join("\n", conflictos);
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.WARNING,
+                    "Los siguientes cambios no se pudieron guardar:\n\n" + detalle +
+                    "\n\nLos datos se han recargado.")
+                    .showAndWait();
+            cargar();
+        }
         actualizarVisibilidadConfirmar();
         tablaPendientes.refresh();
+    }
+
+    private String mensajeConflicto(String idRep, Tecnico tecnicoIntentado) {
+        try {
+            java.util.Optional<ReparacionResumen> actual = reparacionDAO.getAsignacionById(idRep);
+            if (actual.isEmpty())
+                return "• " + idRep + ": ya no está pendiente (fue completada por otro usuario).";
+            ReparacionResumen rep = actual.get();
+            if (rep.getIdTec() != tecnicoIntentado.getIdTec())
+                return "• " + idRep + ": fue reasignada a " + rep.getNombreTecnico() + " por otro usuario.";
+            return "• " + idRep + ": fue modificada por otro usuario.";
+        } catch (SQLException e) {
+            return "• " + idRep + ": fue modificada por otro usuario.";
+        }
     }
 
 }

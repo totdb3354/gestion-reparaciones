@@ -39,6 +39,7 @@ public class MainController {
     @FXML private Label     lblAlertaStock;
 
     private List<Componente> alertasCriticas = List.of();
+    private com.reparaciones.utils.Recargable controladorActivo;
 
     @FXML
     public void initialize() {
@@ -47,6 +48,17 @@ public class MainController {
         if (Sesion.esAdmin()) {
             verificarStockAlertas();
         }
+        // Recargar al recuperar el foco de la ventana principal
+        contenedor.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) return;
+            newScene.windowProperty().addListener((obs2, oldWin, win) -> {
+                if (win == null) return;
+                win.focusedProperty().addListener((obs3, wasFocused, isFocused) -> {
+                    if (isFocused && controladorActivo != null)
+                        controladorActivo.recargar();
+                });
+            });
+        });
     }
 
     private void verificarStockAlertas() {
@@ -172,6 +184,7 @@ public class MainController {
     @FXML
     private void cerrarSesion() {
         try {
+            if (controladorActivo != null) controladorActivo.detenerPolling();
             Sesion.cerrar();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/LoginView.fxml"));
             Parent root = loader.load();
@@ -196,8 +209,12 @@ public class MainController {
         btnStock.setDisable(true);
 
         try {
+            if (controladorActivo != null) controladorActivo.detenerPolling();
             FXMLLoader loader = new FXMLLoader(getClass().getResource(ruta));
             Node vista = loader.load();
+            Object ctrl = loader.getController();
+            if (ctrl instanceof com.reparaciones.utils.Recargable)
+                controladorActivo = (com.reparaciones.utils.Recargable) ctrl;
             contenedor.getChildren().setAll(vista);
             setActivo(activo, inactivo);
         } catch (IOException e) {

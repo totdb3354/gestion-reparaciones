@@ -35,7 +35,8 @@
                                styleClass="buscador" prefWidth="220"/>
                 </HBox>
                 <HBox spacing="16" VBox.vgrow="ALWAYS">
-                    <TableView fx:id="tablaStock" styleClass="tabla-reparaciones" HBox.hgrow="ALWAYS">
+                    <VBox HBox.hgrow="ALWAYS" spacing="0">
+                    <TableView fx:id="tablaStock" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                         <columns>
                             <TableColumn fx:id="colTipo"     text="Componente" prefWidth="280"/>
                             <TableColumn fx:id="colStockVal" text="Stock"      prefWidth="80"/>
@@ -44,6 +45,10 @@
                         </columns>
                         <placeholder><Label text="Sin componentes"/></placeholder>
                     </TableView>
+                    <Label fx:id="lblUltimaActStock"
+                           style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+                           alignment="CENTER_RIGHT" maxWidth="Infinity"/>
+                    </VBox>
                     <VBox fx:id="pnlChart" spacing="0" prefWidth="240" minWidth="240"
                           style="-fx-background-color:white; -fx-background-radius:6;
                                  -fx-border-color:#C2C8D0; -fx-border-radius:6; -fx-padding:16;">
@@ -99,6 +104,9 @@
                     </columns>
                     <placeholder><Label text="Sin pedidos"/></placeholder>
                 </TableView>
+                <Label fx:id="lblUltimaActPedidos"
+                       style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+                       alignment="CENTER_RIGHT" maxWidth="Infinity"/>
                 <HBox spacing="8">
                     <Button fx:id="btnConfirmarRecibido" text="Confirmar recibido" styleClass="btn-primary"
                             onAction="#confirmarRecibido" disable="true"/>
@@ -126,6 +134,9 @@
                     </columns>
                     <placeholder><Label text="Sin proveedores"/></placeholder>
                 </TableView>
+                <Label fx:id="lblUltimaActProveedores"
+                       style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+                       alignment="CENTER_RIGHT" maxWidth="Infinity"/>
                 <HBox spacing="8">
                     <Button fx:id="btnActivarProveedor" text="Activar / Desactivar" styleClass="btn-secondary"
                             onAction="#activarProveedor" disable="true"/>
