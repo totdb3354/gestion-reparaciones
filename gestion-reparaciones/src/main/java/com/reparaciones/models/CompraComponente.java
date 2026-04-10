@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class CompraComponente {
 
-    public enum Estado { pendiente, recibido, alterado, devuelto, cancelado }
+    public enum Estado { pendiente, recibido, alterado, parcial, devuelto, cancelado }
 
     private int           idCompra;
     private int           idCom;

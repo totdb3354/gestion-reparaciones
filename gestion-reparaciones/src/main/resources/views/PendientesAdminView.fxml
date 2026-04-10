@@ -29,6 +29,10 @@
         <placeholder><Label text="No hay asignaciones pendientes"/></placeholder>
     </TableView>
 
+    <Label fx:id="lblUltimaActualizacion"
+           style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+           alignment="CENTER_RIGHT" maxWidth="Infinity"/>
+
     <HBox spacing="8" alignment="CENTER_LEFT">
         <Button fx:id="btnAsignar"
                 text="Asignar reparación +"

@@ -45,6 +45,7 @@ public class PendientesAdminController {
     private FilteredList<ReparacionResumen> datosFiltrados;
 
     @FXML private Button btnConfirmarCambios;
+    @FXML private Label  lblUltimaActualizacion;
 
     private CheckBox cbSoloSolicitudes;
     private CheckBox cbSoloIncidencias;
@@ -287,6 +288,8 @@ public class PendientesAdminController {
     public void cargar() {
         try {
             datos.setAll(reparacionDAO.getAsignaciones());
+            String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            if (lblUltimaActualizacion != null) lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
             e.printStackTrace();
         }

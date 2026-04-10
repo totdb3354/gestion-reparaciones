@@ -108,16 +108,20 @@
                        style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
                        alignment="CENTER_RIGHT" maxWidth="Infinity"/>
                 <HBox spacing="8">
-                    <Button fx:id="btnConfirmarRecibido" text="Confirmar recibido" styleClass="btn-primary"
-                            onAction="#confirmarRecibido" disable="true"/>
-                    <Button fx:id="btnConfirmarAlterado" text="Cantidad alterada"  styleClass="btn-secondary"
-                            onAction="#confirmarAlterado" disable="true"/>
-                    <Button fx:id="btnEditarPedido"      text="Editar"             styleClass="btn-secondary"
-                            onAction="#editarPedido"      disable="true"/>
-                    <Button fx:id="btnCancelarPedido"    text="Cancelar pedido"    styleClass="btn-secondary"
-                            onAction="#cancelarPedido"    disable="true"/>
-                    <Button fx:id="btnDevolverPedido"    text="Devolver"           styleClass="btn-secondary"
-                            onAction="#devolverPedido"    disable="true"/>
+                    <Button fx:id="btnConfirmarRecibido" text="Confirmar recibido"  styleClass="btn-primary"
+                            onAction="#confirmarRecibido"  disable="true"/>
+                    <Button fx:id="btnConfirmarParcial"  text="Recepción parcial"   styleClass="btn-secondary"
+                            onAction="#confirmarParcial"   disable="true"/>
+                    <Button fx:id="btnRecibirResto"      text="Recibir resto"       styleClass="btn-primary"
+                            onAction="#recibirResto"       disable="true"/>
+                    <Button fx:id="btnConfirmarAlterado" text="Cerrar sin resto"    styleClass="btn-secondary"
+                            onAction="#confirmarAlterado"  disable="true"/>
+                    <Button fx:id="btnEditarPedido"      text="Editar"              styleClass="btn-secondary"
+                            onAction="#editarPedido"       disable="true"/>
+                    <Button fx:id="btnCancelarPedido"    text="Cancelar pedido"     styleClass="btn-secondary"
+                            onAction="#cancelarPedido"     disable="true"/>
+                    <Button fx:id="btnDevolverPedido"    text="Devolver"            styleClass="btn-secondary"
+                            onAction="#devolverPedido"     disable="true"/>
                 </HBox>
             </VBox>
 

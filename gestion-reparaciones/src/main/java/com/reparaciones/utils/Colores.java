@@ -32,8 +32,13 @@ public final class Colores {
     public static final String FILA_RECIBIDO_BG  = "#C8E6C9";
     public static final String FILA_RECIBIDO_BRD = "#3a7d44";
 
-    /** Fila pedido alterado — ámbar más oscuro que urgente */
-    public static final String FILA_ALTERADO_BG  = "#F5DEB0";
+    /** Fila pedido alterado — naranja salmón, distinto del ámbar de solicitudes */
+    public static final String FILA_ALTERADO_BG  = "#FAD9C1";
+    public static final String FILA_ALTERADO_BRD = "#C0622A";
+
+    /** Fila pedido parcial — lila claro */
+    public static final String FILA_PARCIAL_BG  = "#E8E0F7";
+    public static final String FILA_PARCIAL_BRD = "#7B5EA7";
 
     /** Fila pedido cancelado/devuelto — gris neutro */
     public static final String FILA_CANCELADO_BG  = "#E0E0E0";

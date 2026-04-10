@@ -20,6 +20,7 @@ public class PendientesTecnicoController {
     @FXML private TableColumn<ReparacionResumen, String> cFecha;
     @FXML private TableColumn<ReparacionResumen, Void>   cAccion;
     @FXML private MenuButton filtroSolicitud;
+    @FXML private Label      lblUltimaActualizacion;
 
     private final ReparacionDAO reparacionDAO = new ReparacionDAO();
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
@@ -164,6 +165,8 @@ public class PendientesTecnicoController {
             Integer idTec = Sesion.getIdTec();
             if (idTec == null) return;
             datos.setAll(reparacionDAO.getAsignacionesPorTecnico(idTec));
+            String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            if (lblUltimaActualizacion != null) lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
             e.printStackTrace();
         }
