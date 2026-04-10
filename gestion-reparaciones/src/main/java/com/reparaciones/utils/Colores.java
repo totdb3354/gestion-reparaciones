@@ -48,9 +48,9 @@ public final class Colores {
     public static final String FILA_INCIDENCIA_BG  = "#E8C8CE";
     public static final String FILA_INCIDENCIA_BRD = "#B83746";
 
-    /** Fila con solicitud de pieza pendiente — fondo ámbar, borde inferior naranja oscuro */
-    public static final String FILA_SOLICITUD_BG   = "#EDD5A0";
-    public static final String FILA_SOLICITUD_BRD  = "#C07800";
+    /** Fila con solicitud de pieza pendiente — fondo rojizo desaturado, borde carmesí */
+    public static final String FILA_SOLICITUD_BG   = "#F2CACA";
+    public static final String FILA_SOLICITUD_BRD  = "#C0392B";
 
     /** Fila con cambio pendiente de confirmar — fondo cyan claro, borde teal */
     public static final String FILA_MODIFICADA_BG  = "#E0F7FA";
