@@ -48,6 +48,8 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
     @FXML
     private TableColumn<ReparacionResumen, String> colObservaciones;
     @FXML
+    private TableColumn<ReparacionResumen, Void> colEstado;
+    @FXML
     private TableColumn<ReparacionResumen, Void> colIncidencia;
     @FXML
     private TableColumn<ReparacionResumen, String> colIdAnterior;
@@ -276,6 +278,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         });
 
         configurarColAcciones();
+        configurarColEstado();
         configurarColIncidencia();
     }
 
@@ -320,8 +323,44 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         });
     }
 
+    private void configurarColEstado() {
+        colEstado.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
+            {
+                badge.setStyle(
+                    "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                    "-fx-font-size: 11px; -fx-font-weight: bold;");
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); return; }
+                ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                              "-fx-font-size: 11px; -fx-font-weight: bold;";
+                if (rep.isEsIncidencia() && !rep.isEsResuelto()) {
+                    badge.setText("Incidencia");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (rep.isEsIncidencia()) {
+                    badge.setText("Resuelta");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";");
+                } else {
+                    badge.setText("Normal");
+                    badge.setStyle(base +
+                        "-fx-background-color: #E8EAF0;" +
+                        "-fx-text-fill: #586376;");
+                }
+                setGraphic(badge);
+            }
+        });
+    }
+
     private void configurarColIncidencia() {
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        Image imgBorrar  = new Image(getClass().getResourceAsStream("/images/borrar.png"));
         Image imgAniadir = new Image(getClass().getResourceAsStream("/images/añadir_incidencia.png"));
 
         colIncidencia.setCellFactory(col -> new TableCell<>() {
@@ -373,7 +412,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                     lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
                             e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
                     if (rep.isEsResuelto()) {
-                        casoDos.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.GRIS_DISABLED + ";");
+                        casoDos.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";");
                         btnBorrarIncidencia.setVisible(false);
                         btnBorrarIncidencia.setManaged(false);
                     } else {
@@ -394,19 +433,14 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
     private void configurarFilas() {
         tablaReparaciones.setRowFactory(tv -> new TableRow<>() {
             {
-                // Menú contextual — copiar celda seleccionada
                 ContextMenu menu = new ContextMenu();
-                MenuItem copiar = new MenuItem("📋  Copiar celda");// podemos meter un png para q sea mas bonito despues
+                MenuItem copiar = new MenuItem("📋  Copiar celda");
                 copiar.setOnAction(e -> {
-                    if (getItem() == null)
-                        return;
+                    if (getItem() == null) return;
                     var seleccion = tablaReparaciones.getSelectionModel().getSelectedCells();
-                    if (seleccion.isEmpty())
-                        return;
-                    var pos = seleccion.get(0);
-                    String texto = textoDeCelda(getItem(), pos.getTableColumn());
-                    if (texto == null || texto.isEmpty())
-                        return;
+                    if (seleccion.isEmpty()) return;
+                    String texto = textoDeCelda(getItem(), seleccion.get(0).getTableColumn());
+                    if (texto == null || texto.isEmpty()) return;
                     javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
                     content.putString(texto);
                     javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
@@ -421,13 +455,15 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                            "-fx-border-width: 0 0 0.2 4;");
                 } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
-                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (item.isEsIncidencia()) {
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
                 } else {
-                    setStyle("");
+                    setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
                 }
             }
 

@@ -15,23 +15,23 @@
             </padding>
 
             <!-- Logo + Título -->
-            <ImageView fitHeight="30" fitWidth="30" preserveRatio="true">
+            <ImageView fitHeight="38" preserveRatio="true">
                 <image>
-                    <Image url="@/images/logo.png"/>
+                    <Image url="@/images/logoNavBar.png"/>
                 </image>
             </ImageView>
-            <Label text="FSGSGestión de Stock v0.1" styleClass="navbar-title"/>
-
-            <!-- Espaciador -->
-            <HBox HBox.hgrow="ALWAYS"/>
+            <Label text="FSGR:" styleClass="navbar-title" style="-fx-font-weight: bold;"/>
+            <Label text="Gestión de Stock y Reparaciones V.1" styleClass="navbar-title"/>
 
             <!-- Botones de navegación -->
-            <Button fx:id="btnReparaciones" text="Reparaciones"
-                    styleClass="nav-btn"
-                    onAction="#mostrarReparaciones"/>
-            <Button fx:id="btnStock" text="Stock"
-                    styleClass="nav-btn"
-                    onAction="#mostrarStock"/>
+            <HBox styleClass="nav-switch" spacing="2" alignment="CENTER">
+                <Button fx:id="btnReparaciones" text="Reparaciones"
+                        styleClass="nav-btn"
+                        onAction="#mostrarReparaciones"/>
+                <Button fx:id="btnStock" text="Stock"
+                        styleClass="nav-btn"
+                        onAction="#mostrarStock"/>
+            </HBox>
             <Label fx:id="lblAlertaStock" text="⚠" visible="false" managed="false"
                    style="-fx-text-fill: #F1E356; -fx-font-size: 16px; -fx-cursor: hand;"/>
 

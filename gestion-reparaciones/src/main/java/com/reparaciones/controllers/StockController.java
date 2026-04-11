@@ -179,15 +179,19 @@ public class StockController implements com.reparaciones.utils.Recargable {
         // Estado semáforo
         colEstado.setCellValueFactory(c -> sp(estadoComponente(c.getValue())));
         colEstado.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
             @Override protected void updateItem(String val, boolean empty) {
                 super.updateItem(val, empty);
-                if (empty || val == null) { setText(null); setStyle(""); return; }
-                setText(val);
-                setStyle(switch (val) {
-                    case "OK"   -> "-fx-text-fill:#3a7d44; -fx-font-weight:bold;";
-                    case "Bajo" -> "-fx-text-fill:#c77a00; -fx-font-weight:bold;";
-                    default     -> "-fx-text-fill:" + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + "; -fx-font-weight:bold;";
+                if (empty || val == null) { setGraphic(null); return; }
+                String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                              "-fx-font-size: 11px; -fx-font-weight: bold;";
+                badge.setText(val);
+                badge.setStyle(base + switch (val) {
+                    case "OK"   -> "-fx-background-color: #E8EAF0; -fx-text-fill: #586376;";
+                    case "Bajo" -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + "; -fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";";
+                    default     -> "-fx-background-color: #F9E0E3; -fx-text-fill: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";";
                 });
+                setGraphic(badge);
             }
         });
 
@@ -260,9 +264,13 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                            "-fx-border-width: 0 0 0.2 4;");
                 } else {
-                    setStyle("");
+                    setStyle(switch (estadoComponente(getItem())) {
+                        case "OK"   -> "-fx-border-width: 0 0 0 4; -fx-border-color: transparent;";
+                        case "Bajo" -> "-fx-border-width: 0 0 0 4; -fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";";
+                        default     -> "-fx-border-width: 0 0 0 4; -fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";";
+                    });
                 }
             }
             @Override protected void updateItem(Componente item, boolean empty) {
@@ -472,14 +480,14 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                            "-fx-border-width: 0 0 0.2 4;");
                     return;
                 }
                 String barraIzq = "-fx-border-width: 0 0 0 4; -fx-border-color: transparent transparent transparent ";
                 setStyle(switch (item.getEstado()) {
                     case pendiente -> item.isEsUrgente()
                             ? barraIzq + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";"
-                            : "";
+                            : "-fx-border-width: 0 0 0 4; -fx-border-color: transparent;";
                     case recibido  -> barraIzq + com.reparaciones.utils.Colores.FILA_RECIBIDO_BRD + ";";
                     case alterado  -> barraIzq + com.reparaciones.utils.Colores.FILA_ALTERADO_BRD + ";";
                     case parcial   -> barraIzq + com.reparaciones.utils.Colores.FILA_PARCIAL_BRD + ";";
@@ -765,13 +773,24 @@ public class StockController implements com.reparaciones.utils.Recargable {
         cpvNombre.setCellValueFactory(c -> sp(c.getValue().getNombre()));
         cpvActivo.setCellValueFactory(c -> sp(c.getValue().isActivo() ? "Activo" : "Inactivo"));
         cpvActivo.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
             @Override protected void updateItem(String val, boolean empty) {
                 super.updateItem(val, empty);
-                if (empty || val == null) { setText(null); setStyle(""); return; }
-                setText(val);
-                setStyle("Activo".equals(val)
-                        ? "-fx-text-fill:#3a7d44; -fx-font-weight:bold;"
-                        : "-fx-text-fill:#9e9e9e;");
+                if (empty || val == null) { setGraphic(null); return; }
+                String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                              "-fx-font-size: 11px; -fx-font-weight: bold;";
+                if ("Activo".equals(val)) {
+                    badge.setText("Activo");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";");
+                } else {
+                    badge.setText("Inactivo");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_CANCELADO_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_CANCELADO_TEXT + ";");
+                }
+                setGraphic(badge);
             }
         });
         tablaProveedores.setRowFactory(tv -> new TableRow<>() {
@@ -780,11 +799,16 @@ public class StockController implements com.reparaciones.utils.Recargable {
             }
             private void actualizarEstilo() {
                 if (isEmpty() || getItem() == null) { setStyle(""); return; }
-                setStyle(isSelected()
-                        ? "-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
-                          "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                          "-fx-border-width: 0 0 0.2 0;"
-                        : "");
+                if (isSelected()) {
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                             "-fx-border-width: 0 0 0.2 0;");
+                } else if (getItem().isActivo()) {
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                             "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
+                } else {
+                    setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
+                }
             }
             @Override protected void updateItem(Proveedor item, boolean empty) {
                 super.updateItem(item, empty);

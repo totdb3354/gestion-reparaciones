@@ -60,6 +60,7 @@
                             <TableColumn fx:id="colFecha" minWidth="110" text="Fecha fin"/>
                             <TableColumn fx:id="colComponente" minWidth="150" text="Componente"/>
                             <TableColumn fx:id="colObservaciones" minWidth="200" maxWidth="320" text="Observaciones"/>
+                            <TableColumn fx:id="colEstado" minWidth="110" prefWidth="120" maxWidth="150" text="Estado"/>
                             <TableColumn fx:id="colIncidencia" minWidth="200" maxWidth="360" text="Incidencia"/>
                             <TableColumn fx:id="colIdAnterior" minWidth="150" text="Id Rep. Anterior"/>
                         </columns>

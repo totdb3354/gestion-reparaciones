@@ -59,22 +59,35 @@
     -fx-cursor: hand;
 }
 
+.nav-switch {
+    -fx-background-color: #E8EAF0;
+    -fx-background-radius: 24;
+    -fx-padding: 3;
+    -fx-max-height: 30;
+}
+
 .nav-btn {
-    -fx-background-color: #2C3B54;
-    -fx-text-fill: #F6F6F6;
+    -fx-background-color: transparent;
+    -fx-text-fill: #2C3B54;
     -fx-background-radius: 20;
     -fx-padding: 6 16 6 16;
     -fx-font-size: 12px;
+    -fx-font-weight: bold;
     -fx-cursor: hand;
     -fx-border-width: 0;
 }
 
+.nav-btn:hover {
+    -fx-background-color: rgba(44,59,84,0.08);
+}
+
 .nav-btn-active {
-    -fx-background-color: #F1E356;
-    -fx-text-fill: #001232;
+    -fx-background-color: #001232;
+    -fx-text-fill: #FAFAFA;
     -fx-background-radius: 20;
     -fx-padding: 6 16 6 16;
     -fx-font-size: 12px;
+    -fx-font-weight: bold;
     -fx-cursor: hand;
     -fx-border-width: 0;
 }
@@ -178,44 +191,44 @@
 /* ── 6. Sidebar ─────────────────────────────────────────────────────────────── */
 
 .stock-sidebar {
-    -fx-background-color: #2C3B54;
+    -fx-background-color: #FFFFFF;
     -fx-min-width: 160px;
     -fx-max-width: 160px;
     -fx-pref-width: 160px;
+    -fx-padding: 4 8 4 8;
 }
 
 .stock-sidebar-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #C8CFDA;
+    -fx-text-fill: #2C3B54;
     -fx-font-size: 13px;
-    -fx-padding: 14 20 14 20;
+    -fx-font-weight: bold;
+    -fx-padding: 10 16 10 16;
     -fx-alignment: CENTER_LEFT;
     -fx-cursor: hand;
     -fx-max-width: Infinity;
-    -fx-border-color: transparent transparent rgba(255,255,255,0.08) transparent;
-    -fx-border-width: 0 0 1 0;
-    -fx-background-radius: 0;
-    -fx-border-radius: 0;
+    -fx-border-color: transparent;
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
 }
 
 .stock-sidebar-btn:hover {
-    -fx-background-color: rgba(255,255,255,0.07);
-    -fx-text-fill: #F6F6F6;
+    -fx-background-color: rgba(44,59,84,0.08);
+    -fx-text-fill: #2C3B54;
 }
 
 .stock-sidebar-btn-active {
-    -fx-background-color: rgba(241,227,86,0.10);
-    -fx-text-fill: #F1E356;
+    -fx-background-color: #001232;
+    -fx-text-fill: #FAFAFA;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-padding: 14 20 14 17;
+    -fx-padding: 10 16 10 16;
     -fx-alignment: CENTER_LEFT;
     -fx-cursor: hand;
     -fx-max-width: Infinity;
-    -fx-border-color: transparent transparent rgba(255,255,255,0.08) #F1E356;
-    -fx-border-width: 0 0 1 3;
-    -fx-background-radius: 0;
-    -fx-border-radius: 0;
+    -fx-border-color: transparent;
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
 }
 
 

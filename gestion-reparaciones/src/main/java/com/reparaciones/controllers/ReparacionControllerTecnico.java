@@ -44,6 +44,8 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
     @FXML
     private TableColumn<ReparacionResumen, String> colObservaciones;
     @FXML
+    private TableColumn<ReparacionResumen, Void> colEstado;
+    @FXML
     private TableColumn<ReparacionResumen, Void> colIncidencia;
     @FXML
     private TableColumn<ReparacionResumen, String> colIdAnterior;
@@ -258,6 +260,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         });
 
         configurarColAcciones();
+        configurarColEstado();
         configurarColIncidencia();
     }
 
@@ -267,6 +270,37 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(null);
+            }
+        });
+    }
+
+    private void configurarColEstado() {
+        colEstado.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); return; }
+                ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                              "-fx-font-size: 11px; -fx-font-weight: bold;";
+                if (rep.isEsIncidencia() && !rep.isEsResuelto()) {
+                    badge.setText("Incidencia");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (rep.isEsIncidencia()) {
+                    badge.setText("Resuelta");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";");
+                } else {
+                    badge.setText("Normal");
+                    badge.setStyle(base +
+                        "-fx-background-color: #E8EAF0;" +
+                        "-fx-text-fill: #586376;");
+                }
+                setGraphic(badge);
             }
         });
     }
@@ -303,7 +337,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
                             (!texto.isEmpty() ? " -fx-cursor: hand;" : ""));
                     lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
                             e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
-                    setStyle("-fx-background-color: #E7E7E7;");
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";");
                     setGraphic(lblComentario);
                 }
             }
@@ -337,15 +371,17 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             private void aplicarEstilo(ReparacionResumen item, boolean empty) {
                 if (empty || item == null) { setStyle(""); return; }
                 if (isSelected()) {
-                    setStyle("-fx-background-color: #2C3B54;" +
-                            "-fx-border-color: transparent transparent #3D5070 transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 4;");
                 } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
-                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (item.isEsIncidencia()) {
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
                 } else {
-                    setStyle("");
+                    setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
                 }
             }
 
