@@ -6,7 +6,7 @@
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.reparaciones.controllers.FormularioCompraEditarController"
       styleClass="vista-container"
-      stylesheets="@../styles/reparacion.css"
+      stylesheets="@../styles/app.css"
       spacing="20" prefWidth="520">
     <padding><Insets top="28" right="28" bottom="28" left="28"/></padding>
 

@@ -40,17 +40,18 @@ public final class Colores {
     public static final String FILA_PARCIAL_BG  = "#E8E0F7";
     public static final String FILA_PARCIAL_BRD = "#7B5EA7";
 
-    /** Fila pedido cancelado/devuelto — gris neutro */
+    /** Fila pedido cancelado/devuelto — gris deshabilitado */
     public static final String FILA_CANCELADO_BG  = "#E0E0E0";
     public static final String FILA_CANCELADO_BRD = "#9E9E9E";
+    public static final String FILA_CANCELADO_TEXT = "#9E9E9E";
 
     /** Fila con incidencia activa — fondo rosa saturado, borde inferior carmesí */
     public static final String FILA_INCIDENCIA_BG  = "#E8C8CE";
     public static final String FILA_INCIDENCIA_BRD = "#B83746";
 
-    /** Fila con solicitud de pieza pendiente — fondo rojizo desaturado, borde carmesí */
-    public static final String FILA_SOLICITUD_BG   = "#F2CACA";
-    public static final String FILA_SOLICITUD_BRD  = "#C0392B";
+    /** Fila con solicitud de pieza pendiente — fondo ámbar, borde naranja oscuro */
+    public static final String FILA_SOLICITUD_BG   = "#FDEBC8";
+    public static final String FILA_SOLICITUD_BRD  = "#C07800";
 
     /** Fila con cambio pendiente de confirmar — fondo cyan claro, borde teal */
     public static final String FILA_MODIFICADA_BG  = "#E0F7FA";

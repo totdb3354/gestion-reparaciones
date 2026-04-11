@@ -136,7 +136,7 @@ public class FormularioCompraController {
                     @Override protected void updateItem(Componente c, boolean empty) {
                         super.updateItem(c, empty);
                         setText(empty || c == null ? "" : c.toString());
-                        setStyle("-fx-text-fill: #2C3B54;");
+                        setStyle("-fx-text-fill: #FAFAFA;");
                     }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);

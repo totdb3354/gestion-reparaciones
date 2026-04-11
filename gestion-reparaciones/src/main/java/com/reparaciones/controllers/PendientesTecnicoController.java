@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 public class PendientesTecnicoController {
 
     @FXML private TableView<ReparacionResumen>           tablaPendientes;
+    @FXML private TableColumn<ReparacionResumen, Void>   cEstado;
     @FXML private TableColumn<ReparacionResumen, String> cId;
     @FXML private TableColumn<ReparacionResumen, String> cImei;
     @FXML private TableColumn<ReparacionResumen, String> cFecha;
@@ -48,6 +49,7 @@ public class PendientesTecnicoController {
 
         datosFiltrados = new FilteredList<>(datos, p -> true);
         tablaPendientes.setItems(datosFiltrados);
+        tablaPendientes.setColumnResizePolicy(param -> true);
 
         tablaPendientes.setRowFactory(tv -> new TableRow<>() {
             {
@@ -59,22 +61,49 @@ public class PendientesTecnicoController {
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                            "-fx-border-width: 0 0 0.2 4;");
                     return;
                 }
                 if (item.getEsSolicitud() == 1) {
-                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
-                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
                 } else if (item.isEsIncidencia()) {
-                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
-                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
-                } else setStyle("");
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
             }
             @Override protected void updateItem(ReparacionResumen item, boolean empty) {
                 super.updateItem(item, empty);
                 actualizarEstilo();
+            }
+        });
+
+        cEstado.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); return; }
+                ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                              "-fx-font-size: 11px; -fx-font-weight: bold;";
+                if (rep.isEsIncidencia()) {
+                    badge.setText("Incidencia");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (rep.getEsSolicitud() == 1) {
+                    badge.setText("Solicitud");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
+                } else {
+                    badge.setText("Normal");
+                    badge.setStyle(base +
+                        "-fx-background-color: #E8EAF0;" +
+                        "-fx-text-fill: #586376;");
+                }
+                setGraphic(badge);
             }
         });
 
@@ -102,8 +131,6 @@ public class PendientesTecnicoController {
     // ─── Filtros ──────────────────────────────────────────────────────────────
 
     private void configurarFiltros() {
-        filtroSolicitud.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12px;");
 
         cbSoloSolicitudes  = new CheckBox("Solicitudes pieza");
         cbSoloIncidencias  = new CheckBox("Incidencias");
@@ -116,7 +143,6 @@ public class PendientesTecnicoController {
                 aplicarFiltros();
             });
             CustomMenuItem item = new CustomMenuItem(cb, false);
-            item.setStyle("-fx-background-color: white;");
             filtroSolicitud.getItems().add(item);
         }
     }
