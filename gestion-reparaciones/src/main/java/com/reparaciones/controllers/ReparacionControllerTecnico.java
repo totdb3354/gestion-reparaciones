@@ -44,6 +44,8 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
     @FXML
     private TableColumn<ReparacionResumen, String> colObservaciones;
     @FXML
+    private TableColumn<ReparacionResumen, Void> colEstado;
+    @FXML
     private TableColumn<ReparacionResumen, Void> colIncidencia;
     @FXML
     private TableColumn<ReparacionResumen, String> colIdAnterior;
@@ -109,14 +111,10 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         cargarDatos();
     }
 
-    @FXML private Button btnDescargar;
-
     private void mostrarPanel(VBox panel, Button btnActivo) {
         pnlHistorial    .setVisible(false); pnlHistorial    .setManaged(false);
         pnlMisPendientes.setVisible(false); pnlMisPendientes.setManaged(false);
         panel.setVisible(true); panel.setManaged(true);
-        btnDescargar.setVisible(panel == pnlHistorial);
-        btnDescargar.setManaged(panel == pnlHistorial);
         for (Button b : new Button[]{btnTabHistorial, btnTabMisPendientes}) {
             b.getStyleClass().removeAll("stock-sidebar-btn-active", "stock-sidebar-btn");
             b.getStyleClass().add(b == btnActivo ? "stock-sidebar-btn-active" : "stock-sidebar-btn");
@@ -262,6 +260,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         });
 
         configurarColAcciones();
+        configurarColEstado();
         configurarColIncidencia();
     }
 
@@ -271,6 +270,37 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(null);
+            }
+        });
+    }
+
+    private void configurarColEstado() {
+        colEstado.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); return; }
+                ReparacionResumen rep = getTableView().getItems().get(getIndex());
+                String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
+                              "-fx-font-size: 11px; -fx-font-weight: bold;";
+                if (rep.isEsIncidencia() && !rep.isEsResuelto()) {
+                    badge.setText("Incidencia");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (rep.isEsIncidencia()) {
+                    badge.setText("Resuelta");
+                    badge.setStyle(base +
+                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";" +
+                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";");
+                } else {
+                    badge.setText("Normal");
+                    badge.setStyle(base +
+                        "-fx-background-color: #E8EAF0;" +
+                        "-fx-text-fill: #586376;");
+                }
+                setGraphic(badge);
             }
         });
     }
@@ -307,7 +337,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
                             (!texto.isEmpty() ? " -fx-cursor: hand;" : ""));
                     lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
                             e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
-                    setStyle("-fx-background-color: #E7E7E7;");
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";");
                     setGraphic(lblComentario);
                 }
             }
@@ -341,15 +371,17 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             private void aplicarEstilo(ReparacionResumen item, boolean empty) {
                 if (empty || item == null) { setStyle(""); return; }
                 if (isSelected()) {
-                    setStyle("-fx-background-color: #2C3B54;" +
-                            "-fx-border-color: transparent transparent #3D5070 transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
+                            "-fx-border-width: 0 0 0.2 4;");
                 } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
-                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 0;");
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                } else if (item.isEsIncidencia()) {
+                    setStyle("-fx-border-width: 0 0 0 4;" +
+                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
                 } else {
-                    setStyle("");
+                    setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
                 }
             }
 
@@ -422,10 +454,6 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         filtroFechaHasta.getEditor().setOpacity(1.0);
         filtroFechaDesde.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
         filtroFechaHasta.valueProperty().addListener((obs, o, n) -> aplicarFiltros());
-        filtroIncidencias.setStyle(
-                "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4;" +
-                "-fx-font-size: 12px;");
         cbIncidenciasAbiertas = new CheckBox("Abiertas");
         cbIncidenciasAbiertas.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
         cbIncidenciasAbiertas.selectedProperty().addListener((obs, o, n) -> {
@@ -445,11 +473,8 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             aplicarFiltros();
         });
         CustomMenuItem itemAbiertas = new CustomMenuItem(cbIncidenciasAbiertas, false);
-        itemAbiertas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemCerradas = new CustomMenuItem(cbIncidenciasCerradas, false);
-        itemCerradas.setStyle("-fx-background-color: white;");
         CustomMenuItem itemNormales = new CustomMenuItem(cbNormales, false);
-        itemNormales.setStyle("-fx-background-color: white;");
         filtroIncidencias.getItems().addAll(itemAbiertas, itemCerradas, itemNormales);
     }
 

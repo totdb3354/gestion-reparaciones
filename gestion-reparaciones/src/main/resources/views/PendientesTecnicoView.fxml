@@ -8,21 +8,21 @@
       xmlns="http://javafx.com/javafx/25"
       fx:controller="com.reparaciones.controllers.PendientesTecnicoController"
       spacing="12" VBox.vgrow="ALWAYS"
-      stylesheets="@../styles/reparacion.css">
+      stylesheets="@../styles/app.css">
 
-    <Label text="Mis asignaciones pendientes" styleClass="vista-titulo"/>
-
-    <HBox spacing="8" alignment="CENTER_LEFT">
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label text="Mis asignaciones pendientes" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
         <MenuButton fx:id="filtroSolicitud" text="Tipo" prefWidth="130"/>
         <Button onAction="#limpiarFiltros" text="Limpiar filtros" styleClass="btn-secondary"/>
     </HBox>
 
     <TableView fx:id="tablaPendientes" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="cId"     text="Id Asignación"    minWidth="130"/>
-            <TableColumn fx:id="cImei"   text="IMEI"             minWidth="150"/>
-            <TableColumn fx:id="cFecha"  text="Fecha asignación" minWidth="160"/>
-            <TableColumn fx:id="cAccion" text=""                  minWidth="160"/>
+            <TableColumn fx:id="cId"     text="Id Asignación"    prefWidth="90"/>
+            <TableColumn fx:id="cImei"   text="IMEI"             prefWidth="130"/>
+            <TableColumn fx:id="cFecha"  text="Fecha asignación" prefWidth="130"/>
+            <TableColumn fx:id="cEstado" text="Estado"           prefWidth="100"/>
+            <TableColumn fx:id="cAccion" text=""                  prefWidth="150"/>
         </columns>
         <placeholder><Label text="No tienes asignaciones pendientes"/></placeholder>
     </TableView>
