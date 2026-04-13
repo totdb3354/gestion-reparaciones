@@ -38,10 +38,12 @@
                     <VBox HBox.hgrow="ALWAYS" spacing="0">
                     <TableView fx:id="tablaStock" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="colTipo"     text="Componente" prefWidth="280"/>
-                            <TableColumn fx:id="colStockVal" text="Stock"      prefWidth="80"/>
-                            <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="100"/>
-                            <TableColumn fx:id="colAccion"   text=""           prefWidth="130"/>
+                            <TableColumn fx:id="colTipo"        text="Componente"   prefWidth="230"/>
+                            <TableColumn fx:id="colStockVal"   text="En Stock"     prefWidth="80"/>
+                            <TableColumn fx:id="colEnCamino"   text="En Camino"    prefWidth="90"/>
+                            <TableColumn fx:id="colStockMin"   text="Stock Mínimo" prefWidth="100"/>
+                            <TableColumn fx:id="colUltimoPed"  text="Último pedido" prefWidth="120"/>
+                            <TableColumn fx:id="colEstado"     text="Estado"       prefWidth="100"/>
                         </columns>
                         <placeholder><Label text="Sin componentes"/></placeholder>
                     </TableView>
@@ -95,11 +97,10 @@
                         <TableColumn fx:id="cpComponente" text="Componente" prefWidth="190"/>
                         <TableColumn fx:id="cpProveedor"  text="Proveedor"  prefWidth="130"/>
                         <TableColumn fx:id="cpCantidad"   text="Cant."      prefWidth="50"/>
-                        <TableColumn fx:id="cpUrgente"    text="Urg."       prefWidth="45"/>
                         <TableColumn fx:id="cpPrecio"     text="P.Unit."    prefWidth="68"/>
                         <TableColumn fx:id="cpDivisa"     text="Div."       prefWidth="45"/>
                         <TableColumn fx:id="cpEur"        text="EUR"        prefWidth="68"/>
-                        <TableColumn fx:id="cpEstado"     text="Estado"     prefWidth="85"/>
+                        <TableColumn fx:id="cpEstado"     text="Estado"     prefWidth="110"/>
                         <TableColumn fx:id="cpId"         text="ID"         prefWidth="50" visible="false"/>
                     </columns>
                     <placeholder><Label text="Sin pedidos"/></placeholder>
@@ -125,12 +126,6 @@
                 <Label fx:id="lblUltimaActProveedores"
                        style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
                        alignment="CENTER_RIGHT" maxWidth="Infinity"/>
-                <HBox spacing="8">
-                    <Button fx:id="btnActivarProveedor" text="Activar / Desactivar" styleClass="btn-secondary"
-                            onAction="#activarProveedor" disable="true"/>
-                    <Button fx:id="btnBorrarProveedor"  text="Borrar"               styleClass="btn-secondary"
-                            onAction="#borrarProveedor"  disable="true"/>
-                </HBox>
             </VBox>
 
         </StackPane>

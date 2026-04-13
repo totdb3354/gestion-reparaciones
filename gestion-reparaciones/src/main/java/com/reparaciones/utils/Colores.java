@@ -82,6 +82,9 @@ public final class Colores {
     /** Borde inferior de fila seleccionada (azul oscuro) */
     public static final String FILA_SELECTED_BRD = "#3D5070";
 
+    /** Separador inferior entre filas (gris claro) */
+    public static final String FILA_SEP = "#C2C8D0";
+
     // ─── Acciones destructivas ────────────────────────────────────────────────
 
     /** Botón de acción destructiva (ConfirmDialog borrar) */

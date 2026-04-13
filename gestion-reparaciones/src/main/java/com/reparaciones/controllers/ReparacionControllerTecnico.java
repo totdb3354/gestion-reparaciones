@@ -30,8 +30,6 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
     @FXML
     private TableView<ReparacionResumen> tablaReparaciones;
     @FXML
-    private TableColumn<ReparacionResumen, Void> colAcciones;
-    @FXML
     private TableColumn<ReparacionResumen, String> colIdRep;
     @FXML
     private TableColumn<ReparacionResumen, String> colImei;
@@ -85,10 +83,11 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         configurarColumnas();
         configurarFilas();
         configurarFiltros();
-        cargarDatos();
 
         misPendientesController.setOnCerrar(this::cargarDatos);
         misPendientesController.setOnVolverAHistorial(() -> mostrarPanel(pnlHistorial, btnTabHistorial));
+
+        misPendientesController.cargar();
 
         poller.scheduleAtFixedRate(
                 () -> javafx.application.Platform.runLater(this::recargar),
@@ -129,7 +128,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         lbl.setTextOverrun(OverrunStyle.ELLIPSIS);
         if (texto != null && !texto.isEmpty()) {
             lbl.setStyle("-fx-cursor: hand;");
-            lbl.setOnMouseClicked(e -> ConfirmDialog.mostrarTexto(titulo, texto));
+            lbl.setOnMouseClicked(e -> { if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) ConfirmDialog.mostrarTexto(titulo, texto); });
         }
         return lbl;
     }
@@ -147,7 +146,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             }
         });
 
-        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/ver_historial.png"));
+        Image imgHistorial = new Image(getClass().getResourceAsStream("/images/Historial.png"));
         colImei.setCellFactory(col -> new TableCell<>() {
             private final Label lblImei = new Label();
             private final ImageView ivHist = new ImageView(imgHistorial);
@@ -259,19 +258,8 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             }
         });
 
-        configurarColAcciones();
         configurarColEstado();
         configurarColIncidencia();
-    }
-
-    private void configurarColAcciones() {
-        colAcciones.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(null);
-            }
-        });
     }
 
     private void configurarColEstado() {
@@ -308,9 +296,11 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
     private void configurarColIncidencia() {
         colIncidencia.setCellFactory(col -> new TableCell<>() {
             private final Label lblComentario = new Label();
+            private final Label lblSin = new Label("Sin incidencia");
             {
                 lblComentario.setMaxWidth(Double.MAX_VALUE);
                 lblComentario.setTextOverrun(OverrunStyle.ELLIPSIS);
+                lblSin.setStyle("-fx-font-size: 12px; -fx-text-fill: #A0A0A0; -fx-font-style: italic;");
             }
 
             @Override
@@ -319,7 +309,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
                 if (empty) { setGraphic(null); setStyle(""); return; }
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
                 if (!rep.isEsIncidencia()) {
-                    setGraphic(null);
+                    setGraphic(lblSin);
                     setStyle("");
                 } else if (!rep.isEsResuelto()) {
                     String texto = rep.getIncidencia() != null ? rep.getIncidencia() : "";
@@ -327,7 +317,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
                     lblComentario.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;" +
                             (!texto.isEmpty() ? " -fx-cursor: hand;" : ""));
                     lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
-                            e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
+                            e -> { if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) ConfirmDialog.mostrarTexto("Incidencia", texto); });
                     setStyle("");
                     setGraphic(lblComentario);
                 } else {
@@ -336,7 +326,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
                     lblComentario.setStyle("-fx-font-size: 12px; -fx-text-fill: #A9A9A9;" +
                             (!texto.isEmpty() ? " -fx-cursor: hand;" : ""));
                     lblComentario.setOnMouseClicked(texto.isEmpty() ? null :
-                            e -> ConfirmDialog.mostrarTexto("Incidencia", texto));
+                            e -> { if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) ConfirmDialog.mostrarTexto("Incidencia", texto); });
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_BG + ";");
                     setGraphic(lblComentario);
                 }
@@ -369,19 +359,19 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             }
 
             private void aplicarEstilo(ReparacionResumen item, boolean empty) {
-                if (empty || item == null) { setStyle(""); return; }
+                if (empty || item == null) { setStyle("-fx-border-width: 0 0 0 8; -fx-border-color: transparent;"); return; }
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 4;");
+                            "-fx-border-width: 0 0 1 8;");
                 } else if (item.isEsIncidencia() && !item.isEsResuelto()) {
-                    setStyle("-fx-border-width: 0 0 0 4;" +
-                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
+                    setStyle("-fx-border-width: 0 0 1 8;" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
                 } else if (item.isEsIncidencia()) {
-                    setStyle("-fx-border-width: 0 0 0 4;" +
-                            "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
+                    setStyle("-fx-border-width: 0 0 1 8;" +
+                            "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
                 } else {
-                    setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
+                    setStyle("-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " transparent;");
                 }
             }
 

@@ -101,7 +101,6 @@ CREATE TABLE Compra_componente (
     DIVISA               VARCHAR(3)    NOT NULL DEFAULT 'EUR',
     PRECIO_EUR           DECIMAL(10,2) NOT NULL,
     ESTADO               ENUM('pendiente','recibido','alterado','parcial','devuelto','cancelado') NOT NULL DEFAULT 'pendiente',
-    OBSERVACION_LLEGADA  TEXT,
     UPDATED_AT           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (ID_COMPRA),
     CONSTRAINT fk_compra_componente FOREIGN KEY (ID_COM)  REFERENCES Componente (ID_COM),

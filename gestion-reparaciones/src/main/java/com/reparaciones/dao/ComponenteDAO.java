@@ -23,11 +23,26 @@ public class ComponenteDAO {
     /** Stock actual: excluye 'otro*' porque su cantidad no se gestiona en el programa. */
     public List<Componente> getAllGestionados() throws SQLException {
         List<Componente> lista = new ArrayList<>();
-        String sql = "SELECT * FROM Componente WHERE TIPO NOT LIKE 'otro%'";
+        String sql = """
+                SELECT c.*,
+                       COALESCE(SUM(CASE WHEN cc.ESTADO IN ('pendiente','parcial')
+                                        THEN cc.CANTIDAD - COALESCE(cc.CANTIDAD_RECIBIDA, 0) END), 0) AS en_camino,
+                       MAX(cc.FECHA_PEDIDO) AS ultimo_pedido
+                FROM Componente c
+                LEFT JOIN Compra_componente cc ON cc.ID_COM = c.ID_COM
+                WHERE c.TIPO NOT LIKE 'otro%'
+                GROUP BY c.ID_COM
+                """;
         try (Connection con = Conexion.getConexion();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) lista.add(mapear(rs));
+            while (rs.next()) {
+                Componente c = mapear(rs);
+                c.setEnCamino(rs.getInt("en_camino"));
+                Timestamp ts = rs.getTimestamp("ultimo_pedido");
+                c.setUltimoPedido(ts != null ? ts.toLocalDateTime() : null);
+                lista.add(c);
+            }
         }
         return lista;
     }

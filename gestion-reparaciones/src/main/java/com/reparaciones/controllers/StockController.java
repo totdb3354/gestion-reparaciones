@@ -36,8 +36,10 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableView<Componente>             tablaStock;
     @FXML private TableColumn<Componente, String>   colTipo;
     @FXML private TableColumn<Componente, Integer>  colStockVal;
+    @FXML private TableColumn<Componente, Integer>  colEnCamino;
+    @FXML private TableColumn<Componente, Integer>  colStockMin;
+    @FXML private TableColumn<Componente, String>   colUltimoPed;
     @FXML private TableColumn<Componente, String>   colEstado;
-    @FXML private TableColumn<Componente, Void>     colAccion;
     @FXML private TextField                         txtBuscador;
     @FXML private MenuButton                        menuFiltroStock;
     @FXML private PieChart                          chartEstado;
@@ -58,7 +60,6 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableColumn<CompraComponente, String>   cpComponente;
     @FXML private TableColumn<CompraComponente, String>   cpProveedor;
     @FXML private TableColumn<CompraComponente, Object>   cpCantidad;
-    @FXML private TableColumn<CompraComponente, String>   cpUrgente;
     @FXML private TableColumn<CompraComponente, String>   cpFecha;
     @FXML private TableColumn<CompraComponente, String>   cpPrecio;
     @FXML private TableColumn<CompraComponente, String>   cpDivisa;
@@ -70,8 +71,6 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableView<Proveedor>             tablaProveedores;
     @FXML private TableColumn<Proveedor, String>   cpvNombre;
     @FXML private TableColumn<Proveedor, String>   cpvActivo;
-    @FXML private Button btnActivarProveedor;
-    @FXML private Button btnBorrarProveedor;
 
     // ── Última actualización ──────────────────────────────────────────────────
     @FXML private Label lblUltimaActStock;
@@ -175,6 +174,21 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 new javafx.beans.property.SimpleStringProperty(c.getValue().getTipo()));
         colStockVal.setCellValueFactory(c ->
                 new javafx.beans.property.SimpleIntegerProperty(c.getValue().getStock()).asObject());
+        colEnCamino.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getEnCamino()).asObject());
+        colEnCamino.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(Integer val, boolean empty) {
+                super.updateItem(val, empty);
+                setText(empty || val == null ? null : val == 0 ? "—" : String.valueOf(val));
+            }
+        });
+        colStockMin.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getStockMinimo()).asObject());
+        colUltimoPed.setCellValueFactory(c -> {
+            java.time.LocalDateTime dt = c.getValue().getUltimoPedido();
+            return new javafx.beans.property.SimpleStringProperty(
+                    dt != null ? dt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—");
+        });
 
         // Estado semáforo
         colEstado.setCellValueFactory(c -> sp(estadoComponente(c.getValue())));
@@ -195,27 +209,20 @@ public class StockController implements com.reparaciones.utils.Recargable {
             }
         });
 
-        // Botones "Pedir" + "Mín." (solo admin)
-        colAccion.setCellFactory(col -> new TableCell<>() {
-            private final Button btnPedir = new Button("Pedir");
-            private final Button btnMin   = new Button("Mín.");
-            private final javafx.scene.layout.HBox box;
-            {
-                btnPedir.setStyle("-fx-font-size:11px; -fx-padding:4 10 4 10;" +
-                        "-fx-background-color:#3A6186; -fx-text-fill:white;" +
-                        "-fx-background-radius:4; -fx-cursor:hand;");
-                btnMin.setStyle("-fx-font-size:11px; -fx-padding:4 8 4 8;" +
-                        "-fx-background-color:" + com.reparaciones.utils.Colores.AZUL_GRIS + "; -fx-text-fill:white;" +
-                        "-fx-background-radius:4; -fx-cursor:hand;");
-                btnPedir.setOnAction(e -> pedirComponente(getTableView().getItems().get(getIndex())));
-                btnMin  .setOnAction(e -> ajustarMinimo(getTableView().getItems().get(getIndex())));
-                box = new javafx.scene.layout.HBox(4, btnPedir, btnMin);
-            }
-            @Override protected void updateItem(Void v, boolean empty) {
-                super.updateItem(v, empty);
-                setGraphic(empty || !com.reparaciones.Sesion.esAdmin() ? null : box);
-            }
-        });
+        // Menú contextual (solo admin)
+        if (com.reparaciones.Sesion.esAdmin()) {
+            ContextMenu ctxStock = new ContextMenu();
+            MenuItem itemPedir = new MenuItem("Pedir");
+            MenuItem itemMin   = new MenuItem("Ajustar mínimo");
+            ctxStock.getItems().addAll(itemPedir, itemMin);
+            tablaStock.setContextMenu(ctxStock);
+            tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+                itemPedir.setDisable(sel == null);
+                itemMin  .setDisable(sel == null);
+            });
+            itemPedir.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) pedirComponente(sel); });
+            itemMin  .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) ajustarMinimo(sel); });
+        }
 
         // Filtros: buscador + estado (MenuButton con CheckBoxes)
 
@@ -260,16 +267,16 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
             }
             private void actualizarEstilo() {
-                if (isEmpty() || getItem() == null) { setStyle(""); return; }
+                if (isEmpty() || getItem() == null) { setStyle("-fx-border-width: 0 0 0 8; -fx-border-color: transparent;"); return; }
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 4;");
+                            "-fx-border-width: 0 0 1 8;");
                 } else {
                     setStyle(switch (estadoComponente(getItem())) {
-                        case "OK"   -> "-fx-border-width: 0 0 0 4; -fx-border-color: transparent;";
-                        case "Bajo" -> "-fx-border-width: 0 0 0 4; -fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";";
-                        default     -> "-fx-border-width: 0 0 0 4; -fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";";
+                        case "OK"   -> "-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " transparent;";
+                        case "Bajo" -> "-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";";
+                        default     -> "-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";";
                     });
                 }
             }
@@ -459,14 +466,23 @@ public class StockController implements com.reparaciones.utils.Recargable {
                     : String.valueOf(p.getCantidad());
             return new javafx.beans.property.SimpleObjectProperty<>(texto);
         });
-        cpUrgente.setCellValueFactory(c ->  sp(c.getValue().isEsUrgente() ? "Sí" : "—"));
         cpFecha.setCellValueFactory(c ->
                 sp(c.getValue().getFechaPedido().format(FMT)));
-        cpPrecio.setCellValueFactory(c ->
-                sp(String.format("%.2f", c.getValue().getPrecioUnidadPedido())));
-        cpDivisa.setCellValueFactory(c ->  sp(c.getValue().getDivisa()));
-        cpEur.setCellValueFactory(c ->
-                sp(String.format("%.2f", c.getValue().getPrecioEur())));
+        cpPrecio.setCellValueFactory(c -> {
+            CompraComponente p = c.getValue();
+            String simbolo = switch (p.getDivisa()) {
+                case "EUR" -> "€";
+                case "USD" -> "$";
+                default    -> p.getDivisa();
+            };
+            return sp(String.format("%.2f %s", p.getPrecioUnidadPedido(), simbolo));
+        });
+        cpDivisa.setVisible(false);
+        cpEur.setCellValueFactory(c -> {
+            CompraComponente p = c.getValue();
+            double total = p.getCantidad() * p.getPrecioEur();
+            return sp(String.format("%.2f €", total));
+        });
         cpEstado.setCellValueFactory(c -> sp(c.getValue().getEstado().name()));
 
         // Color fila por estado
@@ -476,23 +492,24 @@ public class StockController implements com.reparaciones.utils.Recargable {
             }
             private void actualizarEstilo() {
                 CompraComponente item = getItem();
-                if (isEmpty() || item == null) { setStyle(""); return; }
+                if (isEmpty() || item == null) { setStyle("-fx-border-width: 0 0 0 8; -fx-border-color: transparent;"); return; }
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 0.2 4;");
+                            "-fx-border-width: 0 0 1 8;");
                     return;
                 }
-                String barraIzq = "-fx-border-width: 0 0 0 4; -fx-border-color: transparent transparent transparent ";
+                String sep = com.reparaciones.utils.Colores.FILA_SEP;
+                String barraIzq = "-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + sep + " ";
                 setStyle(switch (item.getEstado()) {
                     case pendiente -> item.isEsUrgente()
                             ? barraIzq + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";"
-                            : "-fx-border-width: 0 0 0 4; -fx-border-color: transparent;";
+                            : "-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + sep + " transparent;";
                     case recibido  -> barraIzq + com.reparaciones.utils.Colores.FILA_RECIBIDO_BRD + ";";
                     case alterado  -> barraIzq + com.reparaciones.utils.Colores.FILA_ALTERADO_BRD + ";";
                     case parcial   -> barraIzq + com.reparaciones.utils.Colores.FILA_PARCIAL_BRD + ";";
                     case cancelado,
-                         devuelto  -> "-fx-opacity: 0.45;";
+                         devuelto  -> "-fx-opacity: 0.45; -fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + sep + " transparent;";
                 });
             }
             @Override protected void updateItem(CompraComponente item, boolean empty) {
@@ -504,8 +521,11 @@ public class StockController implements com.reparaciones.utils.Recargable {
         // Badge de estado en columna Estado
         cpEstado.setCellFactory(col -> new TableCell<>() {
             private final Label badge = new Label();
+            private final Label alerta = new Label("⚠");
+            private final javafx.scene.layout.HBox contenedor = new javafx.scene.layout.HBox(6, badge, alerta);
             {
-                badge.setStyle("-fx-background-radius: 12; -fx-padding: 3 10 3 10; -fx-font-size: 11px; -fx-font-weight: bold;");
+                contenedor.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                alerta.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + "; -fx-font-size: 13px;");
                 setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             }
             @Override protected void updateItem(String val, boolean empty) {
@@ -513,10 +533,11 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 if (empty || val == null || getTableRow() == null || getTableRow().getItem() == null) {
                     setGraphic(null); return;
                 }
-                CompraComponente.Estado estado = getTableRow().getItem().getEstado();
-                boolean urgente = getTableRow().getItem().isEsUrgente();
+                CompraComponente p = getTableRow().getItem();
+                boolean urgente = p.isEsUrgente();
+                boolean cancelado = p.getEstado() != Estado.pendiente && p.getEstado() != Estado.parcial;
                 String bg, txt;
-                switch (estado) {
+                switch (p.getEstado()) {
                     case pendiente -> { bg = urgente ? com.reparaciones.utils.Colores.FILA_SOLICITUD_BG  : "#E8EAF0";
                                         txt = urgente ? com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD : "#586376"; }
                     case recibido  -> { bg = com.reparaciones.utils.Colores.FILA_RECIBIDO_BG;  txt = com.reparaciones.utils.Colores.FILA_RECIBIDO_BRD; }
@@ -529,7 +550,9 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 badge.setText(val);
                 badge.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: " + txt + ";" +
                         "-fx-background-radius: 12; -fx-padding: 3 10 3 10; -fx-font-size: 11px; -fx-font-weight: bold;");
-                setGraphic(badge);
+                alerta.setVisible(urgente && !cancelado);
+                alerta.setManaged(urgente && !cancelado);
+                setGraphic(contenedor);
             }
         });
 
@@ -571,7 +594,14 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 alterado.setOnAction(e -> confirmarAlterado());
                 ctx.getItems().addAll(resto, alterado);
             }
-            case recibido, alterado -> {
+            case recibido -> {
+                MenuItem editar   = new MenuItem("Editar");
+                MenuItem devolver = new MenuItem("Devolver pedido");
+                editar  .setOnAction(e -> editarPedido());
+                devolver.setOnAction(e -> devolverPedido());
+                ctx.getItems().addAll(editar, new SeparatorMenuItem(), devolver);
+            }
+            case alterado -> {
                 MenuItem devolver = new MenuItem("Devolver pedido");
                 devolver.setOnAction(e -> devolverPedido());
                 ctx.getItems().add(devolver);
@@ -611,19 +641,13 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private void confirmarRecibido() {
         CompraComponente sel = tablaPedidos.getSelectionModel().getSelectedItem();
         if (sel == null) return;
-        TextInputDialog d = new TextInputDialog();
-        d.setTitle("Confirmar llegada");
-        d.setHeaderText("Pedido #" + sel.getIdCompra() + " — " + sel.getTipoComponente());
-        d.setContentText("Observación (opcional):");
-        d.showAndWait().ifPresent(obs -> {
-            try {
-                compraDAO.confirmarRecibido(sel, obs.isBlank() ? null : obs);
-                cargarPedidos();
-                cargarStock();
-            } catch (com.reparaciones.utils.StaleDataException e) {
-                mostrarConflicto(); cargarPedidos();
-            } catch (SQLException e) { mostrarError(e); }
-        });
+        try {
+            compraDAO.confirmarRecibido(sel);
+            cargarPedidos();
+            cargarStock();
+        } catch (com.reparaciones.utils.StaleDataException e) {
+            mostrarConflicto(); cargarPedidos();
+        } catch (SQLException e) { mostrarError(e); }
     }
 
     @FXML private void confirmarAlterado() {
@@ -631,16 +655,8 @@ public class StockController implements com.reparaciones.utils.Recargable {
         if (sel == null) return;
         // Cierra un pedido parcial como definitivo — no llega más mercancía
         int recibidas = sel.getCantidadRecibida() != null ? sel.getCantidadRecibida() : 0;
-        TextInputDialog dObs = new TextInputDialog();
-        dObs.setTitle("Cerrar sin resto");
-        dObs.setHeaderText("Pedido #" + sel.getIdCompra() + " — " + sel.getTipoComponente()
-                + "\nRecibidas: " + recibidas + " de " + sel.getCantidad() + ". El pedido quedará cerrado.");
-        dObs.setContentText("Observación (opcional):");
-        Optional<String> rObs = dObs.showAndWait();
-        if (rObs.isEmpty()) return;
-
         try {
-            compraDAO.confirmarAlterado(sel, recibidas, rObs.get().isBlank() ? null : rObs.get());
+            compraDAO.confirmarAlterado(sel, recibidas);
             cargarPedidos();
             cargarStock();
         } catch (com.reparaciones.utils.StaleDataException e) {
@@ -672,14 +688,8 @@ public class StockController implements com.reparaciones.utils.Recargable {
             return;
         }
 
-        TextInputDialog dObs = new TextInputDialog();
-        dObs.setTitle("Observación");
-        dObs.setContentText("Observación (opcional):");
-        Optional<String> rObs = dObs.showAndWait();
-        if (rObs.isEmpty()) return;
-
         try {
-            compraDAO.confirmarParcial(sel, cant, rObs.get().isBlank() ? null : rObs.get());
+            compraDAO.confirmarParcial(sel, cant);
             cargarPedidos();
             cargarStock();
         } catch (com.reparaciones.utils.StaleDataException e) {
@@ -711,14 +721,8 @@ public class StockController implements com.reparaciones.utils.Recargable {
             return;
         }
 
-        TextInputDialog dObs = new TextInputDialog();
-        dObs.setTitle("Observación");
-        dObs.setContentText("Observación (opcional):");
-        Optional<String> rObs = dObs.showAndWait();
-        if (rObs.isEmpty()) return;
-
         try {
-            compraDAO.recibirResto(sel, cant, rObs.get().isBlank() ? null : rObs.get());
+            compraDAO.recibirResto(sel, cant);
             cargarPedidos();
             cargarStock();
         } catch (com.reparaciones.utils.StaleDataException e) {
@@ -798,16 +802,16 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
             }
             private void actualizarEstilo() {
-                if (isEmpty() || getItem() == null) { setStyle(""); return; }
+                if (isEmpty() || getItem() == null) { setStyle("-fx-border-width: 0 0 0 8; -fx-border-color: transparent;"); return; }
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                              "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
                              "-fx-border-width: 0 0 0.2 0;");
                 } else if (getItem().isActivo()) {
-                    setStyle("-fx-border-width: 0 0 0 4;" +
-                             "-fx-border-color: transparent transparent transparent " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
+                    setStyle("-fx-border-width: 0 0 1 8;" +
+                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
                 } else {
-                    setStyle("-fx-border-width: 0 0 0 4; -fx-border-color: transparent;");
+                    setStyle("-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " transparent;");
                 }
             }
             @Override protected void updateItem(Proveedor item, boolean empty) {
@@ -816,9 +820,22 @@ public class StockController implements com.reparaciones.utils.Recargable {
             }
         });
         tablaProveedores.setItems(datosProveedores);
+
+        ContextMenu ctxProv = new ContextMenu();
+        tablaProveedores.setContextMenu(ctxProv);
         tablaProveedores.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-            btnActivarProveedor.setDisable(sel == null);
-            btnBorrarProveedor .setDisable(sel == null);
+            ctxProv.getItems().clear();
+            if (sel == null) return;
+            MenuItem itemToggle = new MenuItem(sel.isActivo() ? "Desactivar" : "Activar");
+            itemToggle.setOnAction(e -> activarProveedor());
+            ctxProv.getItems().add(itemToggle);
+            try {
+                if (!proveedorDAO.tienePedidos(sel.getIdProv())) {
+                    MenuItem itemBorrar = new MenuItem("Borrar");
+                    itemBorrar.setOnAction(e -> borrarProveedor());
+                    ctxProv.getItems().add(itemBorrar);
+                }
+            } catch (SQLException e) { mostrarError(e); }
         });
     }
 
@@ -860,24 +877,16 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private void borrarProveedor() {
         Proveedor sel = tablaProveedores.getSelectionModel().getSelectedItem();
         if (sel == null) return;
-        try {
-            if (proveedorDAO.tienePedidos(sel.getIdProv())) {
-                new Alert(Alert.AlertType.WARNING,
-                        "El proveedor tiene pedidos asociados. Desactívalo en lugar de borrarlo.")
-                        .showAndWait();
-                return;
-            }
-            ConfirmDialog.mostrar(
-                    "Borrar proveedor",
-                    "¿Eliminar el proveedor \"" + sel.getNombre() + "\"?",
-                    "Borrar",
-                    () -> {
-                        try {
-                            proveedorDAO.borrar(sel.getIdProv());
-                            cargarProveedores();
-                        } catch (SQLException e) { mostrarError(e); }
-                    });
-        } catch (SQLException e) { mostrarError(e); }
+        ConfirmDialog.mostrar(
+                "Borrar proveedor",
+                "¿Eliminar el proveedor \"" + sel.getNombre() + "\"?",
+                "Borrar",
+                () -> {
+                    try {
+                        proveedorDAO.borrar(sel.getIdProv());
+                        cargarProveedores();
+                    } catch (SQLException e) { mostrarError(e); }
+                });
     }
 
     // ─── Util ─────────────────────────────────────────────────────────────────
