@@ -4,55 +4,106 @@
 <?import javafx.scene.image.*?>
 <?import javafx.geometry.Insets?>
 
-<VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.reparaciones.controllers.LoginController"
-      alignment="CENTER"
-      spacing="16"
-      style="-fx-background-color: #001232;"
-      prefWidth="380"
-      prefHeight="480">
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.reparaciones.controllers.LoginController"
+           style="-fx-background-color: #EFEFEF;"
+           prefWidth="420"
+           prefHeight="540">
 
-    <padding><Insets top="48" right="48" bottom="48" left="48"/></padding>
+    <VBox alignment="CENTER" spacing="0" maxWidth="340" StackPane.alignment="CENTER">
 
-    <!-- Logo -->
-    <ImageView fitWidth="80" fitHeight="80" preserveRatio="true">
-        <image><Image url="@/images/logo.png"/></image>
-    </ImageView>
+        <!-- Logo -->
+        <ImageView fitWidth="58" fitHeight="58" preserveRatio="true">
+            <image><Image url="@/images/logo_inicio_sesion.png"/></image>
+            <VBox.margin><Insets bottom="14"/></VBox.margin>
+        </ImageView>
 
-    <Label text="Gestión de Reparaciones"
-           style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #F6F6F6;"/>
+        <!-- Título -->
+        <HBox alignment="CENTER" spacing="6">
+            <Label text="FSGR"
+                   style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;"/>
+            <Label text="v0.4.0"
+                   style="-fx-font-size: 11px; -fx-text-fill: #A0A8B4; -fx-padding: 5 0 0 0;"/>
+            <VBox.margin><Insets bottom="4"/></VBox.margin>
+        </HBox>
 
-    <Label text="Inicia sesión para continuar"
-           style="-fx-font-size: 12px; -fx-text-fill: #586376;"/>
+        <!-- Subtítulo -->
+        <VBox alignment="CENTER" spacing="0">
+            <VBox.margin><Insets bottom="32"/></VBox.margin>
+            <Label text="Gestión de Stock y"
+                   style="-fx-font-size: 20px; -fx-text-fill: #2C3B54;"
+                   alignment="CENTER" textAlignment="CENTER"/>
+            <Label text="Reparaciones"
+                   style="-fx-font-size: 20px; -fx-text-fill: #2C3B54;"
+                   alignment="CENTER" textAlignment="CENTER"/>
+        </VBox>
 
-    <VBox spacing="6" maxWidth="280" fillWidth="true">
-        <Label text="Usuario" style="-fx-font-size: 12px; -fx-text-fill: #F6F6F6;"/>
+        <!-- Campo Usuario -->
         <TextField fx:id="campoUsuario"
-                   promptText="Nombre de usuario"
-                   style="-fx-background-color: #2C3B54; -fx-border-color: #586376; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8; -fx-text-fill: #F6F6F6; -fx-prompt-text-fill: #586376;"/>
-    </VBox>
+                   promptText="Usuario"
+                   maxWidth="Infinity"
+                   style="-fx-background-color: white; -fx-border-color: #D4D8DE;
+                          -fx-border-radius: 8; -fx-background-radius: 8;
+                          -fx-padding: 13 14 13 14; -fx-font-size: 13px;
+                          -fx-text-fill: #2C3B54; -fx-prompt-text-fill: #A0A8B4;">
+            <VBox.margin><Insets bottom="10"/></VBox.margin>
+        </TextField>
 
-    <VBox spacing="6" maxWidth="280" fillWidth="true">
-        <Label text="Contraseña" style="-fx-font-size: 12px; -fx-text-fill: #F6F6F6;"/>
-        <PasswordField fx:id="campoPassword"
+        <!-- Campo Contraseña con toggle ojo -->
+        <StackPane maxWidth="Infinity">
+            <VBox.margin><Insets bottom="6"/></VBox.margin>
+            <PasswordField fx:id="campoPassword"
+                           promptText="Contraseña"
+                           style="-fx-background-color: white; -fx-border-color: #D4D8DE;
+                                  -fx-border-radius: 8; -fx-background-radius: 8;
+                                  -fx-padding: 13 44 13 14; -fx-font-size: 13px;
+                                  -fx-text-fill: #2C3B54; -fx-prompt-text-fill: #A0A8B4;"/>
+            <TextField fx:id="campoPasswordVisible"
                        promptText="Contraseña"
-                       style="-fx-background-color: #2C3B54; -fx-border-color: #586376; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8; -fx-text-fill: #F6F6F6; -fx-prompt-text-fill: #586376;"/>
+                       visible="false" managed="false"
+                       style="-fx-background-color: white; -fx-border-color: #D4D8DE;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 13 44 13 14; -fx-font-size: 13px;
+                              -fx-text-fill: #2C3B54; -fx-prompt-text-fill: #A0A8B4;"/>
+            <Button fx:id="btnTogglePassword"
+                    onAction="#togglePassword"
+                    StackPane.alignment="CENTER_RIGHT"
+                    style="-fx-background-color: transparent; -fx-border-color: transparent;
+                           -fx-cursor: hand; -fx-padding: 0 12 0 0;">
+                <graphic>
+                    <ImageView fx:id="imgOjo" fitWidth="18" fitHeight="18" preserveRatio="true">
+                        <image><Image url="@/images/ojo_activar.png"/></image>
+                    </ImageView>
+                </graphic>
+            </Button>
+        </StackPane>
+
+        <!-- Error -->
+        <Label fx:id="lblError" text=""
+               style="-fx-text-fill: #B03040; -fx-font-size: 11px;"
+               visible="false" wrapText="true" maxWidth="Infinity">
+            <VBox.margin><Insets bottom="10"/></VBox.margin>
+        </Label>
+
+        <!-- Botón Iniciar Sesión -->
+        <Button fx:id="btnLogin"
+                text="Iniciar Sesión"
+                onAction="#login"
+                maxWidth="Infinity"
+                style="-fx-background-color: #001232; -fx-text-fill: #F6F6F6;
+                       -fx-font-weight: bold; -fx-font-size: 13px;
+                       -fx-background-radius: 24; -fx-padding: 14 0 14 0;
+                       -fx-cursor: hand;">
+            <VBox.margin><Insets top="18" bottom="14"/></VBox.margin>
+        </Button>
+
+        <!-- Registrar técnico -->
+        <Button text="Registrar nuevo técnico"
+                onAction="#irARegistro"
+                maxWidth="Infinity"
+                style="-fx-background-color: transparent; -fx-border-color: transparent;
+                       -fx-text-fill: #586376; -fx-font-size: 12px; -fx-cursor: hand;"/>
+
     </VBox>
 
-    <Label fx:id="lblError"
-           text=""
-           style="-fx-text-fill: #FB8888; -fx-font-size: 12px;"
-           visible="false"/>
-
-    <Button fx:id="btnLogin"
-            text="Iniciar sesión"
-            onAction="#login"
-            maxWidth="280"
-            style="-fx-background-color: #F1E356; -fx-text-fill: #001232; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 4; -fx-padding: 10; -fx-cursor: hand;"/>
-
-    <Button text="Registrar nuevo técnico"
-        onAction="#irARegistro"
-        maxWidth="280"
-        style="-fx-background-color: transparent; -fx-text-fill: #586376; -fx-font-size: 12px; -fx-cursor: hand;"/>
-
-</VBox>
+</StackPane>

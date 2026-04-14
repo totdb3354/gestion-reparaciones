@@ -26,14 +26,20 @@ import java.sql.SQLException;
 
 public class LoginController {
 
-    @FXML
-    private TextField campoUsuario;
-    @FXML
-    private PasswordField campoPassword;
-    @FXML
-    private Label lblError;
-    @FXML
-    private Button btnLogin;
+    @FXML private TextField       campoUsuario;
+    @FXML private PasswordField   campoPassword;
+    @FXML private TextField       campoPasswordVisible;
+    @FXML private Button          btnTogglePassword;
+    @FXML private javafx.scene.image.ImageView imgOjo;
+    @FXML private Label           lblError;
+    @FXML private Button          btnLogin;
+
+    private boolean passwordVisible = false;
+
+    private final javafx.scene.image.Image IMG_OJO_ACTIVAR   =
+            new javafx.scene.image.Image(getClass().getResourceAsStream("/images/ojo_activar.png"));
+    private final javafx.scene.image.Image IMG_OJO_DESACTIVAR =
+            new javafx.scene.image.Image(getClass().getResourceAsStream("/images/ojo_desactivar.png"));
 
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
 
@@ -46,13 +52,30 @@ public class LoginController {
         });
 
         campoUsuario.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ENTER)
-                login();
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER) login();
         });
         campoPassword.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ENTER)
-                login();
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER) login();
         });
+        campoPasswordVisible.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER) login();
+        });
+    }
+
+    @FXML
+    private void togglePassword() {
+        passwordVisible = !passwordVisible;
+        if (passwordVisible) {
+            campoPasswordVisible.setText(campoPassword.getText());
+            campoPasswordVisible.setVisible(true);  campoPasswordVisible.setManaged(true);
+            campoPassword.setVisible(false);        campoPassword.setManaged(false);
+            imgOjo.setImage(IMG_OJO_DESACTIVAR);
+        } else {
+            campoPassword.setText(campoPasswordVisible.getText());
+            campoPassword.setVisible(true);          campoPassword.setManaged(true);
+            campoPasswordVisible.setVisible(false);  campoPasswordVisible.setManaged(false);
+            imgOjo.setImage(IMG_OJO_ACTIVAR);
+        }
     }
 
     /**
@@ -62,8 +85,8 @@ public class LoginController {
      */
     @FXML
     private void login() {
-        String usuario = campoUsuario.getText().trim();
-        String password = campoPassword.getText();
+        String usuario  = campoUsuario.getText().trim();
+        String password = passwordVisible ? campoPasswordVisible.getText() : campoPassword.getText();
 
         if (usuario.isEmpty() || password.isEmpty()) {
             mostrarError("Rellena usuario y contraseña.");
