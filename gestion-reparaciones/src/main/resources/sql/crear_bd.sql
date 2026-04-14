@@ -75,10 +75,9 @@ CREATE TABLE Reparacion (
 -- ── Tablas de stock ───────────────────────────────────────────────────────────
 
 CREATE TABLE Proveedor (
-    ID_PROV          INT          NOT NULL AUTO_INCREMENT,
-    NOMBRE           VARCHAR(100) NOT NULL,
-    ACTIVO           BOOLEAN      NOT NULL DEFAULT TRUE,
-    NUM_INCIDENCIAS  INT          NOT NULL DEFAULT 0,
+    ID_PROV  INT          NOT NULL AUTO_INCREMENT,
+    NOMBRE   VARCHAR(100) NOT NULL,
+    ACTIVO   BOOLEAN      NOT NULL DEFAULT TRUE,
     PRIMARY KEY (ID_PROV)
 );
 

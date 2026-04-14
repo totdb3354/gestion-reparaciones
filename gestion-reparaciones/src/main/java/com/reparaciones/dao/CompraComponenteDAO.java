@@ -75,6 +75,10 @@ public class CompraComponenteDAO {
                     PRECIO_UNIDAD_PEDIDO = ?, DIVISA = ?, PRECIO_EUR = ?
                 WHERE ID_COMPRA = ? AND UPDATED_AT = ?
                 """;
+        String sqlCantidadRecibida = """
+                UPDATE Compra_componente SET CANTIDAD_RECIBIDA = ?
+                WHERE ID_COMPRA = ?
+                """;
         String sqlStock = """
                 UPDATE Componente SET STOCK = STOCK + ?
                 WHERE ID_COM = (SELECT ID_COM FROM Compra_componente WHERE ID_COMPRA = ?)
@@ -95,30 +99,38 @@ public class CompraComponenteDAO {
                         throw new StaleDataException(
                                 "El pedido fue modificado por otro usuario. Recarga los datos e inténtalo de nuevo.");
                 }
-                // Si el pedido ya estaba recibido, ajustar stock por la diferencia
+                // Si el pedido ya estaba recibido, ajustar stock por la diferencia y sincronizar CANTIDAD_RECIBIDA
                 if (pedido.getEstado() == Estado.recibido) {
-                    int diferencia = cantidad - pedido.getCantidad();
-                    if (diferencia != 0) {
-                        if (diferencia < 0) {
-                            String sqlCheckStock = """
-                                    SELECT c.STOCK FROM Componente c
-                                    JOIN Compra_componente cc ON cc.ID_COM = c.ID_COM
-                                    WHERE cc.ID_COMPRA = ?
-                                    """;
-                            try (PreparedStatement ps = con.prepareStatement(sqlCheckStock)) {
-                                ps.setInt(1, pedido.getIdCompra());
-                                ResultSet rs = ps.executeQuery();
-                                if (rs.next() && rs.getInt("STOCK") + diferencia < 0)
-                                    throw new SQLException(
-                                            "Stock insuficiente: reducir la cantidad en " + Math.abs(diferencia) +
-                                            " dejaría el stock en negativo.");
-                            }
+                    int cantidadRecibida = pedido.getCantidadRecibida() != null
+                            ? pedido.getCantidadRecibida() : pedido.getCantidad();
+                    int diferencia = cantidad - cantidadRecibida;
+                    if (diferencia < 0) {
+                        String sqlCheckStock = """
+                                SELECT c.STOCK FROM Componente c
+                                JOIN Compra_componente cc ON cc.ID_COM = c.ID_COM
+                                WHERE cc.ID_COMPRA = ?
+                                """;
+                        try (PreparedStatement ps = con.prepareStatement(sqlCheckStock)) {
+                            ps.setInt(1, pedido.getIdCompra());
+                            ResultSet rs = ps.executeQuery();
+                            if (rs.next() && rs.getInt("STOCK") + diferencia < 0)
+                                throw new SQLException(
+                                        "Stock insuficiente: reducir la cantidad en " + Math.abs(diferencia) +
+                                        " dejaría el stock en negativo.");
                         }
+                    }
+                    if (diferencia != 0) {
                         try (PreparedStatement ps = con.prepareStatement(sqlStock)) {
                             ps.setInt(1, diferencia);
                             ps.setInt(2, pedido.getIdCompra());
                             ps.executeUpdate();
                         }
+                    }
+                    // Sincronizar CANTIDAD_RECIBIDA con la nueva cantidad
+                    try (PreparedStatement ps = con.prepareStatement(sqlCantidadRecibida)) {
+                        ps.setInt(1, cantidad);
+                        ps.setInt(2, pedido.getIdCompra());
+                        ps.executeUpdate();
                     }
                 }
                 con.commit();
