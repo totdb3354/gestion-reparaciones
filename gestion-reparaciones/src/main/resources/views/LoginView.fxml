@@ -97,13 +97,6 @@
             <VBox.margin><Insets top="18" bottom="14"/></VBox.margin>
         </Button>
 
-        <!-- Registrar técnico -->
-        <Button text="Registrar nuevo técnico"
-                onAction="#irARegistro"
-                maxWidth="Infinity"
-                style="-fx-background-color: transparent; -fx-border-color: transparent;
-                       -fx-text-fill: #586376; -fx-font-size: 12px; -fx-cursor: hand;"/>
-
     </VBox>
 
 </StackPane>

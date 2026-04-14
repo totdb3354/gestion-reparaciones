@@ -43,22 +43,6 @@ public class UsuarioDAO {
     }
 
     /**
-     * Verifica si la contraseña introducida coincide con la del admin.
-     * Se usa como contraseña maestra para acceder al registro de nuevos técnicos.
-     */
-    public boolean verificarPasswordAdmin(String password) throws SQLException {
-        String sql = "SELECT PASSWORD FROM Usuario WHERE ROL = 'ADMIN' LIMIT 1";
-        try (Connection con = Conexion.getConexion();
-                PreparedStatement ps = con.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return BCrypt.checkpw(password, rs.getString("PASSWORD"));
-            }
-        }
-        return false;
-    }
-
-    /**
      * Devuelve todos los técnicos (con credenciales) para la tabla de gestión.
      * Hace JOIN con Tecnico para incluir nombre visible y estado activo/inactivo.
      */

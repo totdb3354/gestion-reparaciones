@@ -13,8 +13,11 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -34,9 +37,11 @@ public class MainController {
     @FXML private StackPane contenedor;
     @FXML private Button    btnReparaciones;
     @FXML private Button    btnStock;
+    @FXML private Button    btnUsuario;
     @FXML private Label     lblUsuario;
-    @FXML private Button    btnLogout;
     @FXML private Label     lblAlertaStock;
+
+    private ContextMenu menuUsuario;
 
     private List<Componente> alertasCriticas = List.of();
     private com.reparaciones.utils.Recargable controladorActivo;
@@ -44,6 +49,7 @@ public class MainController {
     @FXML
     public void initialize() {
         lblUsuario.setText("Hola, " + Sesion.getUsuario().getNombreUsuario());
+        inicializarMenuUsuario();
         mostrarReparaciones();
         if (Sesion.esAdmin()) {
             verificarStockAlertas();
@@ -181,6 +187,46 @@ public class MainController {
         mostrarVista("/views/StockView.fxml", btnStock, btnReparaciones);
     }
 
+    private void inicializarMenuUsuario() {
+        MenuItem itemDescargar = new MenuItem("Descargar CSV");
+        SeparatorMenuItem sep  = new SeparatorMenuItem();
+        MenuItem itemCerrar    = new MenuItem("Cerrar Sesión");
+
+        itemDescargar.setOnAction(e -> { /* TODO */ });
+        itemCerrar.setOnAction(e -> cerrarSesion());
+
+        menuUsuario = new ContextMenu();
+        if (Sesion.esAdmin()) {
+            MenuItem itemGestionar = new MenuItem("Gestionar técnicos");
+            itemGestionar.setOnAction(e -> abrirGestionTecnicos());
+            menuUsuario.getItems().addAll(itemGestionar, new SeparatorMenuItem());
+        }
+        menuUsuario.getItems().addAll(itemDescargar, sep, itemCerrar);
+    }
+
+    private void abrirGestionTecnicos() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/RegisterView.fxml"));
+            Parent root = loader.load();
+            Stage ventana = new Stage();
+            ventana.initModality(Modality.APPLICATION_MODAL);
+            ventana.initOwner(btnUsuario.getScene().getWindow());
+            ventana.setTitle("Gestión de técnicos");
+            ventana.setScene(new Scene(root));
+            ventana.setResizable(false);
+            ventana.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void mostrarMenuUsuario() {
+        menuUsuario.show(btnUsuario,
+                javafx.geometry.Side.BOTTOM,
+                0, 4);
+    }
+
     @FXML
     private void cerrarSesion() {
         try {
@@ -188,7 +234,7 @@ public class MainController {
             Sesion.cerrar();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/LoginView.fxml"));
             Parent root = loader.load();
-            Stage stage = (Stage) btnLogout.getScene().getWindow();
+            Stage stage = (Stage) btnUsuario.getScene().getWindow();
 
             stage.setMaximized(false);
             stage.setResizable(false);
