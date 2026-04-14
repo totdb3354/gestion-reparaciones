@@ -418,10 +418,10 @@ INSERT INTO Proveedor (NOMBRE, ACTIVO) VALUES ('Fix Phone Parts', FALSE);
 INSERT INTO Compra_componente
     (ID_COM, ID_PROV, CANTIDAD, ES_URGENTE, FECHA_PEDIDO,
      PRECIO_UNIDAD_PEDIDO, DIVISA, PRECIO_EUR,
-     ESTADO, FECHA_LLEGADA, CANTIDAD_RECIBIDA, OBSERVACION_LLEGADA)
+     ESTADO, FECHA_LLEGADA, CANTIDAD_RECIBIDA)
 VALUES (79, 2, 5, FALSE, '2026-03-15 10:00:00',
         18.00, 'USD', 16.56,
-        'recibido', '2026-03-22 16:30:00', 5, 'Pedido recibido sin incidencias.');
+        'recibido', '2026-03-22 16:30:00', 5);
 
 -- Pedido 2: cancelado (bati13 × 10 u., EUR)
 INSERT INTO Compra_componente

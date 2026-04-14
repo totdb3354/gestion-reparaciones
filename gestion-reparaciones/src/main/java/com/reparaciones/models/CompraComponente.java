@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class CompraComponente {
 
-    public enum Estado { pendiente, recibido, alterado, parcial, devuelto, cancelado }
+    public enum Estado { pendiente, recibido, parcial, cancelado }
 
     private int           idCompra;
     private int           idCom;
@@ -20,7 +20,6 @@ public class CompraComponente {
     private String        divisa;
     private double        precioEur;
     private Estado        estado;
-    private String        observacionLlegada; // nullable
     private LocalDateTime updatedAt;
 
     public CompraComponente(int idCompra, int idCom, String tipoComponente,
@@ -29,7 +28,7 @@ public class CompraComponente {
                              boolean esUrgente, LocalDateTime fechaPedido,
                              LocalDateTime fechaLlegada,
                              double precioUnidadPedido, String divisa, double precioEur,
-                             Estado estado, String observacionLlegada,
+                             Estado estado,
                              LocalDateTime updatedAt) {
         this.idCompra            = idCompra;
         this.idCom               = idCom;
@@ -45,7 +44,6 @@ public class CompraComponente {
         this.divisa              = divisa;
         this.precioEur           = precioEur;
         this.estado              = estado;
-        this.observacionLlegada  = observacionLlegada;
         this.updatedAt           = updatedAt;
     }
 
@@ -65,7 +63,6 @@ public class CompraComponente {
     public String        getDivisa()               { return divisa; }
     public double        getPrecioEur()            { return precioEur; }
     public Estado        getEstado()               { return estado; }
-    public String        getObservacionLlegada()   { return observacionLlegada; }
 
     public void setCantidad(int cantidad)                      { this.cantidad = cantidad; }
     public void setCantidadRecibida(Integer cantidadRecibida)  { this.cantidadRecibida = cantidadRecibida; }
@@ -75,7 +72,6 @@ public class CompraComponente {
     public void setDivisa(String divisa)                       { this.divisa = divisa; }
     public void setPrecioEur(double precioEur)                 { this.precioEur = precioEur; }
     public void setEstado(Estado estado)                       { this.estado = estado; }
-    public void setObservacionLlegada(String obs)              { this.observacionLlegada = obs; }
     public void setIdProv(int idProv)                          { this.idProv = idProv; }
     public void setNombreProveedor(String nombre)              { this.nombreProveedor = nombre; }
     public LocalDateTime getUpdatedAt()                        { return updatedAt; }

@@ -15,6 +15,10 @@
         <MenuButton fx:id="filtroTecnico"   text="Técnico" prefWidth="130"/>
         <MenuButton fx:id="filtroSolicitud" text="Tipo"    prefWidth="130"/>
         <Button onAction="#limpiarFiltros" text="Limpiar filtros" styleClass="btn-secondary"/>
+        <Button fx:id="btnAsignar"
+                text="Asignar reparación"
+                onAction="#abrirFormularioAsignacion"
+                styleClass="btn-primary"/>
     </HBox>
 
     <TableView fx:id="tablaPendientes" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
@@ -29,16 +33,10 @@
         <placeholder><Label text="No hay asignaciones pendientes"/></placeholder>
     </TableView>
 
-    <Label fx:id="lblUltimaActualizacion"
-           style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
-           alignment="CENTER_RIGHT" maxWidth="Infinity"/>
-
-    <HBox spacing="8" alignment="CENTER_LEFT">
-        <Button fx:id="btnAsignar"
-                text="Asignar reparación +"
-                onAction="#abrirFormularioAsignacion"
-                styleClass="btn-primary"/>
-        <HBox HBox.hgrow="ALWAYS"/>
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Label fx:id="lblUltimaActualizacion"
+               style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+               HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnConfirmarCambios"
                 text="Confirmar cambios"
                 onAction="#confirmarCambiosTecnico"
