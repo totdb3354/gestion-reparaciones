@@ -20,12 +20,12 @@
     <!-- ── Sidebar ── -->
     <left>
         <VBox styleClass="stock-sidebar" spacing="0">
+            <Button fx:id="btnTabPendientes"   text="Asignaciones"    maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#abrirModalPendientes"/>
+            <Button fx:id="btnTabMisPendientes" text="Pendientes"    maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#abrirMisPendientes"/>
             <Button fx:id="btnTabHistorial"    text="Historial"       maxWidth="Infinity"
                     styleClass="stock-sidebar-btn-active" onAction="#mostrarHistorial"/>
-            <Button fx:id="btnTabPendientes"   text="Pendientes"      maxWidth="Infinity"
-                    styleClass="stock-sidebar-btn"        onAction="#abrirModalPendientes"/>
-            <Button fx:id="btnTabMisPendientes" text="Mis pendientes" maxWidth="Infinity"
-                    styleClass="stock-sidebar-btn"        onAction="#abrirMisPendientes"/>
         </VBox>
     </left>
 
@@ -53,7 +53,6 @@
                     </HBox>
                     <TableView fx:id="tablaReparaciones" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="colAcciones" maxWidth="80" minWidth="80" text=""/>
                             <TableColumn fx:id="colIdRep" minWidth="110" text="Id Reparación"/>
                             <TableColumn fx:id="colImei" minWidth="130" text="IMEI teléfono"/>
                             <TableColumn fx:id="colReparador" minWidth="100" text="Reparador"/>

@@ -178,8 +178,8 @@
 
 .tabla-reparaciones .table-row-cell {
     -fx-background-color: #FFFFFF;
-    -fx-border-color: transparent transparent #586376 transparent;
-    -fx-border-width: 0 0 0.2 0;
+    -fx-border-color: transparent transparent #C2C8D0 transparent;
+    -fx-border-width: 0 0 1 0;
     -fx-cell-size: 35px;
 }
 

@@ -99,7 +99,19 @@ public class LoginController {
             stage.setTitle("Gestión de Reparaciones");
             stage.setMinWidth(900);
             stage.setMinHeight(600);
-            stage.setMaximized(true); // ← siempre después de setScene
+            boolean esMac = System.getProperty("os.name").toLowerCase().contains("mac");
+            if (esMac) {
+                javafx.application.Platform.runLater(() -> {
+                    javafx.geometry.Rectangle2D pantalla =
+                            javafx.stage.Screen.getPrimary().getVisualBounds();
+                    stage.setX(pantalla.getMinX());
+                    stage.setY(pantalla.getMinY());
+                    stage.setWidth(pantalla.getWidth());
+                    stage.setHeight(pantalla.getHeight());
+                });
+            } else {
+                javafx.application.Platform.runLater(() -> stage.setMaximized(true));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

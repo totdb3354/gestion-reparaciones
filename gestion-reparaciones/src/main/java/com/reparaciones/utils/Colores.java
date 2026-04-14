@@ -32,9 +32,7 @@ public final class Colores {
     public static final String FILA_RECIBIDO_BG  = "#C8E6C9";
     public static final String FILA_RECIBIDO_BRD = "#3a7d44";
 
-    /** Fila pedido alterado — naranja salmón, distinto del ámbar de solicitudes */
-    public static final String FILA_ALTERADO_BG  = "#FAD9C1";
-    public static final String FILA_ALTERADO_BRD = "#C0622A";
+
 
     /** Fila pedido parcial — lila claro */
     public static final String FILA_PARCIAL_BG  = "#E8E0F7";
@@ -81,6 +79,9 @@ public final class Colores {
 
     /** Borde inferior de fila seleccionada (azul oscuro) */
     public static final String FILA_SELECTED_BRD = "#3D5070";
+
+    /** Separador inferior entre filas (gris claro) */
+    public static final String FILA_SEP = "#C2C8D0";
 
     // ─── Acciones destructivas ────────────────────────────────────────────────
 
