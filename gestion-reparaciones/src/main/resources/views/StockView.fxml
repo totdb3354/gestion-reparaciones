@@ -33,6 +33,8 @@
                     <MenuButton fx:id="menuFiltroStock" text="Estado" prefWidth="130"/>
                     <TextField fx:id="txtBuscador" promptText="Buscar componente…"
                                styleClass="buscador" prefWidth="220"/>
+                    <Button fx:id="btnLimpiarFiltrosStock" text="Limpiar filtros"
+                            styleClass="btn-secondary" onAction="#limpiarFiltrosStock"/>
                 </HBox>
                 <HBox spacing="16" VBox.vgrow="ALWAYS">
                     <VBox HBox.hgrow="ALWAYS" spacing="0">
@@ -89,7 +91,11 @@
                 <HBox alignment="CENTER_LEFT" spacing="12">
                     <Label text="Pedidos" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
                     <MenuButton fx:id="menuFiltroEstado" text="Estado" prefWidth="140"/>
-                    <Button text="Nuevo pedido" styleClass="btn-primary" onAction="#nuevoPedido"/>
+                    <TextField fx:id="txtBuscadorPedidos" promptText="Buscar componente…"
+                               styleClass="buscador" prefWidth="200"/>
+                    <Button fx:id="btnLimpiarFiltrosPedidos" text="Limpiar filtros"
+                            styleClass="btn-secondary" onAction="#limpiarFiltrosPedidos"/>
+                    <Button fx:id="btnNuevoPedido" text="Nuevo pedido" styleClass="btn-primary" onAction="#nuevoPedido"/>
                 </HBox>
                 <TableView fx:id="tablaPedidos" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                     <columns>
@@ -114,12 +120,13 @@
             <VBox fx:id="pnlProveedores" spacing="12" visible="false" managed="false">
                 <HBox alignment="CENTER_LEFT" spacing="12">
                     <Label text="Proveedores" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
-                    <Button text="Nuevo proveedor" styleClass="btn-primary" onAction="#nuevoProveedor"/>
+                    <Button fx:id="btnNuevoProveedor" text="Nuevo proveedor" styleClass="btn-primary" onAction="#nuevoProveedor"/>
                 </HBox>
                 <TableView fx:id="tablaProveedores" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="cpvNombre" text="Nombre" prefWidth="300"/>
-                        <TableColumn fx:id="cpvActivo" text="Estado" prefWidth="100"/>
+                        <TableColumn fx:id="cpvNombre"      text="Nombre"      prefWidth="300"/>
+                        <TableColumn fx:id="cpvActivo"      text="Estado"      prefWidth="100"/>
+                        <TableColumn fx:id="cpvIncidencias" text="Incidencias" prefWidth="100"/>
                     </columns>
                     <placeholder><Label text="Sin proveedores"/></placeholder>
                 </TableView>

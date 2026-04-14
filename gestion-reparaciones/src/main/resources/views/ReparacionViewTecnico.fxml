@@ -46,7 +46,7 @@
                         <Label text="Hasta:" style="-fx-font-size: 12px;"/>
                         <DatePicker fx:id="filtroFechaHasta" prefWidth="130"/>
                         <MenuButton fx:id="filtroIncidencias" text="Incidencias" prefWidth="130"/>
-                        <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar"/>
+                        <Button fx:id="btnLimpiarFiltros" onAction="#limpiarFiltros" styleClass="btn-secondary" text="Limpiar filtros"/>
                     </HBox>
                     <TableView fx:id="tablaReparaciones" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                         <columns>
