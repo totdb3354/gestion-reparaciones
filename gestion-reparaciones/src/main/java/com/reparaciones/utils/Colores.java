@@ -60,8 +60,8 @@ public final class Colores {
     /** Texto de advertencia / incidencia / error de validación */
     public static final String TEXTO_ERROR    = "#B03040";
 
-    /** Texto de acción secundaria — azul medio */
-    public static final String TEXTO_ACCION   = "#5B8CFF";
+    /** Texto de acción secundaria / hipervínculo — azul naval apagado */
+    public static final String TEXTO_ACCION   = "#4A6FA5";
 
     /** Verde confirmación */
     public static final String VERDE_OK       = "#4CAF50";

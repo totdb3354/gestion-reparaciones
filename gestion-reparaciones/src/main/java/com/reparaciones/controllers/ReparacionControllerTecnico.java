@@ -220,13 +220,13 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         colIdAnterior.setCellFactory(col -> new TableCell<>() {
             private final Label lblLink = new Label();
             {
-                lblLink.setStyle("-fx-text-fill: #5B8CFF; -fx-cursor: hand;");
+                lblLink.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-cursor: hand;");
                 lblLink.setTextOverrun(OverrunStyle.ELLIPSIS);
                 lblLink.setMaxWidth(Double.MAX_VALUE);
                 lblLink.setOnMouseEntered(
-                        e -> lblLink.setStyle("-fx-text-fill: #5B8CFF; -fx-cursor: hand; -fx-underline: true;"));
+                        e -> lblLink.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-cursor: hand; -fx-underline: true;"));
                 lblLink.setOnMouseExited(
-                        e -> lblLink.setStyle("-fx-text-fill: #5B8CFF; -fx-cursor: hand; -fx-underline: false;"));
+                        e -> lblLink.setStyle("-fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-cursor: hand; -fx-underline: false;"));
                 lblLink.setOnMouseClicked(e -> {
                     String idAnterior = getTableView().getItems().get(getIndex()).getIdRepAnterior();
                     if (idAnterior == null)

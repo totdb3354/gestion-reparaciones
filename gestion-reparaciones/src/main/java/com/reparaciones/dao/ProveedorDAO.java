@@ -72,13 +72,23 @@ public class ProveedorDAO {
         }
     }
 
+    public void registrarIncidencia(int idProv) throws SQLException {
+        String sql = "UPDATE Proveedor SET NUM_INCIDENCIAS = NUM_INCIDENCIAS + 1 WHERE ID_PROV = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idProv);
+            ps.executeUpdate();
+        }
+    }
+
     // ─── Mapeo ────────────────────────────────────────────────────────────────
 
     private Proveedor mapear(ResultSet rs) throws SQLException {
         return new Proveedor(
                 rs.getInt("ID_PROV"),
                 rs.getString("NOMBRE"),
-                rs.getBoolean("ACTIVO")
+                rs.getBoolean("ACTIVO"),
+                rs.getInt("NUM_INCIDENCIAS")
         );
     }
 }

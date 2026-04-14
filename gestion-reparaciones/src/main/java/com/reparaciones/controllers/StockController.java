@@ -28,9 +28,13 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private Button btnTabProveedores;
 
     // ── Panels ────────────────────────────────────────────────────────────────
-    @FXML private VBox pnlStock;
-    @FXML private VBox pnlPedidos;
-    @FXML private VBox pnlProveedores;
+    @FXML private VBox   pnlStock;
+    @FXML private VBox   pnlPedidos;
+    @FXML private VBox   pnlProveedores;
+    @FXML private Button btnNuevoPedido;
+    @FXML private Button btnNuevoProveedor;
+    @FXML private Button btnLimpiarFiltrosStock;
+    @FXML private Button btnLimpiarFiltrosPedidos;
 
     // ── Panel Stock actual ────────────────────────────────────────────────────
     @FXML private TableView<Componente>             tablaStock;
@@ -42,6 +46,7 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableColumn<Componente, String>   colEstado;
     @FXML private TextField                         txtBuscador;
     @FXML private MenuButton                        menuFiltroStock;
+    @FXML private TextField                         txtBuscadorPedidos;
     @FXML private PieChart                          chartEstado;
     @FXML private javafx.scene.chart.BarChart<String, Number>       chartSku;
     @FXML private javafx.scene.chart.CategoryAxis                   chartSkuX;
@@ -72,6 +77,7 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableView<Proveedor>             tablaProveedores;
     @FXML private TableColumn<Proveedor, String>   cpvNombre;
     @FXML private TableColumn<Proveedor, String>   cpvActivo;
+    @FXML private TableColumn<Proveedor, Integer>  cpvIncidencias;
 
     // ── Última actualización ──────────────────────────────────────────────────
     @FXML private Label lblUltimaActStock;
@@ -104,6 +110,10 @@ public class StockController implements com.reparaciones.utils.Recargable {
         configurarTablaStock();
         configurarTablaPedidos();
         configurarTablaProveedores();
+        if (!com.reparaciones.Sesion.esAdmin()) {
+            btnNuevoPedido   .setVisible(false); btnNuevoPedido   .setManaged(false);
+            btnNuevoProveedor.setVisible(false); btnNuevoProveedor.setManaged(false);
+        }
         cargarStock();
 
         poller.scheduleAtFixedRate(
@@ -126,6 +136,22 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private void mostrarTabStock() {
         mostrarPanel(pnlStock, btnTabStock);
         cargarStock();
+    }
+
+    private void navegarAPedidosDeComponente(Componente comp) {
+        mostrarTabPedidos();
+        // Activar solo pendiente + parcial (los que forman "en camino")
+        cbsEstado.forEach(cb -> cb.setSelected(
+                cb.getText().equals("pendiente") || cb.getText().equals("parcial")));
+        // Rellenar buscador con el nombre del componente
+        txtBuscadorPedidos.setText(comp.getTipo());
+        // Seleccionar y hacer scroll al primer pedido activo del componente
+        javafx.application.Platform.runLater(() ->
+            tablaPedidos.getItems().stream().findFirst().ifPresent(p -> {
+                tablaPedidos.getSelectionModel().select(p);
+                tablaPedidos.scrollTo(p);
+            })
+        );
     }
 
     private void navegarAComponente(int idCom) {
@@ -153,6 +179,18 @@ public class StockController implements com.reparaciones.utils.Recargable {
         cargarProveedores();
     }
 
+    @FXML private void limpiarFiltrosStock() {
+        cbOk.setSelected(false);
+        cbBajo.setSelected(false);
+        cbSinStock.setSelected(false);
+        txtBuscador.clear();
+    }
+
+    @FXML private void limpiarFiltrosPedidos() {
+        cbsEstado.forEach(cb -> cb.setSelected(false));
+        txtBuscadorPedidos.clear();
+    }
+
     private void mostrarPanel(VBox panel, Button btnActivo) {
         pnlStock.setVisible(false);       pnlStock.setManaged(false);
         pnlPedidos.setVisible(false);     pnlPedidos.setManaged(false);
@@ -178,9 +216,21 @@ public class StockController implements com.reparaciones.utils.Recargable {
         colEnCamino.setCellValueFactory(c ->
                 new javafx.beans.property.SimpleIntegerProperty(c.getValue().getEnCamino()).asObject());
         colEnCamino.setCellFactory(col -> new TableCell<>() {
+            private final Label lbl = new Label();
+            {
+                lbl.setStyle("-fx-cursor: hand; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + ";");
+                lbl.setOnMouseEntered(e -> lbl.setStyle("-fx-cursor: hand; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-underline: true;"));
+                lbl.setOnMouseExited(e  -> lbl.setStyle("-fx-cursor: hand; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-underline: false;"));
+                lbl.setOnMouseClicked(e -> {
+                    Componente comp = getTableView().getItems().get(getIndex());
+                    navegarAPedidosDeComponente(comp);
+                });
+            }
             @Override protected void updateItem(Integer val, boolean empty) {
                 super.updateItem(val, empty);
-                setText(empty || val == null ? null : val == 0 ? "—" : String.valueOf(val));
+                if (empty || val == null) { setText(null); setGraphic(null); return; }
+                if (val == 0) { setText("—"); setGraphic(null); }
+                else          { lbl.setText(String.valueOf(val)); setText(null); setGraphic(lbl); }
             }
         });
         colStockMin.setCellValueFactory(c ->
@@ -213,16 +263,19 @@ public class StockController implements com.reparaciones.utils.Recargable {
         // Menú contextual (solo admin)
         if (com.reparaciones.Sesion.esAdmin()) {
             ContextMenu ctxStock = new ContextMenu();
-            MenuItem itemPedir = new MenuItem("Pedir");
-            MenuItem itemMin   = new MenuItem("Ajustar mínimo");
-            ctxStock.getItems().addAll(itemPedir, itemMin);
+            MenuItem itemPedir  = new MenuItem("Pedir");
+            MenuItem itemMin    = new MenuItem("Ajustar mínimo");
+            MenuItem itemEditar = new MenuItem("Editar stock");
+            ctxStock.getItems().addAll(itemPedir, itemEditar, new SeparatorMenuItem(), itemMin);
             tablaStock.setContextMenu(ctxStock);
             tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-                itemPedir.setDisable(sel == null);
-                itemMin  .setDisable(sel == null);
+                itemPedir .setDisable(sel == null);
+                itemMin   .setDisable(sel == null);
+                itemEditar.setDisable(sel == null);
             });
-            itemPedir.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) pedirComponente(sel); });
-            itemMin  .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) ajustarMinimo(sel); });
+            itemPedir .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) pedirComponente(sel); });
+            itemMin   .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) ajustarMinimo(sel); });
+            itemEditar.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) editarStock(sel); });
         }
 
         // Filtros: buscador + estado (MenuButton con CheckBoxes)
@@ -418,6 +471,110 @@ public class StockController implements com.reparaciones.utils.Recargable {
         });
     }
 
+    private void editarStock(Componente c) {
+        Label lblTitulo = new Label("Editar stock");
+        lblTitulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+
+        Label lblActual = new Label("Componente: " + c.getTipo() + "   ·   Stock actual: " + c.getStock() + " ud(s).");
+        lblActual.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376;");
+
+        Label lblNueva = new Label("Nueva cantidad");
+        lblNueva.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
+
+        TextField tfCantidad = new TextField(String.valueOf(c.getStock()));
+        tfCantidad.setStyle("-fx-background-color: white; -fx-border-color: #C2C8D0;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
+                "-fx-text-fill: #2C3B54; -fx-font-size: 13px;");
+
+        // ── Incidencia con proveedor ──
+        CheckBox chkIncidencia = new CheckBox("¿Incidencia con proveedor?");
+        chkIncidencia.setStyle("-fx-font-size: 12px; -fx-text-fill: #2C3B54;");
+
+        Label lblProveedor = new Label("Proveedor afectado");
+        lblProveedor.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
+        lblProveedor.setVisible(false);
+        lblProveedor.setManaged(false);
+
+        javafx.scene.control.ComboBox<Proveedor> cmbProv = new javafx.scene.control.ComboBox<>();
+        cmbProv.setMaxWidth(Double.MAX_VALUE);
+        cmbProv.setVisible(false);
+        cmbProv.setManaged(false);
+        try {
+            cmbProv.getItems().setAll(proveedorDAO.getActivos());
+        } catch (SQLException ex) { mostrarError(ex); }
+
+        Label lblError = new Label();
+        lblError.setStyle("-fx-font-size: 11px; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ERROR + ";");
+        lblError.setVisible(false);
+
+        Button btnConfirmar = new Button("Confirmar");
+        btnConfirmar.setMaxWidth(Double.MAX_VALUE);
+        btnConfirmar.getStyleClass().add("btn-primary");
+
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.setMaxWidth(Double.MAX_VALUE);
+        btnCancelar.getStyleClass().add("btn-secondary");
+
+        javafx.scene.layout.HBox botones = new javafx.scene.layout.HBox(10, btnCancelar, btnConfirmar);
+        botones.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        javafx.scene.layout.VBox contenido = new javafx.scene.layout.VBox(12,
+                lblTitulo, lblActual, lblNueva, tfCantidad,
+                chkIncidencia, lblProveedor, cmbProv,
+                lblError, botones);
+        contenido.setPadding(new javafx.geometry.Insets(28));
+        contenido.setPrefWidth(380);
+        contenido.setStyle("-fx-background-color: #DDE1E7;");
+
+        javafx.stage.Stage ventana = new javafx.stage.Stage();
+        ventana.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        ventana.setResizable(false);
+        ventana.setTitle("Editar stock — " + c.getTipo());
+
+        chkIncidencia.selectedProperty().addListener((obs, o, sel) -> {
+            lblProveedor.setVisible(sel); lblProveedor.setManaged(sel);
+            cmbProv.setVisible(sel);      cmbProv.setManaged(sel);
+            javafx.application.Platform.runLater(ventana::sizeToScene);
+        });
+
+        btnCancelar.setOnAction(ev -> ventana.close());
+
+        btnConfirmar.setOnAction(ev -> {
+            try {
+                int nueva = Integer.parseInt(tfCantidad.getText().trim());
+                if (nueva < 0) throw new NumberFormatException();
+                if (chkIncidencia.isSelected() && cmbProv.getValue() == null) {
+                    lblError.setText("Selecciona el proveedor afectado.");
+                    lblError.setVisible(true);
+                    return;
+                }
+                c.setStock(nueva);
+                componenteDAO.actualizar(c);
+                if (chkIncidencia.isSelected()) {
+                    proveedorDAO.registrarIncidencia(cmbProv.getValue().getIdProv());
+                    cargarProveedores();
+                }
+                ventana.close();
+                cargarStock();
+            } catch (NumberFormatException ex) {
+                lblError.setText("Cantidad no válida (debe ser ≥ 0).");
+                lblError.setVisible(true);
+            } catch (com.reparaciones.utils.StaleDataException ex) {
+                ventana.close();
+                new Alert(Alert.AlertType.WARNING, "El componente fue modificado mientras editabas. Recarga los datos.").showAndWait();
+                cargarStock();
+            } catch (SQLException ex) { mostrarError(ex); }
+        });
+
+        tfCantidad.setOnKeyPressed(ev -> { if (ev.getCode() == javafx.scene.input.KeyCode.ENTER) btnConfirmar.fire(); });
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(contenido);
+        scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
+        ventana.setScene(scene);
+        javafx.application.Platform.runLater(tfCantidad::requestFocus);
+        ventana.showAndWait();
+    }
+
     private void ajustarMinimo(Componente c) {
         TextInputDialog d = new TextInputDialog(String.valueOf(c.getStockMinimo()));
         d.setTitle("Stock mínimo");
@@ -444,9 +601,9 @@ public class StockController implements com.reparaciones.utils.Recargable {
         cpComponente.setCellFactory(col -> new TableCell<>() {
             private final Label lbl = new Label();
             {
-                lbl.setStyle("-fx-cursor: hand;");
-                lbl.setOnMouseEntered(e -> lbl.setStyle("-fx-cursor: hand; -fx-underline: true;"));
-                lbl.setOnMouseExited(e  -> lbl.setStyle("-fx-cursor: hand; -fx-underline: false;"));
+                lbl.setStyle("-fx-cursor: hand; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + ";");
+                lbl.setOnMouseEntered(e -> lbl.setStyle("-fx-cursor: hand; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-underline: true;"));
+                lbl.setOnMouseExited(e  -> lbl.setStyle("-fx-cursor: hand; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ACCION + "; -fx-underline: false;"));
                 lbl.setOnMouseClicked(e -> {
                     CompraComponente pedido = getTableView().getItems().get(getIndex());
                     navegarAComponente(pedido.getIdCom());
@@ -597,28 +754,38 @@ public class StockController implements com.reparaciones.utils.Recargable {
             }
         });
 
-        // Filtro por estado — multiselector
+        // Filtro por estado + buscador de componente
         FilteredList<CompraComponente> filtrada = new FilteredList<>(datosPedidos, p -> true);
+        Runnable aplicarFiltroPedidos = () -> {
+            actualizarTextoFiltroEstado();
+            java.util.List<String> sel = cbsEstado.stream()
+                    .filter(CheckBox::isSelected).map(CheckBox::getText)
+                    .collect(java.util.stream.Collectors.toList());
+            String texto = txtBuscadorPedidos.getText();
+            filtrada.setPredicate(p -> {
+                boolean coincideEstado = sel.isEmpty() || sel.contains(p.getEstado().name());
+                boolean coincideTexto  = texto == null || texto.isBlank() ||
+                        p.getTipoComponente().toLowerCase().contains(texto.toLowerCase().trim());
+                return coincideEstado && coincideTexto;
+            });
+        };
         for (String estado : new String[]{"pendiente", "parcial", "recibido", "cancelado"}) {
             CheckBox cb = new CheckBox(estado);
             cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
-            cb.selectedProperty().addListener((obs, o, n) -> {
-                actualizarTextoFiltroEstado();
-                java.util.List<String> sel = cbsEstado.stream()
-                        .filter(CheckBox::isSelected).map(CheckBox::getText)
-                        .collect(java.util.stream.Collectors.toList());
-                filtrada.setPredicate(p -> sel.isEmpty() || sel.contains(p.getEstado().name()));
-            });
+            cb.selectedProperty().addListener((obs, o, n) -> aplicarFiltroPedidos.run());
             cbsEstado.add(cb);
             menuFiltroEstado.getItems().add(new CustomMenuItem(cb, false));
         }
+        txtBuscadorPedidos.textProperty().addListener((obs, o, n) -> aplicarFiltroPedidos.run());
         tablaPedidos.setItems(filtrada);
 
-        // Menú contextual según estado de la fila
-        ContextMenu ctx = new ContextMenu();
-        tablaPedidos.setContextMenu(ctx);
-        tablaPedidos.getSelectionModel().selectedItemProperty().addListener(
-                (obs, old, sel) -> construirMenuContextual(ctx, sel));
+        // Menú contextual según estado de la fila (solo admin)
+        if (com.reparaciones.Sesion.esAdmin()) {
+            ContextMenu ctx = new ContextMenu();
+            tablaPedidos.setContextMenu(ctx);
+            tablaPedidos.getSelectionModel().selectedItemProperty().addListener(
+                    (obs, old, sel) -> construirMenuContextual(ctx, sel));
+        }
     }
 
     private void construirMenuContextual(ContextMenu ctx, CompraComponente sel) {
@@ -800,6 +967,8 @@ public class StockController implements com.reparaciones.utils.Recargable {
     private void configurarTablaProveedores() {
         cpvNombre.setCellValueFactory(c -> sp(c.getValue().getNombre()));
         cpvActivo.setCellValueFactory(c -> sp(c.getValue().isActivo() ? "Activo" : "Inactivo"));
+        cpvIncidencias.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getNumIncidencias()));
         cpvActivo.setCellFactory(col -> new TableCell<>() {
             private final Label badge = new Label();
             @Override protected void updateItem(String val, boolean empty) {
@@ -830,7 +999,7 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                              "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                             "-fx-border-width: 0 0 0.2 0;");
+                             "-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;");
                 } else if (getItem().isActivo()) {
                     setStyle("-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;" +
                              "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_REPARADO_BRD + ";");
@@ -845,22 +1014,24 @@ public class StockController implements com.reparaciones.utils.Recargable {
         });
         tablaProveedores.setItems(datosProveedores);
 
-        ContextMenu ctxProv = new ContextMenu();
-        tablaProveedores.setContextMenu(ctxProv);
-        tablaProveedores.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-            ctxProv.getItems().clear();
-            if (sel == null) return;
-            MenuItem itemToggle = new MenuItem(sel.isActivo() ? "Desactivar" : "Activar");
-            itemToggle.setOnAction(e -> activarProveedor());
-            ctxProv.getItems().add(itemToggle);
-            try {
-                if (!proveedorDAO.tienePedidos(sel.getIdProv())) {
-                    MenuItem itemBorrar = new MenuItem("Borrar");
-                    itemBorrar.setOnAction(e -> borrarProveedor());
-                    ctxProv.getItems().add(itemBorrar);
-                }
-            } catch (SQLException e) { mostrarError(e); }
-        });
+        if (com.reparaciones.Sesion.esAdmin()) {
+            ContextMenu ctxProv = new ContextMenu();
+            tablaProveedores.setContextMenu(ctxProv);
+            tablaProveedores.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+                ctxProv.getItems().clear();
+                if (sel == null) return;
+                MenuItem itemToggle = new MenuItem(sel.isActivo() ? "Desactivar" : "Activar");
+                itemToggle.setOnAction(e -> activarProveedor());
+                ctxProv.getItems().add(itemToggle);
+                try {
+                    if (!proveedorDAO.tienePedidos(sel.getIdProv())) {
+                        MenuItem itemBorrar = new MenuItem("Borrar");
+                        itemBorrar.setOnAction(e -> borrarProveedor());
+                        ctxProv.getItems().add(itemBorrar);
+                    }
+                } catch (SQLException e) { mostrarError(e); }
+            });
+        }
     }
 
     private void cargarProveedores() {
