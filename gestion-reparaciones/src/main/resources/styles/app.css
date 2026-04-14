@@ -50,8 +50,22 @@
 
 .navbar-user {
     -fx-font-size: 12px;
+    -fx-font-weight: bold;
     -fx-text-fill: #F6F6F6;
 }
+
+.navbar-user-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 4 8 4 8;
+}
+
+.navbar-user-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-background-radius: 8;
+}
+
 
 .navbar-change-user {
     -fx-font-size: 12px;

@@ -5,9 +5,6 @@ import com.reparaciones.models.Usuario;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -258,20 +255,11 @@ public class RegisterController {
     }
 
     /**
-     * Vuelve a LoginView sin registrar nada.
+     * Cierra el modal de gestión de técnicos.
      */
     @FXML
-    private void volverLogin() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/LoginView.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) btnRegistrar.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Gestión de Reparaciones — Login");
-            stage.centerOnScreen();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void cerrar() {
+        ((Stage) btnRegistrar.getScene().getWindow()).close();
     }
 
     private void mostrarError(String mensaje) {

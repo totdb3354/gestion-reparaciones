@@ -112,8 +112,8 @@
     <bottom>
         <HBox alignment="CENTER_RIGHT" style="-fx-background-color: #EFEFEF;">
             <padding><Insets top="12" right="48" bottom="20" left="48"/></padding>
-            <Button text="Volver al login"
-                    onAction="#volverLogin"
+            <Button text="Cerrar"
+                    onAction="#cerrar"
                     style="-fx-background-color: transparent; -fx-border-color: transparent;
                            -fx-text-fill: #586376; -fx-font-size: 12px; -fx-cursor: hand;"/>
         </HBox>
