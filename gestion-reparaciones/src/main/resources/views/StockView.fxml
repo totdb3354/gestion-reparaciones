@@ -124,9 +124,8 @@
                 </HBox>
                 <TableView fx:id="tablaProveedores" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="cpvNombre"      text="Nombre"      prefWidth="300"/>
-                        <TableColumn fx:id="cpvActivo"      text="Estado"      prefWidth="100"/>
-                        <TableColumn fx:id="cpvIncidencias" text="Incidencias" prefWidth="100"/>
+                        <TableColumn fx:id="cpvNombre" text="Nombre" prefWidth="300"/>
+                        <TableColumn fx:id="cpvActivo" text="Estado"  prefWidth="100"/>
                     </columns>
                     <placeholder><Label text="Sin proveedores"/></placeholder>
                 </TableView>
