@@ -183,6 +183,11 @@
     -fx-cell-size: 35px;
 }
 
+.tabla-reparaciones .table-row-cell:selected {
+    -fx-background-color: #2C3B54;
+    -fx-border-color: transparent transparent #2C3B54 transparent;
+}
+
 .tabla-reparaciones .table-row-cell:selected .text {
     -fx-fill: #F6F6F6;
 }
