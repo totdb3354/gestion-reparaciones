@@ -12,6 +12,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -28,7 +29,9 @@ public class RegisterController {
     @FXML private Button        btnRegistrar;
 
     @FXML private TableView<Usuario>           tablaUsuarios;
+    @FXML private TableColumn<Usuario, String> colNombreTecnico;
     @FXML private TableColumn<Usuario, String> colNombreUsuario;
+    @FXML private TableColumn<Usuario, Void>   colEstado;
     @FXML private TableColumn<Usuario, Void>   colAcciones;
 
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
@@ -44,45 +47,100 @@ public class RegisterController {
     }
 
     /**
-     * Configura las columnas de la tabla de usuarios existentes.
-     * La columna acciones tiene un botón borrar por fila.
+     * Configura las columnas de la tabla.
+     * - colNombreTecnico: nombre visible del técnico
+     * - colNombreUsuario: credencial de login
+     * - colEstado: badge Activo / Inactivo
+     * - colAcciones: icono toggle (activar/desactivar) + icono borrar (solo si sin reparaciones)
      */
     private void configurarTabla() {
+        colNombreTecnico.setCellValueFactory(
+            data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getNombreTecnico()));
         colNombreUsuario.setCellValueFactory(
             data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getNombreUsuario()));
 
-        Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        // Badge de estado
+        colEstado.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
+            {
+                badge.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; " +
+                               "-fx-background-radius: 10; -fx-padding: 3 10 3 10;");
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                    return;
+                }
+                boolean activo = getTableView().getItems().get(getIndex()).isActivo();
+                if (activo) {
+                    badge.setText("Activo");
+                    badge.setStyle(badge.getStyle() +
+                        "-fx-background-color: #D4EDDA; -fx-text-fill: #2E7D32;");
+                } else {
+                    badge.setText("Inactivo");
+                    badge.setStyle(badge.getStyle() +
+                        "-fx-background-color: #F5E6E6; -fx-text-fill: #B03040;");
+                }
+                setGraphic(badge);
+            }
+        });
+
+        // Iconos de acción: toggle activo/inactivo + borrar (solo si no tiene reparaciones)
+        Image imgBorrar     = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+        Image imgDesactivar = new Image(getClass().getResourceAsStream("/images/Lock.png"));
+        Image imgActivar    = new Image(getClass().getResourceAsStream("/images/Unlock.png"));
 
         colAcciones.setCellFactory(col -> new TableCell<>() {
-            private final ImageView iv = new ImageView(imgBorrar);
-            private final HBox contenedor = new HBox(iv);
+            private final Button btnToggle = new Button();
+            private final ImageView ivToggle = new ImageView();
+            private final ImageView ivBorrar = new ImageView(imgBorrar);
+            private final Region    spacer   = new Region();
+            private final HBox      contenedor;
 
             {
-                iv.setFitWidth(20);
-                iv.setFitHeight(20);
-                iv.setPreserveRatio(true);
-                iv.setStyle("-fx-cursor: hand;");
+                ivToggle.setFitWidth(18); ivToggle.setFitHeight(18); ivToggle.setPreserveRatio(true);
+                ivBorrar.setFitWidth(22); ivBorrar.setFitHeight(22); ivBorrar.setPreserveRatio(true);
+
+                // Botón transparente con padding amplio para área de click cómoda
+                btnToggle.setGraphic(ivToggle);
+                btnToggle.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
+                                   "-fx-cursor: hand; -fx-padding: 4 6 4 6;");
+
+                ivBorrar.setStyle("-fx-cursor: hand;");
+                spacer.setPrefWidth(4);
+                contenedor = new HBox(btnToggle, spacer, ivBorrar);
                 contenedor.setAlignment(javafx.geometry.Pos.CENTER);
 
-                iv.setOnMouseClicked(e -> {
+                btnToggle.setOnAction(e -> {
                     Usuario u = getTableView().getItems().get(getIndex());
-                    confirmarBorrado(u);
+                    toggleActivacion(u);
+                });
+                ivBorrar.setOnMouseClicked(e -> {
+                    Usuario u = getTableView().getItems().get(getIndex());
+                    intentarEliminar(u);
                 });
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : contenedor);
+                if (empty || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                    return;
+                }
+                boolean activo = getTableView().getItems().get(getIndex()).isActivo();
+                // candado abierto = activo (tiene acceso), cerrado = inactivo (sin acceso)
+                ivToggle.setImage(activo ? imgActivar : imgDesactivar);
+                Tooltip.install(btnToggle, new Tooltip(activo ? "Desactivar acceso" : "Activar acceso"));
+                setGraphic(contenedor);
             }
         });
 
         tablaUsuarios.setItems(datos);
     }
 
-    /**
-     * Carga todos los usuarios con rol TECNICO en la tabla.
-     */
     private void cargarUsuarios() {
         try {
             List<Usuario> lista = usuarioDAO.getUsuariosTecnicos();
@@ -93,29 +151,58 @@ public class RegisterController {
     }
 
     /**
-     * Muestra confirmación antes de borrar el usuario.
-     * Solo borra el registro de Usuario (credenciales) — la tabla Tecnico
-     * y todas las reparaciones históricas quedan intactas.
+     * Activa o desactiva el técnico según su estado actual.
+     * El login queda bloqueado automáticamente si está inactivo.
      */
-    private void confirmarBorrado(Usuario u) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Borrar usuario");
-        confirm.setHeaderText("¿Borrar el usuario \"" + u.getNombreUsuario() + "\"?");
-        confirm.setContentText(
-            "El técnico seguirá apareciendo en las reparaciones históricas.\n" +
-            "Solo se elimina su acceso al sistema.");
-
-        confirm.showAndWait().ifPresent(respuesta -> {
-            if (respuesta == ButtonType.OK) {
-                try {
-                    usuarioDAO.borrarUsuario(u.getIdUsu());
-                    cargarUsuarios();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    mostrarError("Error al borrar el usuario.");
-                }
+    private void toggleActivacion(Usuario u) {
+        try {
+            if (u.isActivo()) {
+                usuarioDAO.desactivarTecnico(u.getIdTec());
+            } else {
+                usuarioDAO.activarTecnico(u.getIdTec());
             }
-        });
+            cargarUsuarios();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            mostrarError("Error al cambiar el estado del técnico.");
+        }
+    }
+
+    /**
+     * Intenta eliminar el técnico. Solo lo permite si no tiene reparaciones asociadas.
+     * Si las tiene, informa al usuario y le ofrece desactivarlo en su lugar.
+     * Si no las tiene, pide confirmación y elimina Usuario + Tecnico en transacción.
+     */
+    private void intentarEliminar(Usuario u) {
+        try {
+            if (usuarioDAO.tieneReparaciones(u.getIdTec())) {
+                Alert info = new Alert(Alert.AlertType.INFORMATION);
+                info.setTitle("No se puede eliminar");
+                info.setHeaderText("\"" + u.getNombreTecnico() + "\" tiene reparaciones asociadas.");
+                info.setContentText("No es posible eliminarlo para conservar el historial.\n" +
+                                    "Puedes desactivarlo para bloquear su acceso.");
+                info.showAndWait();
+                return;
+            }
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Eliminar técnico");
+            confirm.setHeaderText("¿Eliminar a \"" + u.getNombreTecnico() + "\" definitivamente?");
+            confirm.setContentText("Se borrarán sus credenciales de acceso y su registro de técnico.");
+            confirm.showAndWait().ifPresent(respuesta -> {
+                if (respuesta == ButtonType.OK) {
+                    try {
+                        usuarioDAO.eliminarTecnico(u.getIdUsu(), u.getIdTec());
+                        cargarUsuarios();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        mostrarError("Error al eliminar el técnico.");
+                    }
+                }
+            });
+        } catch (SQLException e) {
+            e.printStackTrace();
+            mostrarError("Error al comprobar las reparaciones del técnico.");
+        }
     }
 
     /**
