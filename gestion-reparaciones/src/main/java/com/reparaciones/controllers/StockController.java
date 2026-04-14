@@ -77,7 +77,6 @@ public class StockController implements com.reparaciones.utils.Recargable {
     @FXML private TableView<Proveedor>             tablaProveedores;
     @FXML private TableColumn<Proveedor, String>   cpvNombre;
     @FXML private TableColumn<Proveedor, String>   cpvActivo;
-    @FXML private TableColumn<Proveedor, Integer>  cpvIncidencias;
 
     // ── Última actualización ──────────────────────────────────────────────────
     @FXML private Label lblUltimaActStock;
@@ -486,23 +485,6 @@ public class StockController implements com.reparaciones.utils.Recargable {
                 "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
                 "-fx-text-fill: #2C3B54; -fx-font-size: 13px;");
 
-        // ── Incidencia con proveedor ──
-        CheckBox chkIncidencia = new CheckBox("¿Incidencia con proveedor?");
-        chkIncidencia.setStyle("-fx-font-size: 12px; -fx-text-fill: #2C3B54;");
-
-        Label lblProveedor = new Label("Proveedor afectado");
-        lblProveedor.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
-        lblProveedor.setVisible(false);
-        lblProveedor.setManaged(false);
-
-        javafx.scene.control.ComboBox<Proveedor> cmbProv = new javafx.scene.control.ComboBox<>();
-        cmbProv.setMaxWidth(Double.MAX_VALUE);
-        cmbProv.setVisible(false);
-        cmbProv.setManaged(false);
-        try {
-            cmbProv.getItems().setAll(proveedorDAO.getActivos());
-        } catch (SQLException ex) { mostrarError(ex); }
-
         Label lblError = new Label();
         lblError.setStyle("-fx-font-size: 11px; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ERROR + ";");
         lblError.setVisible(false);
@@ -519,11 +501,9 @@ public class StockController implements com.reparaciones.utils.Recargable {
         botones.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
 
         javafx.scene.layout.VBox contenido = new javafx.scene.layout.VBox(12,
-                lblTitulo, lblActual, lblNueva, tfCantidad,
-                chkIncidencia, lblProveedor, cmbProv,
-                lblError, botones);
+                lblTitulo, lblActual, lblNueva, tfCantidad, lblError, botones);
         contenido.setPadding(new javafx.geometry.Insets(28));
-        contenido.setPrefWidth(380);
+        contenido.setPrefWidth(360);
         contenido.setStyle("-fx-background-color: #DDE1E7;");
 
         javafx.stage.Stage ventana = new javafx.stage.Stage();
@@ -531,29 +511,14 @@ public class StockController implements com.reparaciones.utils.Recargable {
         ventana.setResizable(false);
         ventana.setTitle("Editar stock — " + c.getTipo());
 
-        chkIncidencia.selectedProperty().addListener((obs, o, sel) -> {
-            lblProveedor.setVisible(sel); lblProveedor.setManaged(sel);
-            cmbProv.setVisible(sel);      cmbProv.setManaged(sel);
-            javafx.application.Platform.runLater(ventana::sizeToScene);
-        });
-
         btnCancelar.setOnAction(ev -> ventana.close());
 
         btnConfirmar.setOnAction(ev -> {
             try {
                 int nueva = Integer.parseInt(tfCantidad.getText().trim());
                 if (nueva < 0) throw new NumberFormatException();
-                if (chkIncidencia.isSelected() && cmbProv.getValue() == null) {
-                    lblError.setText("Selecciona el proveedor afectado.");
-                    lblError.setVisible(true);
-                    return;
-                }
                 c.setStock(nueva);
                 componenteDAO.actualizar(c);
-                if (chkIncidencia.isSelected()) {
-                    proveedorDAO.registrarIncidencia(cmbProv.getValue().getIdProv());
-                    cargarProveedores();
-                }
                 ventana.close();
                 cargarStock();
             } catch (NumberFormatException ex) {
@@ -967,8 +932,6 @@ public class StockController implements com.reparaciones.utils.Recargable {
     private void configurarTablaProveedores() {
         cpvNombre.setCellValueFactory(c -> sp(c.getValue().getNombre()));
         cpvActivo.setCellValueFactory(c -> sp(c.getValue().isActivo() ? "Activo" : "Inactivo"));
-        cpvIncidencias.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getNumIncidencias()));
         cpvActivo.setCellFactory(col -> new TableCell<>() {
             private final Label badge = new Label();
             @Override protected void updateItem(String val, boolean empty) {
