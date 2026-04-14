@@ -61,16 +61,16 @@ public class PendientesTecnicoController {
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
-                            "-fx-border-width: 0 0 1 8;");
+                            "-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;");
                     return;
                 }
                 if (item.getEsSolicitud() == 1) {
-                    setStyle("-fx-border-width: 0 0 1 8;" +
+                    setStyle("-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
                 } else if (item.isEsIncidencia()) {
-                    setStyle("-fx-border-width: 0 0 1 8;" +
+                    setStyle("-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
-                } else setStyle("-fx-border-width: 0 0 1 8; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " transparent;");
+                } else setStyle("-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " transparent;");
             }
             @Override protected void updateItem(ReparacionResumen item, boolean empty) {
                 super.updateItem(item, empty);

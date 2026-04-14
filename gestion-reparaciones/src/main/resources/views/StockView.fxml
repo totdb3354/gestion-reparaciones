@@ -88,7 +88,7 @@
             <VBox fx:id="pnlPedidos" spacing="12" visible="false" managed="false">
                 <HBox alignment="CENTER_LEFT" spacing="12">
                     <Label text="Pedidos" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
-                    <ComboBox fx:id="cmbFiltroEstado" prefWidth="140"/>
+                    <MenuButton fx:id="menuFiltroEstado" text="Estado" prefWidth="140"/>
                     <Button text="Nuevo pedido" styleClass="btn-primary" onAction="#nuevoPedido"/>
                 </HBox>
                 <TableView fx:id="tablaPedidos" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
