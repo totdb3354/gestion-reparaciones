@@ -205,4 +205,8 @@ public class PendientesTecnicoController {
     public void setOnVolverAHistorial(Runnable onVolverAHistorial) {
         this.onVolverAHistorial = onVolverAHistorial;
     }
+
+    public java.util.List<ReparacionResumen> getItemsVisibles() {
+        return tablaPendientes.getItems();
+    }
 }

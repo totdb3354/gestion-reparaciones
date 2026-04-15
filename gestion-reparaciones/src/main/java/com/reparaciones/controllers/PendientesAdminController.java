@@ -508,4 +508,7 @@ public class PendientesAdminController {
         }
     }
 
+    public java.util.List<ReparacionResumen> getItemsVisibles() {
+        return tablaPendientes.getItems();
+    }
 }

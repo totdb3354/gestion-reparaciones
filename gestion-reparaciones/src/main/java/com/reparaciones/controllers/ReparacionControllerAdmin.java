@@ -19,16 +19,19 @@ import javafx.scene.control.MenuButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import javafx.stage.Stage;
+
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 
-public class ReparacionControllerAdmin implements com.reparaciones.utils.Recargable {
+public class ReparacionControllerAdmin implements com.reparaciones.utils.Recargable, com.reparaciones.utils.Exportable {
 
     @FXML
     private TableView<ReparacionResumen> tablaReparaciones;
@@ -815,6 +818,43 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
 
     @FXML
     private void descargarHistorial() {
-        // TODO: exportación TXT
+        exportarCSV((Stage) tablaReparaciones.getScene().getWindow());
+    }
+
+    @Override
+    public void exportarCSV(Stage owner) {
+        java.util.List<ReparacionResumen> items;
+        String nombre;
+        if (pnlPendientes.isVisible()) {
+            items  = pendientesAdminController.getItemsVisibles();
+            nombre = "reparaciones_pendientes";
+        } else if (pnlMisPendientes.isVisible()) {
+            items  = misPendientesController.getItemsVisibles();
+            nombre = "mis_pendientes";
+        } else {
+            items  = tablaReparaciones.getItems();
+            nombre = "historial_reparaciones";
+        }
+
+        List<String> cabeceras = List.of(
+                "ID Reparación", "IMEI", "Técnico", "Fecha asig.", "Fecha fin",
+                "Componente", "Observaciones", "Incidencia", "Resuelto", "ID Rep. anterior");
+        List<List<String>> filas = new ArrayList<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        for (ReparacionResumen r : items) {
+            filas.add(List.of(
+                    r.getIdRep(),
+                    com.reparaciones.utils.CsvExporter.textoForzado(r.getImei()),
+                    r.getNombreTecnico() != null ? r.getNombreTecnico() : "",
+                    r.getFechaAsig() != null ? r.getFechaAsig().format(fmt) : "",
+                    r.getFechaFin()  != null ? r.getFechaFin().format(fmt)  : "",
+                    r.getTipoComponente() != null ? r.getTipoComponente() : "",
+                    r.getObservaciones()  != null ? r.getObservaciones()  : "",
+                    r.isEsIncidencia() ? (r.getIncidencia() != null ? r.getIncidencia() : "Sí") : "No",
+                    r.isEsResuelto() ? "Sí" : "No",
+                    r.getIdRepAnterior() != null ? r.getIdRepAnterior() : ""
+            ));
+        }
+        com.reparaciones.utils.CsvExporter.exportar(owner, nombre, cabeceras, filas);
     }
 }
