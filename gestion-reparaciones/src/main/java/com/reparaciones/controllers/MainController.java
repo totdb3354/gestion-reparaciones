@@ -192,7 +192,7 @@ public class MainController {
         SeparatorMenuItem sep  = new SeparatorMenuItem();
         MenuItem itemCerrar    = new MenuItem("Cerrar Sesión");
 
-        itemDescargar.setOnAction(e -> { /* TODO */ });
+        itemDescargar.setOnAction(e -> descargarCSV());
         itemCerrar.setOnAction(e -> cerrarSesion());
 
         menuUsuario = new ContextMenu();
@@ -202,6 +202,12 @@ public class MainController {
             menuUsuario.getItems().addAll(itemGestionar, new SeparatorMenuItem());
         }
         menuUsuario.getItems().addAll(itemDescargar, sep, itemCerrar);
+    }
+
+    private void descargarCSV() {
+        if (controladorActivo instanceof com.reparaciones.utils.Exportable exp) {
+            exp.exportarCSV((Stage) btnUsuario.getScene().getWindow());
+        }
     }
 
     private void abrirGestionTecnicos() {

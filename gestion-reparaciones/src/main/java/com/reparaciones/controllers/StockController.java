@@ -16,11 +16,15 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
+import javafx.stage.Stage;
+
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-public class StockController implements com.reparaciones.utils.Recargable {
+public class StockController implements com.reparaciones.utils.Recargable, com.reparaciones.utils.Exportable {
 
     // ── Sidebar ──────────────────────────────────────────────────────────────
     @FXML private Button btnTabStock;
@@ -1083,5 +1087,69 @@ public class StockController implements com.reparaciones.utils.Recargable {
         new Alert(Alert.AlertType.WARNING,
                 "Este pedido fue modificado por otro usuario. Los datos se han recargado.")
                 .showAndWait();
+    }
+
+    // ─── Exportación CSV ──────────────────────────────────────────────────────
+
+    @Override
+    public void exportarCSV(Stage owner) {
+        if (pnlStock.isVisible())       exportarStock(owner);
+        else if (pnlPedidos.isVisible()) exportarPedidos(owner);
+        else                             exportarProveedores(owner);
+    }
+
+    private void exportarStock(Stage owner) {
+        List<String> cabeceras = List.of("Tipo", "Stock", "Stock mínimo", "Estado", "En camino", "Fecha registro");
+        List<List<String>> filas = new ArrayList<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        for (Componente c : tablaStock.getItems()) {
+            filas.add(List.of(
+                    c.getTipo(),
+                    String.valueOf(c.getStock()),
+                    String.valueOf(c.getStockMinimo()),
+                    estadoComponente(c),
+                    String.valueOf(c.getEnCamino()),
+                    c.getFechaRegistro() != null ? c.getFechaRegistro().format(fmt) : ""
+            ));
+        }
+        com.reparaciones.utils.CsvExporter.exportar(owner, "stock_actual", cabeceras, filas);
+    }
+
+    private void exportarPedidos(Stage owner) {
+        List<String> cabeceras = List.of(
+                "ID", "Componente", "Cantidad", "Urgente", "Proveedor",
+                "Estado", "Fecha pedido", "Fecha llegada", "Precio ud.", "Divisa", "Precio EUR", "Cant. recibida");
+        List<List<String>> filas = new ArrayList<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        for (CompraComponente p : tablaPedidos.getItems()) {
+            filas.add(List.of(
+                    String.valueOf(p.getIdCompra()),
+                    p.getTipoComponente() != null ? p.getTipoComponente() : "",
+                    String.valueOf(p.getCantidad()),
+                    p.isEsUrgente() ? "Sí" : "No",
+                    p.getNombreProveedor() != null ? p.getNombreProveedor() : "",
+                    p.getEstado() != null ? p.getEstado().name() : "",
+                    p.getFechaPedido() != null ? p.getFechaPedido().format(fmt) : "",
+                    p.getFechaLlegada() != null ? p.getFechaLlegada().format(fmt) : "",
+                    p.getPrecioUnidadPedido() > 0 ? String.valueOf(p.getPrecioUnidadPedido()) : "",
+                    p.getDivisa() != null ? p.getDivisa() : "",
+                    p.getPrecioEur() > 0 ? String.valueOf(p.getPrecioEur()) : "",
+                    p.getCantidadRecibida() != null ? String.valueOf(p.getCantidadRecibida()) : ""
+            ));
+        }
+        com.reparaciones.utils.CsvExporter.exportar(owner, "pedidos", cabeceras, filas);
+    }
+
+    private void exportarProveedores(Stage owner) {
+        List<String> cabeceras = List.of("ID", "Nombre", "Activo");
+        List<List<String>> filas = new ArrayList<>();
+        for (Proveedor p : tablaProveedores.getItems()) {
+            filas.add(List.of(
+                    String.valueOf(p.getIdProv()),
+                    p.getNombre(),
+                    p.isActivo() ? "Sí" : "No"
+            ));
+        }
+        com.reparaciones.utils.CsvExporter.exportar(owner, "proveedores", cabeceras, filas);
     }
 }
