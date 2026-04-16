@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.reparaciones.controllers.EstadisticasController"
+            styleClass="vista-container"
+            stylesheets="@../styles/app.css">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+    <left>
+        <VBox styleClass="stock-sidebar" spacing="0">
+            <Button fx:id="btnTabReparaciones" text="Reparaciones" maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn-active" onAction="#mostrarReparaciones"/>
+            <Button fx:id="btnTabStock"        text="Stock"        maxWidth="Infinity"
+                    styleClass="stock-sidebar-btn"        onAction="#mostrarStock"/>
+        </VBox>
+    </left>
+
+    <!-- ── Contenido ────────────────────────────────────────────────────────── -->
+    <center>
+        <StackPane>
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+            <!-- ══ Panel: Estadísticas de Reparaciones ══════════════════════════ -->
+            <VBox fx:id="pnlReparaciones" spacing="12" visible="true" managed="true">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Reparaciones por técnico" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
+                    <Label text="Periodo:" style="-fx-font-size:13px; -fx-text-fill:#2C3B54;"/>
+                    <ComboBox fx:id="cmbGranularidad" prefWidth="120" onAction="#recargarGrafico"/>
+                    <Label text="Desde:" style="-fx-font-size:13px; -fx-text-fill:#2C3B54;"/>
+                    <DatePicker fx:id="dpDesde" prefWidth="140"/>
+                    <Label text="Hasta:" style="-fx-font-size:13px; -fx-text-fill:#2C3B54;"/>
+                    <DatePicker fx:id="dpHasta" prefWidth="140"/>
+                    <Button text="Limpiar filtros" onAction="#limpiarFiltros" styleClass="btn-secondary"/>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <MenuButton fx:id="menuTecnicos" text="Técnicos" prefWidth="160"/>
+                    <CheckBox fx:id="chkTodos" text="Todos"
+                              style="-fx-text-fill: #000000; -fx-font-weight: bold;"/>
+                    <CheckBox fx:id="chkMedia" text="Media"
+                              style="-fx-font-weight: bold;"/>
+                </HBox>
+                <LineChart fx:id="chartReparaciones" animated="false" VBox.vgrow="ALWAYS"
+                           style="-fx-background-color: white; -fx-background-radius: 6;
+                                  -fx-border-color: #C2C8D0; -fx-border-radius: 6;">
+                    <xAxis><CategoryAxis fx:id="ejeX" label="Periodo" tickLabelRotation="-45"/></xAxis>
+                    <yAxis><NumberAxis fx:id="ejeY" label="Reparaciones" minorTickCount="0" autoRanging="false" lowerBound="0" upperBound="10" tickUnit="1"/></yAxis>
+                </LineChart>
+                <HBox fx:id="hboxSlider" visible="false" managed="false"
+                      alignment="CENTER_LEFT" spacing="8">
+                    <Label fx:id="lblSliderDesde" style="-fx-font-size:11px; -fx-text-fill:#7A8A9A; -fx-min-width:70px;"/>
+                    <Slider fx:id="sliderVentana" HBox.hgrow="ALWAYS"
+                            min="0" max="1" value="0" blockIncrement="1"
+                            snapToTicks="true" showTickMarks="false"/>
+                    <Label fx:id="lblSliderHasta" style="-fx-font-size:11px; -fx-text-fill:#7A8A9A; -fx-min-width:70px; -fx-alignment:CENTER_RIGHT;"/>
+                </HBox>
+            </VBox>
+
+            <!-- ══ Panel: Estadísticas de Stock ═════════════════════════════════ -->
+            <VBox fx:id="pnlStock" spacing="12" visible="false" managed="false">
+                <Label text="Estadísticas de stock" styleClass="vista-titulo"/>
+                <Label text="Próximamente…"
+                       style="-fx-font-size: 14px; -fx-text-fill: #7A8A9A;"/>
+            </VBox>
+
+        </StackPane>
+    </center>
+
+</BorderPane>
