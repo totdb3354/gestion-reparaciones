@@ -31,6 +31,9 @@
                 <Button fx:id="btnStock" text="Stock"
                         styleClass="nav-btn"
                         onAction="#mostrarStock"/>
+                <Button fx:id="btnEstadisticas" text="Estadísticas"
+                        styleClass="nav-btn"
+                        onAction="#mostrarEstadisticas"/>
             </HBox>
             <Label fx:id="lblAlertaStock" text="⚠" visible="false" managed="false"
                    style="-fx-text-fill: #F1E356; -fx-font-size: 16px; -fx-cursor: hand;"/>

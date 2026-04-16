@@ -37,6 +37,7 @@ public class MainController {
     @FXML private StackPane contenedor;
     @FXML private Button    btnReparaciones;
     @FXML private Button    btnStock;
+    @FXML private Button    btnEstadisticas;
     @FXML private Button    btnUsuario;
     @FXML private Label     lblUsuario;
     @FXML private Label     lblAlertaStock;
@@ -179,12 +180,17 @@ public class MainController {
         String vista = Sesion.esAdmin()
                 ? "/views/ReparacionViewAdmin.fxml"
                 : "/views/ReparacionViewTecnico.fxml";
-        mostrarVista(vista, btnReparaciones, btnStock);
+        mostrarVista(vista, btnReparaciones, btnStock, btnEstadisticas);
     }
 
     @FXML
     private void mostrarStock() {
-        mostrarVista("/views/StockView.fxml", btnStock, btnReparaciones);
+        mostrarVista("/views/StockView.fxml", btnStock, btnReparaciones, btnEstadisticas);
+    }
+
+    @FXML
+    private void mostrarEstadisticas() {
+        mostrarVista("/views/EstadisticasView.fxml", btnEstadisticas, btnReparaciones, btnStock);
     }
 
     private void inicializarMenuUsuario() {
@@ -256,9 +262,10 @@ public class MainController {
         }
     }
 
-    private void mostrarVista(String ruta, Button activo, Button inactivo) {
+    private void mostrarVista(String ruta, Button activo, Button... inactivos) {
         btnReparaciones.setDisable(true);
         btnStock.setDisable(true);
+        btnEstadisticas.setDisable(true);
 
         try {
             if (controladorActivo != null) controladorActivo.detenerPolling();
@@ -268,21 +275,24 @@ public class MainController {
             if (ctrl instanceof com.reparaciones.utils.Recargable)
                 controladorActivo = (com.reparaciones.utils.Recargable) ctrl;
             contenedor.getChildren().setAll(vista);
-            setActivo(activo, inactivo);
+            setActivo(activo, inactivos);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             btnReparaciones.setDisable(false);
             btnStock.setDisable(false);
+            btnEstadisticas.setDisable(false);
         }
     }
 
-    private void setActivo(Button activo, Button inactivo) {
+    private void setActivo(Button activo, Button... inactivos) {
         activo.getStyleClass().remove("nav-btn");
         if (!activo.getStyleClass().contains("nav-btn-active"))
             activo.getStyleClass().add("nav-btn-active");
-        inactivo.getStyleClass().remove("nav-btn-active");
-        if (!inactivo.getStyleClass().contains("nav-btn"))
-            inactivo.getStyleClass().add("nav-btn");
+        for (Button inactivo : inactivos) {
+            inactivo.getStyleClass().remove("nav-btn-active");
+            if (!inactivo.getStyleClass().contains("nav-btn"))
+                inactivo.getStyleClass().add("nav-btn");
+        }
     }
 }
