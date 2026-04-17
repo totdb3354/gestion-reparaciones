@@ -47,6 +47,11 @@ public class MainController {
     private List<Componente> alertasCriticas = List.of();
     private com.reparaciones.utils.Recargable controladorActivo;
 
+    // Filtro pendiente para la próxima carga de la vista de reparaciones
+    private java.time.LocalDate filtroNavDesde;
+    private java.time.LocalDate filtroNavHasta;
+    private String              filtroNavTecnico;
+
     @FXML
     public void initialize() {
         lblUsuario.setText("Hola, " + Sesion.getUsuario().getNombreUsuario());
@@ -274,6 +279,27 @@ public class MainController {
             Object ctrl = loader.getController();
             if (ctrl instanceof com.reparaciones.utils.Recargable)
                 controladorActivo = (com.reparaciones.utils.Recargable) ctrl;
+
+            // Pasar callback de navegación a EstadisticasController
+            if (ctrl instanceof EstadisticasController ec) {
+                ec.setNavegacion((desde, hasta, tecnico) -> {
+                    filtroNavDesde   = desde;
+                    filtroNavHasta   = hasta;
+                    filtroNavTecnico = tecnico;
+                    mostrarReparaciones();
+                });
+            }
+
+            // Aplicar filtro pendiente si viene de estadísticas
+            if (filtroNavDesde != null) {
+                if (ctrl instanceof ReparacionControllerAdmin rca)
+                    rca.setFiltroInicial(filtroNavDesde, filtroNavHasta, filtroNavTecnico);
+                else if (ctrl instanceof ReparacionControllerTecnico rct)
+                    rct.setFiltroInicial(filtroNavDesde, filtroNavHasta);
+                filtroNavDesde = filtroNavHasta = null;
+                filtroNavTecnico = null;
+            }
+
             contenedor.getChildren().setAll(vista);
             setActivo(activo, inactivos);
         } catch (IOException e) {

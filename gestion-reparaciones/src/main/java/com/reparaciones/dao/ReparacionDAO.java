@@ -799,6 +799,7 @@ public class ReparacionDAO {
         String formatoFecha = switch (granularidad) {
             case "semana" -> "%x-W%v";   // ISO week: "2026-W15"
             case "mes"    -> "%Y-%m";    // "2026-04"
+            case "ano"    -> "%Y";       // "2026"
             default       -> "%Y-%m-%d"; // "2026-04-15"
         };
 

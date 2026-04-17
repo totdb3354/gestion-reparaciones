@@ -23,6 +23,23 @@ public class TecnicoDAO {
         return lista;
     }
 
+    /** Devuelve solo los técnicos con ACTIVO = TRUE. */
+    public List<Tecnico> getAllActivos() throws SQLException {
+        List<Tecnico> lista = new ArrayList<>();
+        String sql = "SELECT * FROM Tecnico WHERE ACTIVO = TRUE";
+        try (Connection con = Conexion.getConexion();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                lista.add(new Tecnico(
+                    rs.getInt("ID_TEC"),
+                    rs.getString("NOMBRE")
+                ));
+            }
+        }
+        return lista;
+    }
+
     public void insertar(Tecnico t) throws SQLException {
         String sql = "INSERT INTO Tecnico (NOMBRE) VALUES (?)";
         try (Connection con = Conexion.getConexion();

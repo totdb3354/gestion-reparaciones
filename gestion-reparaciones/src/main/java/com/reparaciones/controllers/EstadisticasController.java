@@ -51,6 +51,7 @@ public class EstadisticasController {
     @FXML private MenuButton       menuTecnicos;
     @FXML private CheckBox         chkTodos;
     @FXML private CheckBox         chkMedia;
+    @FXML private CheckBox         chkActividad;
     @FXML private HBox             hboxSlider;
     @FXML private Slider           sliderVentana;
     @FXML private Label            lblSliderDesde;
@@ -84,13 +85,19 @@ public class EstadisticasController {
     private static final int VENTANA_DIA    = 30;
     private static final int VENTANA_SEMANA = 16;
     private static final int VENTANA_MES    = 12;
+    private static final int VENTANA_ANO    =  5;
 
     // Color fijo para la serie "Todos" (suma de todos los técnicos)
-    private static final String COLOR_TODOS = "#000000";
+    private static final String COLOR_TODOS       = "#000000";
+    // Color de la línea de referencia (media esperada por técnico)
+    private static final String COLOR_REFERENCIA  = "#555555";
+
+    // Callback de navegación inyectado por MainController
+    private com.reparaciones.utils.Navegable navegacion;
 
     @FXML
     public void initialize() {
-        cmbGranularidad.setItems(FXCollections.observableArrayList("Día", "Semana", "Mes"));
+        cmbGranularidad.setItems(FXCollections.observableArrayList("Día", "Semana", "Mes", "Año"));
         cmbGranularidad.setValue("Semana");
         dpDesde.setValue(null);
         dpHasta.setValue(null);
@@ -120,6 +127,9 @@ public class EstadisticasController {
         chkMedia.setSelected(true);
         chkMedia.selectedProperty().addListener((obs, o, n) -> actualizarVisibilidadMedia());
 
+        chkActividad.setSelected(true);
+        chkActividad.selectedProperty().addListener((obs, o, n) -> actualizarVisibilidadActividad());
+
         recargarDatos();
     }
 
@@ -127,7 +137,7 @@ public class EstadisticasController {
     private void cargarTecnicos() {
         List<Tecnico> tecnicos;
         try {
-            tecnicos = new TecnicoDAO().getAll();
+            tecnicos = new TecnicoDAO().getAllActivos();
         } catch (SQLException e) {
             e.printStackTrace();
             return;
@@ -177,14 +187,16 @@ public class EstadisticasController {
                 ? dpHasta.getValue() : java.time.LocalDate.of(2999, 12, 31);
 
         String granularidad = switch (cmbGranularidad.getValue()) {
-            case "Día"   -> "dia";
-            case "Mes"   -> "mes";
-            default      -> "semana";
+            case "Día"  -> "dia";
+            case "Mes"  -> "mes";
+            case "Año"  -> "ano";
+            default     -> "semana";
         };
 
         ventanaTamanio = switch (granularidad) {
             case "dia"    -> VENTANA_DIA;
             case "semana" -> VENTANA_SEMANA;
+            case "ano"    -> VENTANA_ANO;
             default       -> VENTANA_MES;
         };
 
@@ -300,11 +312,17 @@ public class EstadisticasController {
             chartReparaciones.applyCss();
             chartReparaciones.layout();
             aplicarColores();
-            // Segundo layout: el eje Y ya conoce el nuevo upperBound y getDisplayPosition es correcto
             chartReparaciones.applyCss();
             chartReparaciones.layout();
-            List<XYChart.Series<String, Number>> ts = new java.util.ArrayList<>(chartReparaciones.getData());
-            dibujarLineasMedia(periodosVisibles, ts);
+            // Las líneas de media necesitan un pulso completo de escena para que el eje
+            // haya recalculado su escala con el nuevo upperBound antes de getDisplayPosition()
+            final List<XYChart.Series<String, Number>> ts =
+                    new java.util.ArrayList<>(chartReparaciones.getData());
+            Platform.runLater(() -> {
+                chartReparaciones.applyCss();
+                chartReparaciones.layout();
+                dibujarLineasMedia(periodosVisibles, ts);
+            });
         };
         if (chartReparaciones.getScene() != null) render.run();
         else Platform.runLater(render);
@@ -321,17 +339,18 @@ public class EstadisticasController {
         lineaMediaPorSerie.clear();
         mediaPorSerie.clear();
 
+        // Precomputar suma total por periodo (reutilizado en "Todos" y en la referencia)
+        Map<String, Integer> sumaPorPeriodo = new java.util.HashMap<>();
+        for (PuntoEstadistica p : todosPuntos) {
+            if (periodosVisibles.contains(p.getPeriodo()))
+                sumaPorPeriodo.merge(p.getPeriodo(), p.getCantidad(), Integer::sum);
+        }
+
         for (XYChart.Series<String, Number> serie : chartReparaciones.getData()) {
             String color = coloresPorNombre.getOrDefault(serie.getName(), "#888888");
 
             double media;
             if ("Todos".equals(serie.getName())) {
-                // Media de la suma de todos los técnicos por periodo
-                Map<String, Integer> sumaPorPeriodo = new java.util.HashMap<>();
-                for (PuntoEstadistica p : todosPuntos) {
-                    if (periodosVisibles.contains(p.getPeriodo()))
-                        sumaPorPeriodo.merge(p.getPeriodo(), p.getCantidad(), Integer::sum);
-                }
                 media = sumaPorPeriodo.values().stream().mapToInt(Integer::intValue).average().orElse(0);
             } else {
                 media = todosPuntos.stream()
@@ -347,28 +366,36 @@ public class EstadisticasController {
             double yEnScene = ejeY.localToScene(0, yEnEje).getY();
             double y        = plotArea.sceneToLocal(0, yEnScene).getY();
 
-            javafx.scene.shape.Line linea = new javafx.scene.shape.Line(0, y, plotArea.getWidth(), y);
+            // Usar los límites reales del área de trazado (chart-plot-background),
+            // no los del pane padre que incluye el espacio de las etiquetas del eje Y
+            double x0 = bg.getBoundsInParent().getMinX();
+            double x1 = bg.getBoundsInParent().getMaxX();
+
+            javafx.scene.shape.Line linea = new javafx.scene.shape.Line(x0, y, x1, y);
             linea.setStroke(javafx.scene.paint.Color.web(color));
             linea.setStrokeWidth(1.2);
             linea.getStrokeDashArray().addAll(8.0, 5.0);
             linea.setOpacity(0.6);
-            linea.setStrokeWidth(1.2);
             linea.setMouseTransparent(true);
-            plotArea.widthProperty().addListener((obs, o, w) -> linea.setEndX(w.doubleValue()));
+            bg.boundsInParentProperty().addListener((obs, o, b) -> {
+                linea.setStartX(b.getMinX()); linea.setEndX(b.getMaxX());
+            });
 
             // Línea invisible ancha para detección del ratón (la visual es de 1.2px, imposible de clicar)
             final XYChart.Series<String, Number> serieRef = serie;
-            javafx.scene.shape.Line hitLinea = new javafx.scene.shape.Line(0, y, plotArea.getWidth(), y);
+            javafx.scene.shape.Line hitLinea = new javafx.scene.shape.Line(x0, y, x1, y);
             hitLinea.setStroke(javafx.scene.paint.Color.color(0, 0, 0, 0.01));
             hitLinea.setStrokeWidth(12);
-            plotArea.widthProperty().addListener((obs, o, w) -> hitLinea.setEndX(w.doubleValue()));
+            bg.boundsInParentProperty().addListener((obs, o, b) -> {
+                hitLinea.setStartX(b.getMinX()); hitLinea.setEndX(b.getMaxX());
+            });
             hitLinea.setOnMouseEntered(e -> { sobreLineaMedia = true;  serieResaltada = serieRef; resaltarSerie(serieRef, todasSeries); });
             hitLinea.setOnMouseExited (e -> { sobreLineaMedia = false; serieResaltada = null;     restaurarSeries(todasSeries); });
 
             Label lbl = new Label(String.format("x̄ %.1f", media));
             lbl.setStyle("-fx-font-size:10px; -fx-text-fill:" + color +
                          "; -fx-background-color:white; -fx-padding:0 2 0 2;");
-            lbl.setLayoutX(4);
+            lbl.setLayoutX(x0 + 4);
             lbl.setLayoutY(y - 14);
             lbl.setMouseTransparent(true);
 
@@ -385,12 +412,73 @@ public class EstadisticasController {
             lineasMedia.add(hitLinea);
             lineaMediaPorSerie.put(serie, linea);
         }
+
+        // Línea de referencia: media esperada por técnico = suma_media / n_técnicos activos
+        // Solo se dibuja cuando "Todos" está activo y hay al menos un técnico
+        int nTecnicos = checksPorNombre.size();
+        if (chkTodos.isSelected() && nTecnicos > 0 && !sumaPorPeriodo.isEmpty()) {
+            double refMedia = sumaPorPeriodo.values().stream()
+                    .mapToDouble(v -> (double) v / nTecnicos)
+                    .average().orElse(0);
+
+            if (refMedia > 0) {
+                double x0ref = bg.getBoundsInParent().getMinX();
+                double x1ref = bg.getBoundsInParent().getMaxX();
+                double yRef  = plotArea.sceneToLocal(0,
+                        ejeY.localToScene(0, ejeY.getDisplayPosition(refMedia)).getY()).getY();
+
+                javafx.scene.shape.Line lineaRef = new javafx.scene.shape.Line(x0ref, yRef, x1ref, yRef);
+                lineaRef.setStroke(javafx.scene.paint.Color.web(COLOR_REFERENCIA));
+                lineaRef.setStrokeWidth(1.0);
+                lineaRef.getStrokeDashArray().addAll(3.0, 5.0);
+                lineaRef.setOpacity(0.7);
+                lineaRef.setMouseTransparent(true);
+                bg.boundsInParentProperty().addListener((obs, o, b) -> {
+                    lineaRef.setStartX(b.getMinX()); lineaRef.setEndX(b.getMaxX());
+                });
+
+                javafx.scene.shape.Line hitRef = new javafx.scene.shape.Line(x0ref, yRef, x1ref, yRef);
+                hitRef.setStroke(javafx.scene.paint.Color.color(0, 0, 0, 0.01));
+                hitRef.setStrokeWidth(12);
+                bg.boundsInParentProperty().addListener((obs, o, b) -> {
+                    hitRef.setStartX(b.getMinX()); hitRef.setEndX(b.getMaxX());
+                });
+                hitRef.setOnMouseEntered(e -> sobreLineaMedia = true);
+                hitRef.setOnMouseExited (e -> sobreLineaMedia = false);
+                Tooltip tipRef = new Tooltip(String.format("Referencia del equipo: %.1f rep./técnico", refMedia));
+                tipRef.setShowDelay(Duration.ZERO);
+                tipRef.setShowDuration(Duration.INDEFINITE);
+                tipRef.setHideDelay(Duration.millis(100));
+                Tooltip.install(hitRef, tipRef);
+
+                Label lblRef = new Label(String.format("ref. %.1f", refMedia));
+                lblRef.setStyle("-fx-font-size:10px; -fx-text-fill:" + COLOR_REFERENCIA +
+                                "; -fx-background-color:white; -fx-padding:0 2 0 2;");
+                lblRef.setLayoutX(x0ref + 4);
+                lblRef.setLayoutY(yRef - 14);
+                lblRef.setMouseTransparent(true);
+
+                plotArea.getChildren().addAll(lineaRef, lblRef, hitRef);
+                lineasMedia.add(lineaRef);
+                lineasMedia.add(lblRef);
+                lineasMedia.add(hitRef);
+            }
+        }
+
         actualizarVisibilidadMedia();
     }
 
     private void actualizarVisibilidadMedia() {
         boolean visible = chkMedia.isSelected();
         lineasMedia.forEach(n -> n.setVisible(visible));
+    }
+
+    private void actualizarVisibilidadActividad() {
+        boolean visible = chkActividad.isSelected();
+        for (XYChart.Series<String, Number> serie : chartReparaciones.getData()) {
+            if (serie.getNode() != null) serie.getNode().setVisible(visible);
+            serie.getData().forEach(d -> { if (d.getNode() != null) d.getNode().setVisible(visible); });
+        }
     }
 
     /** Aplica el color fijo de cada técnico a su línea, puntos y símbolo de leyenda. */
@@ -405,12 +493,17 @@ public class EstadisticasController {
             if (lineaNodo != null)
                 lineaNodo.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2px;");
 
-            // Puntos: ocultos por defecto, visibles al hover con tooltip
+            // Puntos: siempre visibles en vista anual o si la serie tiene un solo punto;
+            // ocultos por defecto en el resto de granularidades (se revelan al hover)
+            boolean puntosVisibles = "Año".equals(cmbGranularidad.getValue())
+                    || serie.getData().size() == 1;
             for (XYChart.Data<String, Number> d : serie.getData()) {
                 Node nodo = d.getNode();
                 if (nodo == null) continue;
 
-                nodo.setStyle("-fx-background-color: transparent, transparent;");
+                nodo.setStyle(puntosVisibles
+                        ? "-fx-background-color: " + color + ", white;"
+                        : "-fx-background-color: transparent, transparent;");
 
                 Tooltip tip = new Tooltip(d.getXValue() + "\n" + d.getYValue().intValue() + " reparaciones");
                 tip.setShowDelay(Duration.ZERO);
@@ -423,8 +516,18 @@ public class EstadisticasController {
                     if (serieResaltada != serie) { serieResaltada = serie; resaltarSerie(serie, todasSeries); }
                 });
                 nodo.setOnMouseExited(e -> {
-                    nodo.setStyle("-fx-background-color: transparent, transparent;");
+                    nodo.setStyle(puntosVisibles
+                            ? "-fx-background-color: " + color + ", white;"
+                            : "-fx-background-color: transparent, transparent;");
                 });
+                if (navegacion != null) {
+                    final XYChart.Series<String, Number> serieClick = serie;
+                    nodo.setOnMouseClicked(e -> {
+                        String tecnico = "Todos".equals(serieClick.getName()) ? null : serieClick.getName();
+                        java.time.LocalDate[] rango = periodoAFechas(d.getXValue());
+                        navegacion.navegarAReparaciones(rango[0], rango[1], tecnico);
+                    });
+                }
             }
         }
 
@@ -476,6 +579,7 @@ public class EstadisticasController {
                     simbolo.setStyle("-fx-background-color: " + color + ", white;");
             }
         });
+        actualizarVisibilidadActividad();
     }
 
     /**
@@ -563,6 +667,8 @@ public class EstadisticasController {
         dpHasta.setValue(null);
         checksPorNombre.values().forEach(cb -> cb.setSelected(true));
         chkTodos.setSelected(true);
+        chkMedia.setSelected(true);
+        chkActividad.setSelected(true);
         actualizarTextoMenuTecnicos();
         recargarDatos();
     }
@@ -584,5 +690,39 @@ public class EstadisticasController {
     private void setActivo(Button activo, Button inactivo) {
         activo.getStyleClass().setAll("stock-sidebar-btn-active");
         inactivo.getStyleClass().setAll("stock-sidebar-btn");
+    }
+
+    /** Inyectado por MainController para permitir navegación a la vista de reparaciones. */
+    public void setNavegacion(com.reparaciones.utils.Navegable navegacion) {
+        this.navegacion = navegacion;
+    }
+
+    /**
+     * Convierte un periodo (según la granularidad activa) al rango de fechas que representa.
+     * Formatos: día="2026-05-12", semana="2026-W15", mes="2026-05"
+     */
+    private java.time.LocalDate[] periodoAFechas(String periodo) {
+        return switch (cmbGranularidad.getValue()) {
+            case "Día" -> {
+                java.time.LocalDate d = java.time.LocalDate.parse(periodo);
+                yield new java.time.LocalDate[]{d, d};
+            }
+            case "Mes" -> {
+                java.time.YearMonth ym = java.time.YearMonth.parse(periodo);
+                yield new java.time.LocalDate[]{ym.atDay(1), ym.atEndOfMonth()};
+            }
+            case "Año" -> {
+                int year = Integer.parseInt(periodo);
+                yield new java.time.LocalDate[]{
+                        java.time.LocalDate.of(year, 1, 1),
+                        java.time.LocalDate.of(year, 12, 31)};
+            }
+            default -> { // "2026-W15" → lunes–domingo de esa semana ISO
+                java.time.LocalDate lunes = java.time.LocalDate.parse(
+                        periodo + "-1",
+                        java.time.format.DateTimeFormatter.ISO_WEEK_DATE);
+                yield new java.time.LocalDate[]{lunes, lunes.plusDays(6)};
+            }
+        };
     }
 }

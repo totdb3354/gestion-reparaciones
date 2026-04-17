@@ -40,6 +40,8 @@
                     <MenuButton fx:id="menuTecnicos" text="Técnicos" prefWidth="160"/>
                     <CheckBox fx:id="chkTodos" text="Todos"
                               style="-fx-text-fill: #000000; -fx-font-weight: bold;"/>
+                    <CheckBox fx:id="chkActividad" text="Actividad"
+                              style="-fx-font-weight: bold;"/>
                     <CheckBox fx:id="chkMedia" text="Media"
                               style="-fx-font-weight: bold;"/>
                 </HBox>
