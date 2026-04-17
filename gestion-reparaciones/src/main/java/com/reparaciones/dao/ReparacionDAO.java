@@ -3,6 +3,7 @@ package com.reparaciones.dao;
 import com.reparaciones.models.Reparacion;
 import com.reparaciones.models.ReparacionResumen;
 import com.reparaciones.models.FilaReparacion;
+import com.reparaciones.models.PuntoEstadistica;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -783,6 +784,53 @@ public class ReparacionDAO {
                 return rs.getString("ID_REP");
         }
         return null;
+    }
+
+    /**
+     * Devuelve el conteo de reparaciones finalizadas agrupadas por técnico y periodo.
+     * @param granularidad "dia", "semana" o "mes"
+     * @param desde        fecha de inicio del rango (inclusive)
+     * @param hasta        fecha de fin del rango (inclusive)
+     */
+    public List<PuntoEstadistica> getEstadisticasPorTecnico(
+            String granularidad, java.time.LocalDate desde, java.time.LocalDate hasta)
+            throws SQLException {
+
+        String formatoFecha = switch (granularidad) {
+            case "semana" -> "%x-W%v";   // ISO week: "2026-W15"
+            case "mes"    -> "%Y-%m";    // "2026-04"
+            case "ano"    -> "%Y";       // "2026"
+            default       -> "%Y-%m-%d"; // "2026-04-15"
+        };
+
+        String sql = """
+                SELECT t.NOMBRE AS nombre_tecnico,
+                       DATE_FORMAT(r.FECHA_FIN, ?) AS periodo,
+                       COUNT(*) AS cantidad
+                FROM Reparacion r
+                JOIN Tecnico t ON r.ID_TEC = t.ID_TEC
+                WHERE r.FECHA_FIN IS NOT NULL
+                  AND r.ID_REP LIKE 'R%'
+                  AND DATE(r.FECHA_FIN) BETWEEN ? AND ?
+                GROUP BY t.NOMBRE, periodo
+                ORDER BY periodo ASC, t.NOMBRE ASC
+                """;
+
+        List<PuntoEstadistica> resultado = new ArrayList<>();
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, formatoFecha);
+            ps.setDate(2, java.sql.Date.valueOf(desde));
+            ps.setDate(3, java.sql.Date.valueOf(hasta));
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                resultado.add(new PuntoEstadistica(
+                        rs.getString("nombre_tecnico"),
+                        rs.getString("periodo"),
+                        rs.getInt("cantidad")));
+            }
+        }
+        return resultado;
     }
 
     public void borrarIncidenciaPorImei(String imei) throws SQLException {
