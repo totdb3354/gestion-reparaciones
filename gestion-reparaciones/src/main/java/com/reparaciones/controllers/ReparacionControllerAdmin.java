@@ -569,6 +569,25 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
             filtroTecnico.setText(seleccionados.size() + " técnicos");
     }
 
+    /**
+     * Aplica un filtro inicial de fecha y técnico. Llamado por MainController cuando
+     * se navega desde la vista de estadísticas. Debe invocarse tras initialize().
+     *
+     * @param tecnico nombre del técnico a pre-seleccionar, o {@code null} para todos.
+     */
+    public void setFiltroInicial(java.time.LocalDate desde, java.time.LocalDate hasta, String tecnico) {
+        // Navegar al historial antes de aplicar filtros
+        mostrarHistorial();
+        // Seleccionar técnico antes de tocar fechas para que aplicarFiltros lea el estado correcto
+        if (tecnico != null) {
+            checksTecnico.forEach(cb -> cb.setSelected(cb.getText().equals(tecnico)));
+            actualizarTextoFiltroTecnico();
+        }
+        // Setear fechas dispara aplicarFiltros vía listener
+        filtroFechaDesde.setValue(desde);
+        filtroFechaHasta.setValue(hasta);
+    }
+
     @FXML
     private void limpiarFiltros() {
         filtroImei.clear();

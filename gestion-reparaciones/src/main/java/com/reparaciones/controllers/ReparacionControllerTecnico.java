@@ -500,6 +500,13 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         });
     }
 
+    /** Aplica un filtro inicial de fecha. Llamado por MainController al navegar desde estadísticas. */
+    public void setFiltroInicial(java.time.LocalDate desde, java.time.LocalDate hasta) {
+        mostrarHistorial();
+        filtroFechaDesde.setValue(desde);
+        filtroFechaHasta.setValue(hasta);
+    }
+
     @FXML
     private void limpiarFiltros() {
         filtroImei.clear();
