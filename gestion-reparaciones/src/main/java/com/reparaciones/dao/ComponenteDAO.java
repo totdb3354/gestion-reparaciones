@@ -1,6 +1,7 @@
 package com.reparaciones.dao;
 
 import com.reparaciones.models.Componente;
+import com.reparaciones.models.PuntoStock;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -198,6 +199,106 @@ public class ComponenteDAO {
             ps.setInt(2, idCom);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * Reconstruye la evolución de stock por componente y periodo.
+     * <p>Calcula el stock estimado al final de cada periodo como:
+     * {@code stock_actual - suma(eventos_posteriores_al_periodo)},
+     * donde los eventos son entradas ({@code Compra_componente} recibida)
+     * y salidas ({@code Reparacion_componente} no reutilizada con reparación finalizada).</p>
+     *
+     * @param granularidad {@code "dia"}, {@code "semana"}, {@code "mes"} o {@code "ano"}
+     * @param desde        inicio del rango de fechas
+     * @param hasta        fin del rango de fechas
+     * @return lista de puntos ordenados por componente y periodo
+     * @throws SQLException si falla la consulta
+     */
+    public List<PuntoStock> getEvolucionStock(String granularidad,
+                                               java.time.LocalDate desde,
+                                               java.time.LocalDate hasta) throws SQLException {
+        String fmt = switch (granularidad) {
+            case "dia"    -> "%Y-%m-%d";
+            case "semana" -> "%x-W%v";
+            case "ano"    -> "%Y";
+            default       -> "%Y-%m";
+        };
+
+        // Periodos que delimitan el rango en el mismo formato
+        String periodoDesde = formatPeriodo(desde, granularidad);
+        String periodoHasta = formatPeriodo(hasta, granularidad);
+
+        String sql = """
+            WITH todos_eventos AS (
+                SELECT ID_COM,
+                       DATE_FORMAT(FECHA_LLEGADA, '""" + fmt + """
+') AS periodo,
+                       COALESCE(CANTIDAD_RECIBIDA, 0) AS delta
+                FROM Compra_componente
+                WHERE ESTADO IN ('recibido','parcial') AND FECHA_LLEGADA IS NOT NULL
+
+                UNION ALL
+
+                SELECT rc.ID_COM,
+                       DATE_FORMAT(r.FECHA_FIN, '""" + fmt + """
+') AS periodo,
+                       -rc.CANTIDAD AS delta
+                FROM Reparacion_componente rc
+                JOIN Reparacion r ON r.ID_REP = rc.ID_REP
+                WHERE r.FECHA_FIN IS NOT NULL
+                  AND rc.ES_REUTILIZADO = FALSE
+                  AND rc.ID_COM IS NOT NULL
+            ),
+            delta_por_periodo AS (
+                SELECT ID_COM, periodo, SUM(delta) AS delta
+                FROM todos_eventos
+                GROUP BY ID_COM, periodo
+            ),
+            periodos_en_rango AS (
+                SELECT DISTINCT ID_COM, periodo
+                FROM todos_eventos
+                WHERE periodo BETWEEN ? AND ?
+            )
+            SELECT p.ID_COM, c.TIPO, p.periodo,
+                   c.STOCK - COALESCE((
+                       SELECT SUM(d.delta)
+                       FROM delta_por_periodo d
+                       WHERE d.ID_COM = p.ID_COM AND d.periodo > p.periodo
+                   ), 0) AS stock_estimado,
+                   c.STOCK_MINIMO
+            FROM periodos_en_rango p
+            JOIN Componente c ON c.ID_COM = p.ID_COM
+            WHERE c.TIPO NOT LIKE 'otro%'
+            ORDER BY c.TIPO, p.periodo
+            """;
+
+        List<PuntoStock> lista = new ArrayList<>();
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, periodoDesde);
+            ps.setString(2, periodoHasta);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(new PuntoStock(
+                            rs.getString("periodo"),
+                            rs.getString("TIPO"),
+                            rs.getInt("stock_estimado"),
+                            rs.getInt("STOCK_MINIMO")));
+                }
+            }
+        }
+        return lista;
+    }
+
+    private String formatPeriodo(java.time.LocalDate fecha, String granularidad) {
+        return switch (granularidad) {
+            case "dia"    -> fecha.format(java.time.format.DateTimeFormatter.ISO_DATE);
+            case "semana" -> String.format("%d-W%02d",
+                    fecha.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR),
+                    fecha.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR));
+            case "ano"    -> String.valueOf(fecha.getYear());
+            default       -> fecha.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+        };
     }
 
     /** Mapea una fila del {@code ResultSet} a un {@link com.reparaciones.models.Componente}. */

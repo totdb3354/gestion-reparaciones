@@ -1,8 +1,11 @@
 package com.reparaciones.controllers;
 
+import com.reparaciones.dao.ComponenteDAO;
 import com.reparaciones.dao.ReparacionDAO;
 import com.reparaciones.dao.TecnicoDAO;
+import com.reparaciones.models.Componente;
 import com.reparaciones.models.PuntoEstadistica;
+import com.reparaciones.models.PuntoStock;
 import com.reparaciones.models.Tecnico;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -123,6 +126,34 @@ public class EstadisticasController {
     // Callback de navegación inyectado por MainController
     private com.reparaciones.utils.Navegable navegacion;
 
+    // ─── Stock fields ──────────────────────────────────────────────────────────
+
+    @FXML private ComboBox<String>          cmbGranularidadStock;
+    @FXML private DatePicker                dpDesdeStock;
+    @FXML private DatePicker                dpHastaStock;
+    @FXML private LineChart<String, Number> chartStock;
+    @FXML private CategoryAxis              ejeXStock;
+    @FXML private NumberAxis                ejeYStock;
+    @FXML private ComboBox<String>           cmbTipoFiltro;
+    @FXML private ComboBox<String>           cmbModeloFiltro;
+    @FXML private HBox                       hboxSliderStock;
+    @FXML private Slider                    sliderVentanaStock;
+    @FXML private Label                     lblSliderDesdeStock;
+    @FXML private Label                     lblSliderHastaStock;
+    @FXML private Label                     lblSinDatosStock;
+
+    private final Map<String, String>   coloresComponente = new LinkedHashMap<>();
+    // SKUs gestionados (sin "otro*"), cargados una sola vez para poblar los filtros
+    private List<String> skusGestionados = List.of();
+    private final Map<String, Integer>  minimosPorTipo    = new LinkedHashMap<>();
+
+    private final java.util.List<Node> lineasMinimo = new java.util.ArrayList<>();
+    private final Map<XYChart.Series<String, Number>, javafx.scene.shape.Line> lineaMinimoPorSerie = new LinkedHashMap<>();
+
+    private List<PuntoStock> todosPuntosStock   = List.of();
+    private List<String>     todosPeriodosStock  = List.of();
+    private int              ventanaTamanioStock = 12;
+
     @FXML
     public void initialize() {
         cmbGranularidad.setItems(FXCollections.observableArrayList("Día", "Semana", "Mes", "Año"));
@@ -161,6 +192,21 @@ public class EstadisticasController {
         chkActividad.selectedProperty().addListener((obs, o, n) -> actualizarVisibilidadActividad());
 
         recargarDatos();
+
+        // ── Stock ──────────────────────────────────────────────────────────────
+        cmbGranularidadStock.setItems(FXCollections.observableArrayList("Día", "Semana", "Mes", "Año"));
+        cmbGranularidadStock.setValue("Mes");
+        dpDesdeStock.getEditor().setDisable(true);
+        dpDesdeStock.getEditor().setOpacity(1.0);
+        dpHastaStock.getEditor().setDisable(true);
+        dpHastaStock.getEditor().setOpacity(1.0);
+        dpDesdeStock.valueProperty().addListener((obs, o, n) -> recargarDatosStock());
+        dpHastaStock.valueProperty().addListener((obs, o, n) -> recargarDatosStock());
+        sliderVentanaStock.valueProperty().addListener((obs, oldVal, newVal) ->
+                renderVentanaStock(newVal.intValue()));
+
+        poblarFiltrosComponente();
+        recargarDatosStock();
     }
 
     /** Carga los técnicos de la BD, crea un CheckBox por cada uno y asigna su color fijo. */
@@ -812,6 +858,354 @@ public class EstadisticasController {
     public void setNavegacion(com.reparaciones.utils.Navegable navegacion) {
         this.navegacion = navegacion;
     }
+
+    // ─── Stock methods ─────────────────────────────────────────────────────────
+
+    private static final java.util.LinkedHashMap<String, String> PREFIJO_TIPO;
+    static {
+        PREFIJO_TIPO = new java.util.LinkedHashMap<>();
+        PREFIJO_TIPO.put("bat", "Batería");
+        PREFIJO_TIPO.put("cha", "Chasis");
+        PREFIJO_TIPO.put("cam", "Cámara");
+        PREFIJO_TIPO.put("lcd", "LCD");
+        PREFIJO_TIPO.put("mc",  "Marco");
+        PREFIJO_TIPO.put("g",   "Pantalla");
+    }
+
+    private static String tipoDeComponente(String sku) {
+        String lower = sku.toLowerCase();
+        for (var entry : PREFIJO_TIPO.entrySet()) {
+            if (lower.startsWith(entry.getKey())) return entry.getValue();
+        }
+        return "Otro";
+    }
+
+    /** Extrae el modelo del SKU: "bati13" → "iPhone 13", "chai14negro" → "iPhone 14". */
+    private static String modeloDeComponente(String sku) {
+        String lower = sku.toLowerCase();
+        for (String prefijo : PREFIJO_TIPO.keySet()) {
+            if (lower.startsWith(prefijo)) {
+                String resto = lower.substring(prefijo.length()); // "i13", "i14negro"
+                if (resto.startsWith("i")) resto = resto.substring(1);
+                // Extraer parte alfanumérica inicial (número o X/XR/XS)
+                java.util.regex.Matcher m = java.util.regex.Pattern
+                        .compile("^([0-9]+[a-z]*|x[smr]?)").matcher(resto);
+                if (m.find()) return "iPhone " + m.group(1).toUpperCase();
+                break;
+            }
+        }
+        return sku;
+    }
+
+    /** Devuelve true si el SKU pasa los filtros de tipo y modelo actualmente seleccionados. */
+    private boolean componenteSeleccionado(String sku) {
+        String tipoSel   = cmbTipoFiltro   != null ? cmbTipoFiltro.getValue()   : null;
+        String modeloSel = cmbModeloFiltro  != null ? cmbModeloFiltro.getValue() : null;
+        boolean tipoOk   = tipoSel   == null || "Todos los tipos".equals(tipoSel)
+                        || tipoDeComponente(sku).equals(tipoSel);
+        boolean modeloOk = modeloSel == null || "Todos los modelos".equals(modeloSel)
+                        || modeloDeComponente(sku).equals(modeloSel);
+        return tipoOk && modeloOk;
+    }
+
+    /** Carga los SKUs gestionados, asigna colores y puebla los dropdowns de tipo/modelo. */
+    private void poblarFiltrosComponente() {
+        List<Componente> componentes;
+        try {
+            componentes = new ComponenteDAO().getAllGestionados();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        skusGestionados = componentes.stream()
+                .map(Componente::getTipo)
+                .collect(Collectors.toList());
+
+        int idx = 0;
+        for (String sku : skusGestionados) {
+            coloresComponente.put(sku, generarColorStock(idx++));
+        }
+
+        // Tipos disponibles en los datos (en el orden fijo de PREFIJO_TIPO)
+        java.util.LinkedHashSet<String> tiposPresentes = new java.util.LinkedHashSet<>();
+        for (String sku : skusGestionados) tiposPresentes.add(tipoDeComponente(sku));
+
+        java.util.List<String> itemsTipo = new java.util.ArrayList<>();
+        itemsTipo.add("Todos los tipos");
+        itemsTipo.addAll(tiposPresentes);
+        cmbTipoFiltro.setItems(FXCollections.observableArrayList(itemsTipo));
+        cmbTipoFiltro.setValue("Todos los tipos");
+
+        // Cuando cambia el tipo, actualizar el dropdown de modelo
+        cmbTipoFiltro.valueProperty().addListener((obs, o, n) -> actualizarModelosFiltro());
+
+        actualizarModelosFiltro();
+    }
+
+    /** Rellena el dropdown de modelo según el tipo seleccionado. */
+    private void actualizarModelosFiltro() {
+        String tipoSel = cmbTipoFiltro.getValue();
+        java.util.LinkedHashSet<String> modelos = new java.util.LinkedHashSet<>();
+        for (String sku : skusGestionados) {
+            if ("Todos los tipos".equals(tipoSel) || tipoDeComponente(sku).equals(tipoSel)) {
+                modelos.add(modeloDeComponente(sku));
+            }
+        }
+
+        java.util.List<String> itemsModelo = new java.util.ArrayList<>();
+        itemsModelo.add("Todos los modelos");
+        itemsModelo.addAll(modelos);
+        cmbModeloFiltro.setItems(FXCollections.observableArrayList(itemsModelo));
+        cmbModeloFiltro.setValue("Todos los modelos");
+    }
+
+    @FXML
+    private void filtrarComponentes() {
+        renderVentanaStock((int) sliderVentanaStock.getValue());
+    }
+
+    private String generarColorStock(int idx) {
+        double hue = (idx * 53.0 + 200.0) % 360;
+        Color c = Color.hsb(hue, 0.70, 0.68);
+        return String.format("#%02X%02X%02X",
+                (int) (c.getRed()   * 255),
+                (int) (c.getGreen() * 255),
+                (int) (c.getBlue()  * 255));
+    }
+
+    @FXML
+    private void recargarGraficoStock() {
+        recargarDatosStock();
+    }
+
+    private void recargarDatosStock() {
+        java.time.LocalDate desde = dpDesdeStock.getValue() != null
+                ? dpDesdeStock.getValue() : java.time.LocalDate.of(1900, 1, 1);
+        java.time.LocalDate hasta = dpHastaStock.getValue() != null
+                ? dpHastaStock.getValue() : java.time.LocalDate.of(2999, 12, 31);
+
+        String granularidad = switch (cmbGranularidadStock.getValue()) {
+            case "Día"  -> "dia";
+            case "Mes"  -> "mes";
+            case "Año"  -> "ano";
+            default     -> "semana";
+        };
+
+        ventanaTamanioStock = switch (granularidad) {
+            case "dia"    -> 30;
+            case "semana" -> 16;
+            case "ano"    -> 5;
+            default       -> 12;
+        };
+
+        try {
+            todosPuntosStock = new ComponenteDAO().getEvolucionStock(granularidad, desde, hasta);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        minimosPorTipo.clear();
+        for (PuntoStock p : todosPuntosStock) {
+            minimosPorTipo.put(p.getTipoComponente(), p.getStockMinimo());
+        }
+
+        todosPeriodosStock = todosPuntosStock.stream()
+                .map(PuntoStock::getPeriodo)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        configurarSliderStock();
+    }
+
+    private void configurarSliderStock() {
+        if (todosPeriodosStock.size() <= ventanaTamanioStock) {
+            hboxSliderStock.setVisible(false);
+            hboxSliderStock.setManaged(false);
+            sliderVentanaStock.setValue(0);
+            renderVentanaStock(0);
+            return;
+        }
+
+        int maxOffset = todosPeriodosStock.size() - ventanaTamanioStock;
+        hboxSliderStock.setVisible(true);
+        hboxSliderStock.setManaged(true);
+        sliderVentanaStock.setMin(0);
+        sliderVentanaStock.setMax(maxOffset);
+        sliderVentanaStock.setMajorTickUnit(1);
+        sliderVentanaStock.setBlockIncrement(1);
+        sliderVentanaStock.setSnapToTicks(true);
+        if (sliderVentanaStock.getValue() == maxOffset) renderVentanaStock(maxOffset);
+        else sliderVentanaStock.setValue(maxOffset);
+    }
+
+    private void renderVentanaStock(int offset) {
+        if (todosPeriodosStock.isEmpty()) {
+            chartStock.getData().clear();
+            lblSinDatosStock.setVisible(true);
+            return;
+        }
+        lblSinDatosStock.setVisible(false);
+
+        int tamanio = Math.min(ventanaTamanioStock, todosPeriodosStock.size());
+        int inicio  = Math.max(0, Math.min(offset, todosPeriodosStock.size() - tamanio));
+        int fin     = inicio + tamanio;
+
+        Set<String> periodosVisibles = new LinkedHashSet<>(todosPeriodosStock.subList(inicio, fin));
+
+        lblSliderDesdeStock.setText(todosPeriodosStock.get(inicio));
+        lblSliderHastaStock.setText(todosPeriodosStock.get(fin - 1));
+
+        Map<String, XYChart.Series<String, Number>> series = new LinkedHashMap<>();
+        for (PuntoStock p : todosPuntosStock) {
+            if (!componenteSeleccionado(p.getTipoComponente())) continue;
+            if (!periodosVisibles.contains(p.getPeriodo()))     continue;
+            series.computeIfAbsent(p.getTipoComponente(), tipo -> {
+                XYChart.Series<String, Number> s = new XYChart.Series<>();
+                s.setName(tipo);
+                return s;
+            }).getData().add(new XYChart.Data<>(p.getPeriodo(), p.getStockEstimado()));
+        }
+
+        chartStock.getData().setAll(series.values());
+
+        int maxStock = todosPuntosStock.stream()
+                .filter(p -> componenteSeleccionado(p.getTipoComponente())
+                          && periodosVisibles.contains(p.getPeriodo()))
+                .mapToInt(PuntoStock::getStockEstimado)
+                .max().orElse(0);
+        int maxMinimo = minimosPorTipo.entrySet().stream()
+                .filter(e -> componenteSeleccionado(e.getKey()))
+                .mapToInt(Map.Entry::getValue)
+                .max().orElse(0);
+        ejeYStock.setUpperBound(Math.max(5, Math.max(maxStock, maxMinimo) + 2));
+
+        Runnable render = () -> {
+            chartStock.applyCss();
+            chartStock.layout();
+            aplicarColoresStock();
+            chartStock.applyCss();
+            chartStock.layout();
+            Platform.runLater(() -> {
+                chartStock.applyCss();
+                chartStock.layout();
+                dibujarLineasMinimo(periodosVisibles);
+            });
+        };
+        if (chartStock.getScene() != null) render.run();
+        else Platform.runLater(render);
+    }
+
+    private void aplicarColoresStock() {
+        for (XYChart.Series<String, Number> serie : chartStock.getData()) {
+            String color = coloresComponente.getOrDefault(serie.getName(), "#888888");
+
+            Node lineaNodo = serie.getNode();
+            if (lineaNodo != null)
+                lineaNodo.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2px;");
+
+            boolean puntosVisibles = "Año".equals(cmbGranularidadStock.getValue())
+                    || serie.getData().size() == 1;
+            for (XYChart.Data<String, Number> d : serie.getData()) {
+                Node nodo = d.getNode();
+                if (nodo == null) continue;
+
+                nodo.setStyle(puntosVisibles
+                        ? "-fx-background-color: " + color + ", white;"
+                        : "-fx-background-color: transparent, transparent;");
+
+                Tooltip tip = new Tooltip(d.getXValue() + "\n" + d.getYValue().intValue() + " uds.");
+                tip.setShowDelay(Duration.ZERO);
+                tip.setShowDuration(Duration.INDEFINITE);
+                tip.setHideDelay(Duration.millis(100));
+                Tooltip.install(nodo, tip);
+            }
+        }
+
+        chartStock.lookupAll(".chart-legend-item").forEach(item -> {
+            if (item instanceof Label lbl) {
+                String color = coloresComponente.get(lbl.getText());
+                if (color == null) return;
+                Node simbolo = lbl.lookup(".chart-legend-item-symbol");
+                if (simbolo != null)
+                    simbolo.setStyle("-fx-background-color: " + color + ", white;");
+            }
+        });
+    }
+
+    private void dibujarLineasMinimo(Set<String> periodosVisibles) {
+        Node bg = chartStock.lookup(".chart-plot-background");
+        if (bg == null || !(bg.getParent() instanceof javafx.scene.layout.Pane)) return;
+        javafx.scene.layout.Pane plotArea = (javafx.scene.layout.Pane) bg.getParent();
+
+        plotArea.getChildren().removeAll(lineasMinimo);
+        lineasMinimo.clear();
+        lineaMinimoPorSerie.clear();
+
+        for (XYChart.Series<String, Number> serie : chartStock.getData()) {
+            Integer minimo = minimosPorTipo.get(serie.getName());
+            if (minimo == null || minimo <= 0) continue;
+
+            String color = coloresComponente.getOrDefault(serie.getName(), "#888888");
+
+            double x0   = bg.getBoundsInParent().getMinX();
+            double x1   = bg.getBoundsInParent().getMaxX();
+            double yPos = plotArea.sceneToLocal(0,
+                    ejeYStock.localToScene(0, ejeYStock.getDisplayPosition(minimo)).getY()).getY();
+
+            javafx.scene.shape.Line linea = new javafx.scene.shape.Line(x0, yPos, x1, yPos);
+            linea.setStroke(javafx.scene.paint.Color.web(color));
+            linea.setStrokeWidth(1.2);
+            linea.getStrokeDashArray().addAll(6.0, 4.0);
+            linea.setOpacity(0.55);
+            linea.setMouseTransparent(true);
+            bg.boundsInParentProperty().addListener((obs, o, b) -> {
+                linea.setStartX(b.getMinX()); linea.setEndX(b.getMaxX());
+            });
+
+            Label lbl = new Label("mín. " + minimo);
+            lbl.setStyle("-fx-font-size:10px; -fx-text-fill:" + color +
+                         "; -fx-background-color:white; -fx-padding:0 2 0 2;");
+            lbl.setLayoutX(x1 - 52);
+            lbl.setLayoutY(yPos - 14);
+            lbl.setMouseTransparent(true);
+            // lbl.setLayoutX se recalcula cuando cambia el fondo del gráfico
+            bg.boundsInParentProperty().addListener((obs, o, b) ->
+                    lbl.setLayoutX(b.getMaxX() - 52));
+
+            javafx.scene.shape.Line hitLinea = new javafx.scene.shape.Line(x0, yPos, x1, yPos);
+            hitLinea.setStroke(javafx.scene.paint.Color.color(0, 0, 0, 0.01));
+            hitLinea.setStrokeWidth(10);
+            bg.boundsInParentProperty().addListener((obs, o, b) -> {
+                hitLinea.setStartX(b.getMinX()); hitLinea.setEndX(b.getMaxX());
+            });
+            Tooltip tipMin = new Tooltip(
+                    String.format("Stock mínimo %s: %d uds.", serie.getName(), minimo));
+            tipMin.setShowDelay(Duration.ZERO);
+            tipMin.setShowDuration(Duration.INDEFINITE);
+            tipMin.setHideDelay(Duration.millis(100));
+            Tooltip.install(hitLinea, tipMin);
+
+            plotArea.getChildren().addAll(linea, lbl, hitLinea);
+            lineasMinimo.add(linea);
+            lineasMinimo.add(lbl);
+            lineasMinimo.add(hitLinea);
+            lineaMinimoPorSerie.put(serie, linea);
+        }
+    }
+
+    @FXML
+    private void limpiarFiltrosStock() {
+        dpDesdeStock.setValue(null);
+        dpHastaStock.setValue(null);
+        cmbTipoFiltro.setValue("Todos los tipos");
+        // actualizarModelosFiltro() se dispara por el listener de cmbTipoFiltro
+        recargarDatosStock();
+    }
+
+    // ─── Navigation helpers ────────────────────────────────────────────────────
 
     /**
      * Convierte un periodo (según la granularidad activa) al rango de fechas que representa.
