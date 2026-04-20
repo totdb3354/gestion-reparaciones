@@ -6,7 +6,7 @@ package com.reparaciones.models;
  * <p>Cada fila corresponde a un componente seleccionado por el técnico,
  * con sus opciones de reutilización y solicitud de reposición de stock.</p>
  *
- * @see com.reparaciones.dao.ReparacionDAO#finalizarReparacion
+ * @see com.reparaciones.dao.ReparacionDAO
  */
 public class FilaReparacion {
 

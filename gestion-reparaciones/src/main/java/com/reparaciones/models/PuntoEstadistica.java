@@ -12,7 +12,7 @@ package com.reparaciones.models;
  *   <li>Año → {@code "yyyy"}</li>
  * </ul>
  *
- * @see com.reparaciones.dao.ReparacionDAO#getEstadisticas
+ * @see com.reparaciones.dao.ReparacionDAO
  */
 public class PuntoEstadistica {
 

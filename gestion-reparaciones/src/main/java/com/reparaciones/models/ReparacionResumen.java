@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * <p>{@code tipoComponente} puede ser {@code null} si la reparación
  * todavía no tiene componente asignado (asignación pendiente).</p>
  *
- * @see com.reparaciones.dao.ReparacionDAO#getResumenes
+ * @see com.reparaciones.dao.ReparacionDAO
  */
 public class ReparacionResumen {
 

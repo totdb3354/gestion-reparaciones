@@ -9,7 +9,7 @@ import javafx.beans.property.*;
  * para que la {@code TableView} del formulario de pedidos refleje
  * los cambios en tiempo real.</p>
  *
- * @see com.reparaciones.dao.CompraDAO#insertarPedido
+ * @see com.reparaciones.dao.CompraComponenteDAO
  */
 public class LineaPedido {
 
