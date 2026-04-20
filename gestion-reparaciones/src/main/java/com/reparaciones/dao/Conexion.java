@@ -50,14 +50,15 @@ public class Conexion {
      *          USUARIO  = System.getenv("DB_USER");
      *          PASSWORD = System.getenv("DB_PASSWORD");
      *
-     * ── MIGRACIÓN FUTURA A POSTGRESQL + REST ────────────────────────────────────
+     * ── MIGRACIÓN FUTURA A MARIADB EN VM CLOUD + REST ───────────────────────────
      *
      * Cuando el proyecto migre a una arquitectura REST (back separado del front),
-     * esta clase DAO desaparece: la conexión a BD pasa a ser responsabilidad del
-     * servidor (Spring Boot, Quarkus, etc.), que gestiona un pool de conexiones
-     * (HikariCP) y expone endpoints HTTP. Las credenciales se configuran entonces
-     * como variables de entorno en el servidor o mediante un gestor de secretos
-     * (AWS Secrets Manager, HashiCorp Vault, etc.).
+     * esta clase DAO desaparece: la conexión a MariaDB pasa a ser responsabilidad
+     * del backend (Spring Boot u otro), alojado en la misma VM cloud que MariaDB.
+     * El backend gestiona un pool de conexiones (HikariCP) y expone endpoints HTTP.
+     * MariaDB es compatible con el esquema MySQL actual — la migración requiere
+     * cambios mínimos. Las credenciales se configuran como variables de entorno
+     * en la VM o mediante un gestor de secretos.
      * En ese escenario exponer credenciales en el código sería un riesgo crítico.
      */
 

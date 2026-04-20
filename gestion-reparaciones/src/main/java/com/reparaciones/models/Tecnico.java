@@ -14,13 +14,18 @@ public class Tecnico {
     /** Nombre visible del técnico. */
     private String nombre;
 
+    /** {@code true} si el técnico está activo. */
+    private boolean activo;
+
     /**
      * @param idTec  clave primaria del técnico
      * @param nombre nombre visible
+     * @param activo {@code true} si está activo
      */
-    public Tecnico(int idTec, String nombre) {
-        this.idTec = idTec;
+    public Tecnico(int idTec, String nombre, boolean activo) {
+        this.idTec  = idTec;
         this.nombre = nombre;
+        this.activo = activo;
     }
 
     /** @return clave primaria del técnico */
@@ -30,6 +35,9 @@ public class Tecnico {
     /** @return nombre visible del técnico */
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
+
+    /** @return {@code true} si el técnico está activo */
+    public boolean isActivo() { return activo; }
 
     /** Devuelve el nombre para uso en ComboBox y MenuButton. */
     @Override

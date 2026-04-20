@@ -45,13 +45,18 @@
                     <CheckBox fx:id="chkMedia" text="Media"
                               style="-fx-font-weight: bold;"/>
                 </HBox>
-                <LineChart fx:id="chartReparaciones" animated="false" VBox.vgrow="ALWAYS"
-                           style="-fx-background-color: white; -fx-background-radius: 6;
-                                  -fx-border-color: #C2C8D0; -fx-border-radius: 6;">
-                    <xAxis><CategoryAxis fx:id="ejeX" label="Periodo" tickLabelRotation="-45"/></xAxis>
-                    <yAxis><NumberAxis fx:id="ejeY" label="Reparaciones" minorTickCount="0" autoRanging="false" lowerBound="0" upperBound="10" tickUnit="1"/></yAxis>
-                </LineChart>
-                <HBox fx:id="hboxSlider" visible="false" managed="false"
+                <StackPane VBox.vgrow="ALWAYS">
+                    <LineChart fx:id="chartReparaciones" animated="false"
+                               style="-fx-background-color: white; -fx-background-radius: 6;
+                                      -fx-border-color: #C2C8D0; -fx-border-radius: 6;">
+                        <xAxis><CategoryAxis fx:id="ejeX" label="Periodo" tickLabelRotation="-45"/></xAxis>
+                        <yAxis><NumberAxis fx:id="ejeY" label="Reparaciones" minorTickCount="0" autoRanging="false" lowerBound="0" upperBound="10" tickUnit="1"/></yAxis>
+                    </LineChart>
+                    <Label fx:id="lblSinDatos" text="Sin datos en el rango seleccionado"
+                           visible="false"
+                           style="-fx-font-size:14px; -fx-text-fill:#7A8A9A;"/>
+                </StackPane>
+<HBox fx:id="hboxSlider" visible="false" managed="false"
                       alignment="CENTER_LEFT" spacing="8">
                     <Label fx:id="lblSliderDesde" style="-fx-font-size:11px; -fx-text-fill:#7A8A9A; -fx-min-width:70px;"/>
                     <Slider fx:id="sliderVentana" HBox.hgrow="ALWAYS"

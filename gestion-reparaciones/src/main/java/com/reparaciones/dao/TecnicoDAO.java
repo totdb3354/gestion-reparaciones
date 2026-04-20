@@ -29,7 +29,8 @@ public class TecnicoDAO {
             while (rs.next()) {
                 lista.add(new Tecnico(
                     rs.getInt("ID_TEC"),
-                    rs.getString("NOMBRE")
+                    rs.getString("NOMBRE"),
+                    rs.getBoolean("ACTIVO")
                 ));
             }
         }
@@ -53,7 +54,8 @@ public class TecnicoDAO {
             while (rs.next()) {
                 lista.add(new Tecnico(
                     rs.getInt("ID_TEC"),
-                    rs.getString("NOMBRE")
+                    rs.getString("NOMBRE"),
+                    true
                 ));
             }
         }

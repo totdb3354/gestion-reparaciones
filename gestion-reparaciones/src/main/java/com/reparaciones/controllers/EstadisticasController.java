@@ -75,6 +75,7 @@ public class EstadisticasController {
     @FXML private CheckBox         chkTodos;
     @FXML private CheckBox         chkMedia;
     @FXML private CheckBox         chkActividad;
+    @FXML private Label            lblSinDatos;
     @FXML private HBox             hboxSlider;
     @FXML private Slider           sliderVentana;
     @FXML private Label            lblSliderDesde;
@@ -89,7 +90,11 @@ public class EstadisticasController {
     // True mientras el ratón esté sobre una línea de media (evita que onMouseMoved la deshaga)
     private boolean sobreLineaMedia = false;
     // Líneas de media por técnico (para limpiarlas entre renders)
-    private final java.util.List<Node> lineasMedia = new java.util.ArrayList<>();
+    private final java.util.List<Node> lineasMedia      = new java.util.ArrayList<>();
+    // Nodos de la línea de referencia del equipo (separados para control independiente)
+    private final java.util.List<Node> lineasReferencia = new java.util.ArrayList<>();
+    // Nodo visual de la línea de referencia (para participar en el sistema de highlight)
+    private javafx.scene.shape.Line lineaRefVisual = null;
     // Mapa serie → línea discontinua para poder afectarla en hover
     private final Map<XYChart.Series<String, Number>, javafx.scene.shape.Line> lineaMediaPorSerie = new LinkedHashMap<>();
     // Mapa serie → valor medio (para tooltip)
@@ -112,8 +117,8 @@ public class EstadisticasController {
 
     // Color fijo para la serie "Todos" (suma de todos los técnicos)
     private static final String COLOR_TODOS       = "#000000";
-    // Color de la línea de referencia (media esperada por técnico)
-    private static final String COLOR_REFERENCIA  = "#555555";
+    // Color de la línea de referencia (benchmark del equipo)
+    private static final String COLOR_REFERENCIA  = "#C07800";
 
     // Callback de navegación inyectado por MainController
     private com.reparaciones.utils.Navegable navegacion;
@@ -144,8 +149,10 @@ public class EstadisticasController {
         // Registrar color de "Todos" para que todo el sistema de colores/hover funcione automáticamente
         coloresPorNombre.put("Todos", COLOR_TODOS);
         chkTodos.setSelected(true);
-        chkTodos.selectedProperty().addListener((obs, o, n) ->
-                renderVentana((int) sliderVentana.getValue()));
+        chkTodos.selectedProperty().addListener((obs, o, n) -> {
+            renderVentana((int) sliderVentana.getValue());
+            actualizarVisibilidadReferencia();
+        });
 
         chkMedia.setSelected(true);
         chkMedia.selectedProperty().addListener((obs, o, n) -> actualizarVisibilidadMedia());
@@ -160,15 +167,18 @@ public class EstadisticasController {
     private void cargarTecnicos() {
         List<Tecnico> tecnicos;
         try {
-            tecnicos = new TecnicoDAO().getAllActivos();
+            tecnicos = new TecnicoDAO().getAll();
         } catch (SQLException e) {
             e.printStackTrace();
             return;
         }
-        for (Tecnico t : tecnicos) {
+
+        List<Tecnico> activos   = tecnicos.stream().filter(Tecnico::isActivo).collect(Collectors.toList());
+        List<Tecnico> inactivos = tecnicos.stream().filter(t -> !t.isActivo()).collect(Collectors.toList());
+
+        for (Tecnico t : activos) {
             String colorHex = generarColor(t.getIdTec());
             coloresPorNombre.put(t.getNombre(), colorHex);
-
             CheckBox cb = new CheckBox(t.getNombre());
             cb.setSelected(true);
             cb.setStyle("-fx-text-fill: " + colorHex + "; -fx-font-weight: bold;");
@@ -179,6 +189,24 @@ public class EstadisticasController {
             checksPorNombre.put(t.getNombre(), cb);
             menuTecnicos.getItems().add(new CustomMenuItem(cb, false));
         }
+
+        if (!inactivos.isEmpty()) {
+            menuTecnicos.getItems().add(new javafx.scene.control.SeparatorMenuItem());
+            for (Tecnico t : inactivos) {
+                String colorHex = generarColor(t.getIdTec());
+                coloresPorNombre.put(t.getNombre(), colorHex);
+                CheckBox cb = new CheckBox(t.getNombre() + " (inactivo)");
+                cb.setSelected(false);
+                cb.setStyle("-fx-text-fill: #9A9A9A; -fx-font-style: italic;");
+                cb.selectedProperty().addListener((obs, o, n) -> {
+                    actualizarTextoMenuTecnicos();
+                    renderVentana((int) sliderVentana.getValue());
+                });
+                checksPorNombre.put(t.getNombre(), cb);
+                menuTecnicos.getItems().add(new CustomMenuItem(cb, false));
+            }
+        }
+
         actualizarTextoMenuTecnicos();
     }
 
@@ -268,8 +296,10 @@ public class EstadisticasController {
     private void renderVentana(int offset) {
         if (todosPeriodos.isEmpty()) {
             chartReparaciones.getData().clear();
+            lblSinDatos.setVisible(true);
             return;
         }
+        lblSinDatos.setVisible(false);
 
         int tamanio = Math.min(ventanaTamanio, todosPeriodos.size());
         int inicio  = Math.max(0, Math.min(offset, todosPeriodos.size() - tamanio));
@@ -358,7 +388,10 @@ public class EstadisticasController {
 
         // Quitar líneas anteriores
         plotArea.getChildren().removeAll(lineasMedia);
+        plotArea.getChildren().removeAll(lineasReferencia);
         lineasMedia.clear();
+        lineasReferencia.clear();
+        lineaRefVisual = null;
         lineaMediaPorSerie.clear();
         mediaPorSerie.clear();
 
@@ -436,12 +469,17 @@ public class EstadisticasController {
             lineaMediaPorSerie.put(serie, linea);
         }
 
-        // Línea de referencia: media esperada por técnico = suma_media / n_técnicos activos
-        // Solo se dibuja cuando "Todos" está activo y hay al menos un técnico
+        // Línea de referencia: media de las medias individuales de cada técnico
+        // (solo periodos activos de cada uno, más justo con técnicos nuevos o con ausencias)
         int nTecnicos = checksPorNombre.size();
-        if (chkTodos.isSelected() && nTecnicos > 0 && !sumaPorPeriodo.isEmpty()) {
-            double refMedia = sumaPorPeriodo.values().stream()
-                    .mapToDouble(v -> (double) v / nTecnicos)
+        if (nTecnicos > 0 && !sumaPorPeriodo.isEmpty()) {
+            double refMedia = checksPorNombre.keySet().stream()
+                    .mapToDouble(nombre -> todosPuntos.stream()
+                            .filter(p -> p.getNombreTecnico().equals(nombre)
+                                      && periodosVisibles.contains(p.getPeriodo()))
+                            .mapToInt(PuntoEstadistica::getCantidad)
+                            .average().orElse(0))
+                    .filter(m -> m > 0)
                     .average().orElse(0);
 
             if (refMedia > 0) {
@@ -452,9 +490,9 @@ public class EstadisticasController {
 
                 javafx.scene.shape.Line lineaRef = new javafx.scene.shape.Line(x0ref, yRef, x1ref, yRef);
                 lineaRef.setStroke(javafx.scene.paint.Color.web(COLOR_REFERENCIA));
-                lineaRef.setStrokeWidth(1.0);
-                lineaRef.getStrokeDashArray().addAll(3.0, 5.0);
-                lineaRef.setOpacity(0.7);
+                lineaRef.setStrokeWidth(1.8);
+                lineaRef.getStrokeDashArray().addAll(10.0, 4.0, 2.0, 4.0);
+                lineaRef.setOpacity(0.85);
                 lineaRef.setMouseTransparent(true);
                 bg.boundsInParentProperty().addListener((obs, o, b) -> {
                     lineaRef.setStartX(b.getMinX()); lineaRef.setEndX(b.getMaxX());
@@ -466,9 +504,32 @@ public class EstadisticasController {
                 bg.boundsInParentProperty().addListener((obs, o, b) -> {
                     hitRef.setStartX(b.getMinX()); hitRef.setEndX(b.getMaxX());
                 });
-                hitRef.setOnMouseEntered(e -> sobreLineaMedia = true);
-                hitRef.setOnMouseExited (e -> sobreLineaMedia = false);
-                Tooltip tipRef = new Tooltip(String.format("Referencia del equipo: %.1f rep./técnico", refMedia));
+                List<String> porEncima = checksPorNombre.keySet().stream()
+                        .filter(nombre -> {
+                            double media = todosPuntos.stream()
+                                    .filter(p -> p.getNombreTecnico().equals(nombre)
+                                              && periodosVisibles.contains(p.getPeriodo()))
+                                    .mapToInt(PuntoEstadistica::getCantidad)
+                                    .average().orElse(0);
+                            return media > refMedia;
+                        }).collect(Collectors.toList());
+                List<String> porDebajo = checksPorNombre.keySet().stream()
+                        .filter(nombre -> {
+                            double media = todosPuntos.stream()
+                                    .filter(p -> p.getNombreTecnico().equals(nombre)
+                                              && periodosVisibles.contains(p.getPeriodo()))
+                                    .mapToInt(PuntoEstadistica::getCantidad)
+                                    .average().orElse(0);
+                            return media > 0 && media <= refMedia;
+                        }).collect(Collectors.toList());
+
+                String encimaTxt = porEncima.isEmpty() ? "—" : String.join(", ", porEncima);
+                String debajTxt  = porDebajo.isEmpty() ? "—" : String.join(", ", porDebajo);
+                Tooltip tipRef = new Tooltip(String.format(
+                        "Referencia del equipo: %.1f rep./técnico%n" +
+                        "(media de medias individuales)%n" +
+                        "Por encima: %s%n" +
+                        "Por debajo: %s", refMedia, encimaTxt, debajTxt));
                 tipRef.setShowDelay(Duration.ZERO);
                 tipRef.setShowDuration(Duration.INDEFINITE);
                 tipRef.setHideDelay(Duration.millis(100));
@@ -481,14 +542,30 @@ public class EstadisticasController {
                 lblRef.setLayoutY(yRef - 14);
                 lblRef.setMouseTransparent(true);
 
+                lineaRefVisual = lineaRef;
+                hitRef.setOnMouseEntered(e -> {
+                    sobreLineaMedia = true;
+                    resaltarReferencia(new java.util.ArrayList<>(chartReparaciones.getData()));
+                });
+                hitRef.setOnMouseExited(e -> {
+                    sobreLineaMedia = false;
+                    restaurarSeries(new java.util.ArrayList<>(chartReparaciones.getData()));
+                });
+
                 plotArea.getChildren().addAll(lineaRef, lblRef, hitRef);
-                lineasMedia.add(lineaRef);
-                lineasMedia.add(lblRef);
-                lineasMedia.add(hitRef);
+                lineasReferencia.add(lineaRef);
+                lineasReferencia.add(lblRef);
+                lineasReferencia.add(hitRef);
             }
         }
 
         actualizarVisibilidadMedia();
+        actualizarVisibilidadReferencia();
+    }
+
+    private void actualizarVisibilidadReferencia() {
+        boolean visible = chkTodos.isSelected();
+        lineasReferencia.forEach(n -> n.setVisible(visible));
     }
 
     private void actualizarVisibilidadMedia() {
@@ -659,6 +736,18 @@ public class EstadisticasController {
             javafx.scene.shape.Line ld = lineaMediaPorSerie.get(s);
             if (ld != null) ld.setOpacity(estaActiva ? 0.9 : 0.15);
         }
+        if (lineaRefVisual != null) lineaRefVisual.setOpacity(0.15);
+    }
+
+    private void resaltarReferencia(List<XYChart.Series<String, Number>> todas) {
+        for (XYChart.Series<String, Number> s : todas) {
+            String color = coloresPorNombre.getOrDefault(s.getName(), "#888888");
+            if (s.getNode() != null)
+                s.getNode().setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 1.5px; -fx-opacity: 0.25;");
+            javafx.scene.shape.Line ld = lineaMediaPorSerie.get(s);
+            if (ld != null) ld.setOpacity(0.15);
+        }
+        if (lineaRefVisual != null) lineaRefVisual.setOpacity(0.9);
     }
 
     private void restaurarSeries(List<XYChart.Series<String, Number>> todas) {
@@ -669,6 +758,7 @@ public class EstadisticasController {
             javafx.scene.shape.Line ld = lineaMediaPorSerie.get(s);
             if (ld != null) ld.setOpacity(0.6);
         }
+        if (lineaRefVisual != null) lineaRefVisual.setOpacity(0.85);
     }
 
     private void actualizarTextoMenuTecnicos() {
@@ -688,7 +778,10 @@ public class EstadisticasController {
     private void limpiarFiltros() {
         dpDesde.setValue(null);
         dpHasta.setValue(null);
-        checksPorNombre.values().forEach(cb -> cb.setSelected(true));
+        checksPorNombre.forEach((nombre, cb) -> {
+            boolean esInactivo = cb.getStyle().contains("italic");
+            cb.setSelected(!esInactivo);
+        });
         chkTodos.setSelected(true);
         chkMedia.setSelected(true);
         chkActividad.setSelected(true);

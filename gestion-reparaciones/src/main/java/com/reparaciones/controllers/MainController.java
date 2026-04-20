@@ -64,6 +64,7 @@ public class MainController {
 
     private List<Componente> alertasCriticas = List.of();
     private com.reparaciones.utils.Recargable controladorActivo;
+    private Runnable accionVistaActual;
 
     // Filtro pendiente para la próxima carga de la vista de reparaciones
     private java.time.LocalDate filtroNavDesde;
@@ -211,6 +212,7 @@ public class MainController {
     /** Navega a la vista de reparaciones (admin o técnico según el rol). */
     @FXML
     private void mostrarReparaciones() {
+        accionVistaActual = this::mostrarReparaciones;
         String vista = Sesion.esAdmin()
                 ? "/views/ReparacionViewAdmin.fxml"
                 : "/views/ReparacionViewTecnico.fxml";
@@ -220,12 +222,14 @@ public class MainController {
     /** Navega a la vista de stock. */
     @FXML
     private void mostrarStock() {
+        accionVistaActual = this::mostrarStock;
         mostrarVista("/views/StockView.fxml", btnStock, btnReparaciones, btnEstadisticas);
     }
 
     /** Navega a la vista de estadísticas. */
     @FXML
     private void mostrarEstadisticas() {
+        accionVistaActual = this::mostrarEstadisticas;
         mostrarVista("/views/EstadisticasView.fxml", btnEstadisticas, btnReparaciones, btnStock);
     }
 
@@ -271,6 +275,7 @@ public class MainController {
             ventana.setScene(new Scene(root));
             ventana.setResizable(false);
             ventana.showAndWait();
+            if (accionVistaActual != null) accionVistaActual.run();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -54,7 +54,7 @@ CREATE TABLE Usuario (
     NOMBRE_USUARIO VARCHAR(50)  NOT NULL UNIQUE,
     PASSWORD       VARCHAR(255) NOT NULL,
     ROL            ENUM('ADMIN','TECNICO') NOT NULL,
-    ID_TEC         INT          NOT NULL, 
+    ID_TEC         INT          NULL,
     PRIMARY KEY (ID_USU),
     CONSTRAINT fk_usuario_tecnico FOREIGN KEY (ID_TEC) REFERENCES Tecnico (ID_TEC)
 );
