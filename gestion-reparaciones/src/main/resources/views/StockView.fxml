@@ -2,6 +2,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.chart.*?>
+<?import javafx.scene.shape.*?>
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
@@ -49,21 +50,38 @@
                         </columns>
                         <placeholder><Label text="Sin componentes"/></placeholder>
                     </TableView>
-                    <Label fx:id="lblUltimaActStock"
-                           style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
-                           alignment="CENTER_RIGHT" maxWidth="Infinity"/>
+                    <HBox>
+                        <Label fx:id="lblDesactivados"
+                               style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+                               visible="false" managed="false"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblUltimaActStock"
+                               style="-fx-font-size: 10px; -fx-text-fill: #A0A0A0;"
+                               alignment="CENTER_RIGHT"/>
+                    </HBox>
                     </VBox>
                     <VBox fx:id="pnlChart" spacing="0" prefWidth="240" minWidth="240"
                           style="-fx-background-color:white; -fx-background-radius:6;
                                  -fx-border-color:#C2C8D0; -fx-border-radius:6; -fx-padding:16;">
-                        <!-- Mitad superior: tarta -->
-                        <VBox spacing="6" VBox.vgrow="ALWAYS">
+                        <!-- Mitad superior: tarta donut -->
+                        <VBox spacing="8" VBox.vgrow="ALWAYS" alignment="CENTER">
                             <Label text="Estado del stock"
-                                   style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
-                            <PieChart fx:id="chartEstado" labelsVisible="false"
-                                      legendVisible="false" animated="false"
-                                      VBox.vgrow="ALWAYS"/>
-                            <HBox fx:id="pnlLeyenda" spacing="8"/>
+                                   style="-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"
+                                   maxWidth="Infinity"/>
+                            <StackPane alignment="CENTER" VBox.vgrow="ALWAYS">
+                                <PieChart fx:id="chartEstado" labelsVisible="false"
+                                          legendVisible="false" animated="false"
+                                          prefWidth="120" prefHeight="120"
+                                          maxWidth="120" maxHeight="120"/>
+                                <Circle fill="white" radius="38"/>
+                                <VBox alignment="CENTER" mouseTransparent="true">
+                                    <Label fx:id="lblTotalStock"
+                                           style="-fx-font-size:17px; -fx-font-weight:bold; -fx-text-fill:#2C3B54;"/>
+                                    <Label text="total"
+                                           style="-fx-font-size:9px; -fx-text-fill:#9AA0AA;"/>
+                                </VBox>
+                            </StackPane>
+                            <HBox fx:id="pnlLeyenda" spacing="16" alignment="CENTER"/>
                         </VBox>
                         <Separator style="-fx-padding: 4 0 4 0;"/>
                         <!-- Mitad inferior: barras por SKU -->
@@ -92,7 +110,11 @@
                     <Label text="Pedidos" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
                     <MenuButton fx:id="menuFiltroEstado" text="Estado" prefWidth="140"/>
                     <TextField fx:id="txtBuscadorPedidos" promptText="Buscar componente…"
-                               styleClass="buscador" prefWidth="200"/>
+                               styleClass="buscador" prefWidth="180"/>
+                    <Label text="Desde:" style="-fx-font-size:13px; -fx-text-fill:#2C3B54;"/>
+                    <DatePicker fx:id="dpPedidosDesde" prefWidth="130"/>
+                    <Label text="Hasta:" style="-fx-font-size:13px; -fx-text-fill:#2C3B54;"/>
+                    <DatePicker fx:id="dpPedidosHasta" prefWidth="130"/>
                     <Button fx:id="btnLimpiarFiltrosPedidos" text="Limpiar filtros"
                             styleClass="btn-secondary" onAction="#limpiarFiltrosPedidos"/>
                     <Button fx:id="btnNuevoPedido" text="Nuevo pedido" styleClass="btn-primary" onAction="#nuevoPedido"/>
@@ -124,8 +146,9 @@
                 </HBox>
                 <TableView fx:id="tablaProveedores" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="cpvNombre" text="Nombre" prefWidth="300"/>
-                        <TableColumn fx:id="cpvActivo" text="Estado"  prefWidth="100"/>
+                        <TableColumn fx:id="cpvNombre"  text="Nombre"  prefWidth="260"/>
+                        <TableColumn fx:id="cpvDivisa"  text="Divisa"  prefWidth="70"/>
+                        <TableColumn fx:id="cpvActivo"  text="Estado"  prefWidth="100"/>
                     </columns>
                     <placeholder><Label text="Sin proveedores"/></placeholder>
                 </TableView>

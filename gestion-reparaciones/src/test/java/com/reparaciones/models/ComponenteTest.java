@@ -8,7 +8,7 @@ class ComponenteTest {
 
     private Componente componente(int stock, int stockMinimo) {
         return new Componente(1, "Batería iPhone 13", LocalDateTime.now(),
-                stock, stockMinimo, LocalDateTime.now());
+                stock, stockMinimo, true, LocalDateTime.now());
     }
 
     @Test

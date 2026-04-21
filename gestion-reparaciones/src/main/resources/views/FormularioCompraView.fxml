@@ -12,24 +12,16 @@
 
     <Label fx:id="lblTitulo" text="Nuevo pedido" styleClass="vista-titulo"/>
 
-    <!-- Cabecera: proveedor + divisa (comunes a todas las líneas) -->
-    <HBox spacing="16" alignment="CENTER_LEFT">
-        <Label text="Proveedor:" styleClass="form-label" minWidth="90"/>
-        <ComboBox fx:id="cmbProveedor" prefWidth="220"/>
-        <Label text="Divisa:" styleClass="form-label"/>
-        <ComboBox fx:id="cmbDivisa" prefWidth="84"/>
-        <Label fx:id="lblTasa" style="-fx-font-size:11px; -fx-text-fill:#A0A0A0;"/>
-    </HBox>
-
     <!-- Tabla de líneas -->
     <TableView fx:id="tablaLineas" styleClass="tabla-reparaciones" VBox.vgrow="ALWAYS"
                editable="true" prefHeight="220">
         <columns>
-            <TableColumn fx:id="colComponente" text="Componente"  prefWidth="240"/>
-            <TableColumn fx:id="colCantidad"   text="Cant."       prefWidth="60"/>
-            <TableColumn fx:id="colPrecio"     text="P.Unit."     prefWidth="90"/>
-            <TableColumn fx:id="colUrgente"    text="Urg."        prefWidth="50"/>
-            <TableColumn fx:id="colTotalEur"   text="Total EUR"   prefWidth="100"/>
+            <TableColumn fx:id="colComponente" text="Componente"  prefWidth="175"/>
+            <TableColumn fx:id="colProveedor"  text="Proveedor"   prefWidth="155"/>
+            <TableColumn fx:id="colCantidad"   text="Cant."       prefWidth="55"/>
+            <TableColumn fx:id="colPrecio"     text="P.Unit."     prefWidth="80"/>
+            <TableColumn fx:id="colUrgente"    text="Urg."        prefWidth="45"/>
+            <TableColumn fx:id="colTotalEur"   text="Total EUR"   prefWidth="90"/>
             <TableColumn fx:id="colQuitar"     text=""            prefWidth="40"/>
         </columns>
         <placeholder><Label text="Añade al menos una línea"/></placeholder>

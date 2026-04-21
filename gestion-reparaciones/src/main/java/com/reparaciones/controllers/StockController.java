@@ -72,10 +72,13 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
     @FXML private Label                             lblChartSku;
     @FXML private Label                             lblPlaceholder;
     @FXML private javafx.scene.layout.HBox         pnlLeyenda;
+    @FXML private Label                             lblTotalStock;
 
     private CheckBox cbOk;
     private CheckBox cbBajo;
     private CheckBox cbSinStock;
+    private CheckBox cbDesactivado;
+    private CustomMenuItem itemDesactivadoMenu;
 
     // ── Panel Pedidos ─────────────────────────────────────────────────────────
     @FXML private TableView<CompraComponente>             tablaPedidos;
@@ -89,15 +92,19 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
     @FXML private TableColumn<CompraComponente, String>   cpEur;
     @FXML private TableColumn<CompraComponente, String>   cpEstado;
     @FXML private MenuButton                              menuFiltroEstado;
+    @FXML private DatePicker                              dpPedidosDesde;
+    @FXML private DatePicker                              dpPedidosHasta;
     private final java.util.List<CheckBox> cbsEstado = new java.util.ArrayList<>();
 
     // ── Panel Proveedores ─────────────────────────────────────────────────────
     @FXML private TableView<Proveedor>             tablaProveedores;
     @FXML private TableColumn<Proveedor, String>   cpvNombre;
+    @FXML private TableColumn<Proveedor, String>   cpvDivisa;
     @FXML private TableColumn<Proveedor, String>   cpvActivo;
 
     // ── Última actualización ──────────────────────────────────────────────────
     @FXML private Label lblUltimaActStock;
+    @FXML private Label lblDesactivados;
     @FXML private Label lblUltimaActPedidos;
     @FXML private Label lblUltimaActProveedores;
 
@@ -200,12 +207,15 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
         cbOk.setSelected(false);
         cbBajo.setSelected(false);
         cbSinStock.setSelected(false);
+        cbDesactivado.setSelected(false);
         txtBuscador.clear();
     }
 
     @FXML private void limpiarFiltrosPedidos() {
         cbsEstado.forEach(cb -> cb.setSelected(false));
         txtBuscadorPedidos.clear();
+        dpPedidosDesde.setValue(null);
+        dpPedidosHasta.setValue(null);
     }
 
     private void mostrarPanel(VBox panel, Button btnActivo) {
@@ -269,9 +279,10 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                               "-fx-font-size: 11px; -fx-font-weight: bold;";
                 badge.setText(val);
                 badge.setStyle(base + switch (val) {
-                    case "OK"   -> "-fx-background-color: #E8EAF0; -fx-text-fill: #586376;";
-                    case "Bajo" -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + "; -fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";";
-                    default     -> "-fx-background-color: #F9E0E3; -fx-text-fill: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";";
+                    case "OK"          -> "-fx-background-color: #E8EAF0; -fx-text-fill: #586376;";
+                    case "Bajo"        -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + "; -fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";";
+                    case "Desactivado" -> "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_CANCELADO_BG + "; -fx-text-fill: " + com.reparaciones.utils.Colores.FILA_CANCELADO_TEXT + ";";
+                    default            -> "-fx-background-color: #F9E0E3; -fx-text-fill: " + com.reparaciones.utils.Colores.ROJO_SIN_STOCK + ";";
                 });
                 setGraphic(badge);
             }
@@ -285,53 +296,64 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
             MenuItem itemEditar = new MenuItem("Editar stock");
             ctxStock.getItems().addAll(itemPedir, itemEditar, new SeparatorMenuItem(), itemMin);
             tablaStock.setContextMenu(ctxStock);
+            MenuItem itemToggleActivo = new MenuItem("Desactivar");
+            ctxStock.getItems().add(new SeparatorMenuItem());
+            ctxStock.getItems().add(itemToggleActivo);
             tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-                itemPedir .setDisable(sel == null);
-                itemMin   .setDisable(sel == null);
-                itemEditar.setDisable(sel == null);
+                itemPedir      .setDisable(sel == null);
+                itemMin        .setDisable(sel == null);
+                itemEditar     .setDisable(sel == null);
+                itemToggleActivo.setDisable(sel == null);
+                if (sel != null) itemToggleActivo.setText(sel.isActivo() ? "Desactivar" : "Activar");
             });
             itemPedir .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) pedirComponente(sel); });
             itemMin   .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) ajustarMinimo(sel); });
             itemEditar.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) editarStock(sel); });
+            itemToggleActivo.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) toggleActivarComponente(sel); });
         }
 
         // Filtros: buscador + estado (MenuButton con CheckBoxes)
 
-        cbOk       = new CheckBox("OK");
-        cbBajo     = new CheckBox("Bajo");
-        cbSinStock = new CheckBox("Sin stock");
-        for (CheckBox cb : new CheckBox[]{cbOk, cbBajo, cbSinStock})
+        cbOk          = new CheckBox("OK");
+        cbBajo        = new CheckBox("Bajo");
+        cbSinStock    = new CheckBox("Sin stock");
+        cbDesactivado = new CheckBox("Desactivado");
+        for (CheckBox cb : new CheckBox[]{cbOk, cbBajo, cbSinStock, cbDesactivado})
             cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
 
         FilteredList<Componente> filtrada = new FilteredList<>(datosStock, c -> true);
 
         Runnable aplicarFiltros = () -> {
-            boolean ok  = cbOk.isSelected();
-            boolean baj = cbBajo.isSelected();
-            boolean sin = cbSinStock.isSelected();
-            boolean ninguno = !ok && !baj && !sin;
-            actualizarTextoFiltroStock(ok, baj, sin, ninguno);
+            boolean ok   = cbOk.isSelected();
+            boolean baj  = cbBajo.isSelected();
+            boolean sin  = cbSinStock.isSelected();
+            boolean des  = cbDesactivado.isSelected();
+            boolean ninguno = !ok && !baj && !sin && !des;
+            actualizarTextoFiltroStock(ok, baj, sin, des, ninguno);
             filtrada.setPredicate(c -> {
                 String texto = txtBuscador.getText();
                 boolean coincideTexto = texto == null || texto.isBlank() ||
                         c.getTipo().toLowerCase().contains(texto.toLowerCase().trim());
                 String est = estadoComponente(c);
                 boolean coincideEstado = ninguno ||
-                        (ok && "OK".equals(est)) ||
+                        (ok  && "OK".equals(est)) ||
                         (baj && "Bajo".equals(est)) ||
-                        (sin && "Sin stock".equals(est));
+                        (sin && "Sin stock".equals(est)) ||
+                        (des && "Desactivado".equals(est));
                 return coincideTexto && coincideEstado;
             });
         };
 
-        for (CheckBox cb : new CheckBox[]{cbOk, cbBajo, cbSinStock})
+        for (CheckBox cb : new CheckBox[]{cbOk, cbBajo, cbSinStock, cbDesactivado})
             cb.selectedProperty().addListener((obs, o, n) -> aplicarFiltros.run());
         txtBuscador.textProperty().addListener((obs, old, val) -> aplicarFiltros.run());
 
         CustomMenuItem itemOk  = new CustomMenuItem(cbOk,       false);
         CustomMenuItem itemBaj = new CustomMenuItem(cbBajo,     false);
         CustomMenuItem itemSin = new CustomMenuItem(cbSinStock, false);
-        menuFiltroStock.getItems().addAll(itemOk, itemBaj, itemSin);
+        itemDesactivadoMenu    = new CustomMenuItem(cbDesactivado, false);
+        itemDesactivadoMenu.setVisible(false);
+        menuFiltroStock.getItems().addAll(itemOk, itemBaj, itemSin, itemDesactivadoMenu);
 
         tablaStock.setRowFactory(tv -> new TableRow<>() {
             {
@@ -339,6 +361,10 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
             }
             private void actualizarEstilo() {
                 if (isEmpty() || getItem() == null) { setStyle("-fx-border-width: 0 0 0 8; -fx-border-color: transparent;"); return; }
+                if (!getItem().isActivo()) {
+                    setStyle("-fx-opacity: 0.45; -fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0; -fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " transparent;");
+                    return;
+                }
                 if (isSelected()) {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
@@ -371,8 +397,18 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
 
     private void cargarStock() {
         try {
-            datosStock.setAll(componenteDAO.getAllGestionados());
+            java.util.List<Componente> todos = componenteDAO.getAllGestionados();
+            todos.sort(java.util.Comparator.comparingInt(c -> c.isActivo() ? 0 : 1));
+            datosStock.setAll(todos);
             actualizarChart();
+            long nDesactivados = todos.stream().filter(c -> !c.isActivo()).count();
+            if (lblDesactivados != null) {
+                lblDesactivados.setVisible(nDesactivados > 0);
+                lblDesactivados.setManaged(nDesactivados > 0);
+                lblDesactivados.setText(nDesactivados + " desactivado" + (nDesactivados == 1 ? "" : "s"));
+            }
+            if (itemDesactivadoMenu != null)
+                itemDesactivadoMenu.setVisible(nDesactivados > 0);
             String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
             if (lblUltimaActStock != null) lblUltimaActStock.setText("Actualizado " + hora);
         } catch (SQLException e) {
@@ -381,10 +417,12 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
     }
 
     private void actualizarChart() {
-        long ok       = datosStock.stream().filter(c -> c.getStock() > c.getStockMinimo()).count();
-        long bajo     = datosStock.stream().filter(c -> c.getStock() > 0 && c.getStock() <= c.getStockMinimo()).count();
-        long sinStock = datosStock.stream().filter(c -> c.getStock() == 0).count();
+        long ok       = datosStock.stream().filter(c -> c.isActivo() && c.getStock() > c.getStockMinimo()).count();
+        long bajo     = datosStock.stream().filter(c -> c.isActivo() && c.getStock() > 0 && c.getStock() <= c.getStockMinimo()).count();
+        long sinStock = datosStock.stream().filter(c -> c.isActivo() && c.getStock() == 0).count();
 
+        long total = ok + bajo + sinStock;
+        lblTotalStock.setText(String.valueOf(total));
         chartEstado.getData().setAll(
                 new PieChart.Data("OK (" + ok + ")",             ok),
                 new PieChart.Data("Bajo (" + bajo + ")",         bajo),
@@ -401,18 +439,21 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
 
         // Leyenda manual
         pnlLeyenda.getChildren().setAll(
-                leyendaItem("#3a7d44", "OK (" + ok + ")"),
-                leyendaItem("#c77a00", "Bajo (" + bajo + ")"),
-                leyendaItem(com.reparaciones.utils.Colores.ROJO_SIN_STOCK, "Sin stock (" + sinStock + ")")
+                leyendaItem("#3a7d44", "OK",        (int) ok),
+                leyendaItem("#c77a00", "Bajo",      (int) bajo),
+                leyendaItem(com.reparaciones.utils.Colores.ROJO_SIN_STOCK, "Sin stock", (int) sinStock)
         );
     }
 
-    private javafx.scene.layout.HBox leyendaItem(String color, String texto) {
-        javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(10, 10);
+    private javafx.scene.layout.HBox leyendaItem(String color, String nombre, int count) {
+        javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(8, 8);
         rect.setFill(javafx.scene.paint.Color.web(color));
-        Label lbl = new Label(texto);
-        lbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #2C3B54;");
-        javafx.scene.layout.HBox hb = new javafx.scene.layout.HBox(4, rect, lbl);
+        Label lblNombre = new Label(nombre);
+        lblNombre.setStyle("-fx-font-size: 9px; -fx-text-fill: #9AA0AA;");
+        Label lblCount = new Label(String.valueOf(count));
+        lblCount.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+        javafx.scene.layout.VBox info = new javafx.scene.layout.VBox(0, lblNombre, lblCount);
+        javafx.scene.layout.HBox hb = new javafx.scene.layout.HBox(6, rect, info);
         hb.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         return hb;
     }
@@ -466,12 +507,9 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                 javafx.scene.Node nodo = dato.getNode();
                 if (nodo == null) return;
                 nodo.setStyle("-fx-bar-fill: " + color + ";");
-                Label etiqueta = new Label(String.valueOf(valor));
-                etiqueta.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
-                javafx.scene.layout.StackPane bar = (javafx.scene.layout.StackPane) nodo;
-                bar.getChildren().add(etiqueta);
-                javafx.scene.layout.StackPane.setAlignment(etiqueta, javafx.geometry.Pos.TOP_CENTER);
-                etiqueta.setTranslateY(-16);
+                Tooltip tip = new Tooltip(String.valueOf(valor));
+                tip.setShowDelay(javafx.util.Duration.millis(150));
+                Tooltip.install(nodo, tip);
             };
             if (dato.getNode() != null) {
                 aplicar.run();
@@ -556,6 +594,13 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
         ventana.setScene(scene);
         javafx.application.Platform.runLater(tfCantidad::requestFocus);
         ventana.showAndWait();
+    }
+
+    private void toggleActivarComponente(Componente c) {
+        try {
+            componenteDAO.setActivo(c.getIdCom(), !c.isActivo());
+            cargarStock();
+        } catch (SQLException e) { mostrarError(e); }
     }
 
     private void ajustarMinimo(Componente c) {
@@ -745,11 +790,16 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                     .filter(CheckBox::isSelected).map(CheckBox::getText)
                     .collect(java.util.stream.Collectors.toList());
             String texto = txtBuscadorPedidos.getText();
+            java.time.LocalDate desde = dpPedidosDesde.getValue();
+            java.time.LocalDate hasta = dpPedidosHasta.getValue();
             filtrada.setPredicate(p -> {
                 boolean coincideEstado = sel.isEmpty() || sel.contains(p.getEstado().name());
                 boolean coincideTexto  = texto == null || texto.isBlank() ||
                         p.getTipoComponente().toLowerCase().contains(texto.toLowerCase().trim());
-                return coincideEstado && coincideTexto;
+                java.time.LocalDate fecha = p.getFechaPedido() != null ? p.getFechaPedido().toLocalDate() : null;
+                boolean coincideDesde = desde == null || fecha == null || !fecha.isBefore(desde);
+                boolean coincideHasta = hasta == null || fecha == null || !fecha.isAfter(hasta);
+                return coincideEstado && coincideTexto && coincideDesde && coincideHasta;
             });
         };
         for (String estado : new String[]{"pendiente", "parcial", "recibido", "cancelado"}) {
@@ -760,6 +810,12 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
             menuFiltroEstado.getItems().add(new CustomMenuItem(cb, false));
         }
         txtBuscadorPedidos.textProperty().addListener((obs, o, n) -> aplicarFiltroPedidos.run());
+        dpPedidosDesde.valueProperty().addListener((obs, o, n) -> aplicarFiltroPedidos.run());
+        dpPedidosHasta.valueProperty().addListener((obs, o, n) -> aplicarFiltroPedidos.run());
+        dpPedidosDesde.getEditor().setDisable(true);
+        dpPedidosDesde.getEditor().setOpacity(1.0);
+        dpPedidosHasta.getEditor().setDisable(true);
+        dpPedidosHasta.getEditor().setOpacity(1.0);
         tablaPedidos.setItems(filtrada);
 
         // Menú contextual según estado de la fila (solo admin)
@@ -949,6 +1005,7 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
 
     private void configurarTablaProveedores() {
         cpvNombre.setCellValueFactory(c -> sp(c.getValue().getNombre()));
+        cpvDivisa.setCellValueFactory(c -> sp(c.getValue().getDivisa()));
         cpvActivo.setCellValueFactory(c -> sp(c.getValue().isActivo() ? "Activo" : "Inactivo"));
         cpvActivo.setCellFactory(col -> new TableCell<>() {
             private final Label badge = new Label();
@@ -1003,7 +1060,9 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                 if (sel == null) return;
                 MenuItem itemToggle = new MenuItem(sel.isActivo() ? "Desactivar" : "Activar");
                 itemToggle.setOnAction(e -> activarProveedor());
-                ctxProv.getItems().add(itemToggle);
+                MenuItem itemDivisa = new MenuItem("Cambiar divisa");
+                itemDivisa.setOnAction(e -> cambiarDivisa());
+                ctxProv.getItems().addAll(itemToggle, itemDivisa);
                 try {
                     if (!proveedorDAO.tienePedidos(sel.getIdProv())) {
                         MenuItem itemBorrar = new MenuItem("Borrar");
@@ -1041,6 +1100,61 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
         });
     }
 
+    @FXML private void cambiarDivisa() {
+        Proveedor sel = tablaProveedores.getSelectionModel().getSelectedItem();
+        if (sel == null) return;
+
+        Label lblTitulo = new Label("Divisa del proveedor");
+        lblTitulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+
+        Label lblNombre = new Label(sel.getNombre());
+        lblNombre.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376;");
+
+        Label lblLabel = new Label("Divisa por defecto");
+        lblLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
+
+        ComboBox<String> cmbDiv = new ComboBox<>();
+        cmbDiv.getItems().setAll("EUR", "USD");
+        cmbDiv.setValue(sel.getDivisa());
+        cmbDiv.setMaxWidth(Double.MAX_VALUE);
+
+        Button btnConfirmar = new Button("Confirmar");
+        btnConfirmar.setMaxWidth(Double.MAX_VALUE);
+        btnConfirmar.getStyleClass().add("btn-primary");
+
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.setMaxWidth(Double.MAX_VALUE);
+        btnCancelar.getStyleClass().add("btn-secondary");
+
+        javafx.scene.layout.HBox botones = new javafx.scene.layout.HBox(10, btnCancelar, btnConfirmar);
+        botones.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        javafx.scene.layout.VBox contenido = new javafx.scene.layout.VBox(12,
+                lblTitulo, lblNombre, lblLabel, cmbDiv, botones);
+        contenido.setPadding(new javafx.geometry.Insets(28));
+        contenido.setPrefWidth(320);
+        contenido.setStyle("-fx-background-color: #DDE1E7;");
+
+        javafx.stage.Stage ventana = new javafx.stage.Stage();
+        ventana.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        ventana.setResizable(false);
+        ventana.setTitle("Divisa — " + sel.getNombre());
+
+        btnCancelar.setOnAction(ev -> ventana.close());
+        btnConfirmar.setOnAction(ev -> {
+            try {
+                proveedorDAO.setDivisa(sel.getIdProv(), cmbDiv.getValue());
+                ventana.close();
+                cargarProveedores();
+            } catch (SQLException e) { mostrarError(e); }
+        });
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(contenido);
+        scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
+        ventana.setScene(scene);
+        ventana.showAndWait();
+    }
+
     @FXML private void activarProveedor() {
         Proveedor sel = tablaProveedores.getSelectionModel().getSelectedItem();
         if (sel == null) return;
@@ -1068,6 +1182,7 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
     // ─── Util ─────────────────────────────────────────────────────────────────
 
     private static String estadoComponente(Componente c) {
+        if (!c.isActivo())                        return "Desactivado";
         if (c.getStock() == 0)                    return "Sin stock";
         if (c.getStock() <= c.getStockMinimo())   return "Bajo";
         return "OK";
@@ -1086,11 +1201,11 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
         else                       menuFiltroEstado.setText(sel.size() + " estados");
     }
 
-    private void actualizarTextoFiltroStock(boolean ok, boolean baj, boolean sin, boolean ninguno) {
-        int total = (ok ? 1 : 0) + (baj ? 1 : 0) + (sin ? 1 : 0);
-        if (ninguno || total == 3) menuFiltroStock.setText("Estado");
-        else if (total == 1)      menuFiltroStock.setText(ok ? "OK" : baj ? "Bajo" : "Sin stock");
-        else                      menuFiltroStock.setText(total + " estados");
+    private void actualizarTextoFiltroStock(boolean ok, boolean baj, boolean sin, boolean des, boolean ninguno) {
+        int total = (ok ? 1 : 0) + (baj ? 1 : 0) + (sin ? 1 : 0) + (des ? 1 : 0);
+        if (ninguno)         menuFiltroStock.setText("Estado");
+        else if (total == 1) menuFiltroStock.setText(ok ? "OK" : baj ? "Bajo" : sin ? "Sin stock" : "Desactivado");
+        else                 menuFiltroStock.setText(total + " estados");
     }
 
     private void mostrarError(SQLException e) {

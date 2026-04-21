@@ -17,15 +17,20 @@ public class Proveedor {
     /** {@code true} si el proveedor está disponible para nuevos pedidos. */
     private boolean activo;
 
+    /** Divisa habitual del proveedor (p.ej. "EUR", "USD"). */
+    private String divisa;
+
     /**
      * @param idProv  clave primaria del proveedor
      * @param nombre  nombre comercial
      * @param activo  {@code true} si está disponible para nuevos pedidos
+     * @param divisa  divisa habitual ("EUR", "USD", …)
      */
-    public Proveedor(int idProv, String nombre, boolean activo) {
+    public Proveedor(int idProv, String nombre, boolean activo, String divisa) {
         this.idProv  = idProv;
         this.nombre  = nombre;
         this.activo  = activo;
+        this.divisa  = divisa != null ? divisa : "EUR";
     }
 
     /** @return clave primaria del proveedor */
@@ -37,8 +42,12 @@ public class Proveedor {
     /** @return {@code true} si está disponible para nuevos pedidos */
     public boolean isActivo() { return activo; }
 
+    /** @return divisa habitual del proveedor */
+    public String getDivisa() { return divisa; }
+
     public void setNombre(String nombre) { this.nombre = nombre; }
     public void setActivo(boolean activo) { this.activo = activo; }
+    public void setDivisa(String divisa)  { this.divisa = divisa; }
 
     /** Devuelve el nombre para uso en ComboBox. */
     @Override

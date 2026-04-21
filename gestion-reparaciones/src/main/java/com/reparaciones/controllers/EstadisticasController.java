@@ -881,7 +881,9 @@ public class EstadisticasController {
 
     private void poblarFiltrosComponente() {
         try {
-            todosComponentesGestionados = new ComponenteDAO().getAllGestionados();
+            todosComponentesGestionados = new ComponenteDAO().getAllGestionados().stream()
+                    .filter(com.reparaciones.models.Componente::isActivo)
+                    .collect(java.util.stream.Collectors.toList());
         } catch (SQLException e) {
             e.printStackTrace();
             return;

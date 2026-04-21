@@ -25,6 +25,9 @@ public class Componente {
     /** Umbral mínimo de stock; por debajo se considera que hay rotura. */
     private int stockMinimo;
 
+    /** {@code false} si el componente está desactivado y se excluye de conteos y alertas. */
+    private boolean activo;
+
     /** Última vez que se actualizó el registro en BD. */
     private LocalDateTime updatedAt;
 
@@ -50,12 +53,13 @@ public class Componente {
      * @param updatedAt      última actualización del registro
      */
     public Componente(int idCom, String tipo, LocalDateTime fechaRegistro,
-                      int stock, int stockMinimo, LocalDateTime updatedAt) {
+                      int stock, int stockMinimo, boolean activo, LocalDateTime updatedAt) {
         this.idCom = idCom;
         this.tipo = tipo;
         this.fechaRegistro = fechaRegistro;
         this.stock = stock;
         this.stockMinimo = stockMinimo;
+        this.activo = activo;
         this.updatedAt = updatedAt;
     }
 
@@ -75,6 +79,9 @@ public class Componente {
     /** @return umbral mínimo de stock */
     public int getStockMinimo() { return stockMinimo; }
     public void setStockMinimo(int stockMinimo) { this.stockMinimo = stockMinimo; }
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
 
     /** @return última actualización del registro en BD */
     public LocalDateTime getUpdatedAt() { return updatedAt; }

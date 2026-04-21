@@ -25,30 +25,21 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Controlador del formulario de nuevo pedido de componentes.
  * <p>Permite al administrador crear pedidos multi-línea: cada línea incluye
- * componente, cantidad, proveedor, precio y opción de urgente.</p>
- *
- * <p>Al guardar, inserta un registro en {@code Compra_componente} por cada línea
- * mediante {@link com.reparaciones.dao.CompraComponenteDAO#insertar}.</p>
- *
- * <p>Consulta el tipo de cambio en tiempo real vía {@link com.reparaciones.dao.TipoCambioDAO}
- * para convertir automáticamente el precio a EUR al cambiar la divisa.</p>
+ * componente, proveedor (con divisa asociada), cantidad, precio y urgencia.</p>
  *
  * @role ADMIN
  */
 public class FormularioCompraController {
 
     @FXML private Label                                   lblTitulo;
-    @FXML private ComboBox<Proveedor>                     cmbProveedor;
-    @FXML private ComboBox<String>                        cmbDivisa;
-    @FXML private Label                                   lblTasa;
 
     @FXML private TableView<LineaPedido>                  tablaLineas;
     @FXML private TableColumn<LineaPedido, Componente>    colComponente;
+    @FXML private TableColumn<LineaPedido, Proveedor>     colProveedor;
     @FXML private TableColumn<LineaPedido, Integer>       colCantidad;
     @FXML private TableColumn<LineaPedido, Double>        colPrecio;
     @FXML private TableColumn<LineaPedido, Boolean>       colUrgente;
@@ -71,53 +62,42 @@ public class FormularioCompraController {
 
     private final ObservableList<LineaPedido> lineas = FXCollections.observableArrayList();
     private ObservableList<Componente> componentesDisponibles;
+    private ObservableList<Proveedor>  proveedoresDisponibles;
 
     private Runnable onGuardado;
-    private volatile double tasaActual = 1.0;
 
     // ─── Init ─────────────────────────────────────────────────────────────────
 
     public void init(Componente preselect, Runnable onGuardado) {
         this.onGuardado = onGuardado;
-
         try {
-            componentesDisponibles = FXCollections.observableArrayList(componenteDAO.getAllGestionados());
-            cmbProveedor.getItems().setAll(proveedorDAO.getActivos());
+            componentesDisponibles = FXCollections.observableArrayList(
+                    componenteDAO.getAllGestionados().stream()
+                            .filter(com.reparaciones.models.Componente::isActivo)
+                            .collect(java.util.stream.Collectors.toList()));
+            proveedoresDisponibles = FXCollections.observableArrayList(proveedorDAO.getActivos());
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        cmbDivisa.getItems().setAll(List.of("EUR", "USD"));
-        cmbDivisa.setValue("EUR");
-        cmbDivisa.valueProperty().addListener((obs, o, n) -> { if (n != null) fetchTasaAsync(n); });
-
         configurarTabla();
         tablaLineas.setItems(lineas);
-
-        if (preselect != null)
-            añadirFila(preselect);
+        if (preselect != null) añadirFila(preselect);
     }
 
-    // ─── Tasa de cambio ───────────────────────────────────────────────────────
+    // ─── Tasa de cambio por línea ─────────────────────────────────────────────
 
-    private void fetchTasaAsync(String divisa) {
+    private void fetchTasaParaLinea(LineaPedido linea, String divisa) {
         if ("EUR".equalsIgnoreCase(divisa)) {
-            tasaActual = 1.0;
-            lblTasa.setText("");
+            linea.setTasa(1.0);
             tablaLineas.refresh();
             return;
         }
-        lblTasa.setText("Obteniendo tasa…");
         new Thread(() -> {
             try {
                 double t = tipoCambioDAO.getTasa(divisa);
-                Platform.runLater(() -> {
-                    tasaActual = t;
-                    lblTasa.setText(String.format("1 %s = %.4f €", divisa, t));
-                    tablaLineas.refresh();
-                });
+                Platform.runLater(() -> { linea.setTasa(t); tablaLineas.refresh(); });
             } catch (SQLException e) {
-                Platform.runLater(() -> lblTasa.setText("Error al obtener tasa"));
+                Platform.runLater(tablaLineas::refresh);
             }
         }, "tasa-fetch").start();
     }
@@ -127,7 +107,7 @@ public class FormularioCompraController {
     private void configurarTabla() {
         tablaLineas.setEditable(true);
 
-        // Componente — ComboBox siempre visible (no depende de modo edición)
+        // Componente — ComboBox siempre visible
         colComponente.setCellValueFactory(c -> c.getValue().componenteProperty());
         colComponente.setCellFactory(col -> new TableCell<>() {
             private final ComboBox<Componente> combo = new ComboBox<>(componentesDisponibles);
@@ -161,6 +141,49 @@ public class FormularioCompraController {
                 });
             }
             @Override protected void updateItem(Componente item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); }
+                else { combo.setValue(item); setGraphic(combo); }
+            }
+        });
+
+        // Proveedor — ComboBox siempre visible, auto-fetch tasa al cambiar
+        colProveedor.setCellValueFactory(c -> c.getValue().proveedorProperty());
+        colProveedor.setCellFactory(col -> new TableCell<>() {
+            private final ComboBox<Proveedor> combo = new ComboBox<>(proveedoresDisponibles);
+            {
+                combo.setCellFactory(lv -> new ListCell<>() {
+                    {
+                        setOnMouseEntered(e -> { if (!isEmpty() && getItem() != null)
+                            setStyle("-fx-text-fill: #2C3B54; -fx-background-color: #DDE1E7;"); });
+                        setOnMouseExited(e -> { if (!isEmpty() && getItem() != null)
+                            setStyle("-fx-text-fill: #2C3B54; -fx-background-color: white;"); });
+                    }
+                    @Override protected void updateItem(Proveedor p, boolean empty) {
+                        super.updateItem(p, empty);
+                        setText(empty || p == null ? null : p.getNombre());
+                        setStyle("-fx-text-fill: #2C3B54; -fx-background-color: white;");
+                    }
+                });
+                combo.setButtonCell(new ListCell<>() {
+                    @Override protected void updateItem(Proveedor p, boolean empty) {
+                        super.updateItem(p, empty);
+                        setText(empty || p == null ? "" : p.getNombre());
+                        setStyle("-fx-text-fill: #FAFAFA;");
+                    }
+                });
+                combo.setMaxWidth(Double.MAX_VALUE);
+                combo.setOnAction(e -> {
+                    Proveedor val = combo.getValue();
+                    int idx = getIndex();
+                    if (val != null && idx >= 0 && idx < getTableView().getItems().size()) {
+                        LineaPedido linea = getTableView().getItems().get(idx);
+                        linea.setProveedor(val);
+                        fetchTasaParaLinea(linea, val.getDivisa());
+                    }
+                });
+            }
+            @Override protected void updateItem(Proveedor item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty) { setGraphic(null); }
                 else { combo.setValue(item); setGraphic(combo); }
@@ -216,7 +239,7 @@ public class FormularioCompraController {
             tablaLineas.refresh();
         });
 
-        // Precio — celda personalizada
+        // Precio — celda personalizada, símbolo según divisa del proveedor de la línea
         colPrecio.setCellValueFactory(c -> c.getValue().precioUnidadProperty().asObject());
         colPrecio.setCellFactory(col -> new TableCell<>() {
             private final Label     lbl = new Label();
@@ -235,7 +258,11 @@ public class FormularioCompraController {
                 try { commitEdit(Double.parseDouble(tf.getText().trim().replace(",", "."))); }
                 catch (NumberFormatException e) { cancelEdit(); }
             }
-            private String simb() { return "USD".equals(cmbDivisa.getValue()) ? "$" : "€"; }
+            private String simb() {
+                LineaPedido l = getTableRow() != null ? getTableRow().getItem() : null;
+                if (l == null || l.getProveedor() == null) return "€";
+                return "USD".equals(l.getProveedor().getDivisa()) ? "$" : "€";
+            }
             private void refresh() {
                 if (isEmpty() || getItem() == null) { setText(null); setGraphic(null); setStyle(""); return; }
                 boolean sel = getTableRow() != null && getTableRow().isSelected();
@@ -270,18 +297,16 @@ public class FormularioCompraController {
         colUrgente.setCellValueFactory(c -> c.getValue().esUrgenteProperty());
         colUrgente.setCellFactory(CheckBoxTableCell.forTableColumn(colUrgente));
 
-        // Total EUR — calculado, solo lectura
+        // Total EUR — usa la tasa de la línea
         colTotalEur.setCellValueFactory(c -> {
             LineaPedido l = c.getValue();
-            double total = l.getPrecioUnidad() * tasaActual * l.getCantidad();
+            double total = l.getPrecioUnidad() * l.getTasa() * l.getCantidad();
             return new javafx.beans.property.SimpleStringProperty(String.format("%.2f €", total));
         });
 
-        // Selección azul — igual que el resto de tablas del programa
+        // Selección azul
         tablaLineas.setRowFactory(tv -> new TableRow<>() {
-            {
-                selectedProperty().addListener((obs, o, sel) -> actualizarEstilo());
-            }
+            { selectedProperty().addListener((obs, o, sel) -> actualizarEstilo()); }
             private void actualizarEstilo() {
                 if (isEmpty() || getItem() == null) { setStyle(""); return; }
                 setStyle(isSelected()
@@ -316,9 +341,7 @@ public class FormularioCompraController {
 
     // ─── Añadir fila ──────────────────────────────────────────────────────────
 
-    @FXML private void anadirLinea() {
-        añadirFila(null);
-    }
+    @FXML private void anadirLinea() { añadirFila(null); }
 
     private void añadirFila(Componente preselect) {
         LineaPedido linea = new LineaPedido();
@@ -328,7 +351,6 @@ public class FormularioCompraController {
                     .findFirst()
                     .ifPresent(linea::setComponente);
         lineas.add(linea);
-        // Seleccionar la nueva fila para que el usuario empiece a editar
         tablaLineas.getSelectionModel().selectLast();
         tablaLineas.scrollTo(lineas.size() - 1);
     }
@@ -336,20 +358,18 @@ public class FormularioCompraController {
     // ─── Confirmar ────────────────────────────────────────────────────────────
 
     @FXML private void confirmar() {
-        Proveedor prov = cmbProveedor.getValue();
-        if (prov == null) {
-            new Alert(Alert.AlertType.WARNING, "Selecciona un proveedor.").showAndWait();
-            return;
-        }
         if (lineas.isEmpty()) {
             new Alert(Alert.AlertType.WARNING, "Añade al menos una línea.").showAndWait();
             return;
         }
-        // Validar líneas
         for (int i = 0; i < lineas.size(); i++) {
             LineaPedido l = lineas.get(i);
             if (l.getComponente() == null) {
                 new Alert(Alert.AlertType.WARNING, "Línea " + (i+1) + ": selecciona un componente.").showAndWait();
+                return;
+            }
+            if (l.getProveedor() == null) {
+                new Alert(Alert.AlertType.WARNING, "Línea " + (i+1) + ": selecciona un proveedor.").showAndWait();
                 return;
             }
             if (l.getCantidad() <= 0) {
@@ -361,11 +381,12 @@ public class FormularioCompraController {
                 return;
             }
         }
-        String divisa = cmbDivisa.getValue();
         try {
-            double tasa = tipoCambioDAO.getTasa(divisa);
             for (LineaPedido linea : lineas) {
-                double precioEur = linea.getPrecioUnidad() * tasa;
+                Proveedor prov  = linea.getProveedor();
+                String    divisa = prov.getDivisa();
+                double    tasa   = tipoCambioDAO.getTasa(divisa);
+                double    precioEur = linea.getPrecioUnidad() * tasa;
                 compraDAO.insertar(linea.getComponente().getIdCom(), prov.getIdProv(),
                         linea.getCantidad(), linea.isEsUrgente(),
                         linea.getPrecioUnidad(), divisa, precioEur);
@@ -380,7 +401,7 @@ public class FormularioCompraController {
     @FXML private void cancelar() { cerrarVentana(); }
 
     private void cerrarVentana() {
-        ((Stage) cmbProveedor.getScene().getWindow()).close();
+        ((Stage) tablaLineas.getScene().getWindow()).close();
     }
 
     // ─── Apertura estática ────────────────────────────────────────────────────

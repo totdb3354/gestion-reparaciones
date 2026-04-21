@@ -123,12 +123,30 @@ public class ProveedorDAO {
 
     // ─── Mapeo ────────────────────────────────────────────────────────────────
 
+    /**
+     * Actualiza la divisa habitual de un proveedor.
+     *
+     * @param idProv ID del proveedor
+     * @param divisa código de divisa ("EUR", "USD", …)
+     * @throws SQLException si falla el update
+     */
+    public void setDivisa(int idProv, String divisa) throws SQLException {
+        String sql = "UPDATE Proveedor SET DIVISA = ? WHERE ID_PROV = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, divisa);
+            ps.setInt(2, idProv);
+            ps.executeUpdate();
+        }
+    }
+
     /** Mapea una fila del {@code ResultSet} a un {@link com.reparaciones.models.Proveedor}. */
     private Proveedor mapear(ResultSet rs) throws SQLException {
         return new Proveedor(
                 rs.getInt("ID_PROV"),
                 rs.getString("NOMBRE"),
-                rs.getBoolean("ACTIVO")
+                rs.getBoolean("ACTIVO"),
+                rs.getString("DIVISA")
         );
     }
 }

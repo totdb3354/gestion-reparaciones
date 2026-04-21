@@ -80,7 +80,7 @@ public class ComponenteDAO {
      */
     public List<Componente> getStockBajo() throws SQLException {
         List<Componente> lista = new ArrayList<>();
-        String sql = "SELECT * FROM Componente WHERE STOCK <= STOCK_MINIMO";
+        String sql = "SELECT * FROM Componente WHERE STOCK <= STOCK_MINIMO AND ACTIVO = TRUE";
         try (Connection con = Conexion.getConexion();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
@@ -301,6 +301,24 @@ public class ComponenteDAO {
         };
     }
 
+    /**
+     * Activa o desactiva un componente.
+     * <p>Los componentes desactivados se excluyen del conteo de stock y de las alertas.</p>
+     *
+     * @param idCom  ID del componente
+     * @param activo {@code true} para activar, {@code false} para desactivar
+     * @throws SQLException si falla el update
+     */
+    public void setActivo(int idCom, boolean activo) throws SQLException {
+        String sql = "UPDATE Componente SET ACTIVO = ? WHERE ID_COM = ?";
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBoolean(1, activo);
+            ps.setInt(2, idCom);
+            ps.executeUpdate();
+        }
+    }
+
     /** Mapea una fila del {@code ResultSet} a un {@link com.reparaciones.models.Componente}. */
     private Componente mapear(ResultSet rs) throws SQLException {
         return new Componente(
@@ -309,6 +327,7 @@ public class ComponenteDAO {
                 rs.getTimestamp("FECHA_REGISTRO").toLocalDateTime(),
                 rs.getInt("STOCK"),
                 rs.getInt("STOCK_MINIMO"),
+                rs.getBoolean("ACTIVO"),
                 rs.getTimestamp("UPDATED_AT").toLocalDateTime());
     }
 

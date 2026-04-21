@@ -25,6 +25,12 @@ public class LineaPedido {
     /** {@code true} si el pedido de esta línea es urgente. */
     private final BooleanProperty            esUrgente   = new SimpleBooleanProperty(false);
 
+    /** Proveedor seleccionado para esta línea. */
+    private final ObjectProperty<Proveedor>  proveedor   = new SimpleObjectProperty<>();
+
+    /** Tasa de cambio a EUR para la divisa del proveedor de esta línea. */
+    private double tasa = 1.0;
+
     /** Constructor por defecto — todos los campos en sus valores iniciales. */
     public LineaPedido() {}
 
@@ -73,4 +79,10 @@ public class LineaPedido {
     public void setCantidad(int v)          { cantidad.set(v); }
     public void setPrecioUnidad(double v)   { precioUnidad.set(v); }
     public void setEsUrgente(boolean v)     { esUrgente.set(v); }
+    public void setProveedor(Proveedor p)   { proveedor.set(p); }
+    public void setTasa(double t)           { tasa = t; }
+
+    public ObjectProperty<Proveedor> proveedorProperty() { return proveedor; }
+    public Proveedor getProveedor()  { return proveedor.get(); }
+    public double getTasa()          { return tasa; }
 }
