@@ -330,57 +330,76 @@ public class PendientesAdminController {
     @FXML
     private void abrirFormularioAsignacion() {
         // ── IMEI ──────────────────────────────────────────────────────────────
-        Label lblImei = new Label("Introduzca IMEI de teléfono a reparar");
+        Label lblTitulo = new Label("Asignar reparación");
+        lblTitulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+
+        Label lblImei = new Label("IMEI del teléfono");
+        lblImei.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
+
         TextField tfImei = new TextField();
+        tfImei.setPromptText("15 dígitos");
+        tfImei.setStyle("-fx-background-color: white; -fx-border-color: #C2C8D0;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
+                "-fx-text-fill: #2C3B54; -fx-font-size: 13px;");
+
         Label lblImeiErr = new Label();
-        tfImei.setPromptText("Introduce un IMEI para identificar");
-        tfImei.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
         lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ERROR + ";");
 
-        // ── Lista de técnicos con checkboxes ──────────────────────────────────
+        // ── Lista de técnicos (checkboxes en ScrollPane) ─────────────────────
         Label lblTecnicos = new Label("Técnicos a asignar");
-        VBox listaTecnicos = new VBox(4);
-        listaTecnicos.setStyle("-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                "-fx-border-radius: 4; -fx-padding: 8;");
+        lblTecnicos.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
 
-        List<Tecnico> tecnicos = new ArrayList<>();
+        List<Tecnico> tecnicosModal = new ArrayList<>();
         List<CheckBox> checkboxes = new ArrayList<>();
+        VBox cbContainer = new VBox(6);
+        cbContainer.setStyle("-fx-background-color: white; -fx-padding: 8;");
+
         try {
-            tecnicos.addAll(tecnicoDAO.getAll());
-            for (Tecnico t : tecnicos) {
+            tecnicosModal.addAll(tecnicoDAO.getAllActivos());
+            for (Tecnico t : tecnicosModal) {
                 CheckBox cb = new CheckBox(t.getNombre());
                 cb.setStyle("-fx-font-size: 12px;");
                 checkboxes.add(cb);
-                listaTecnicos.getChildren().add(cb);
+                cbContainer.getChildren().add(cb);
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
 
-        // ── Botón confirmar ───────────────────────────────────────────────────
+        ScrollPane scrollTecnicos = new ScrollPane(cbContainer);
+        scrollTecnicos.setFitToWidth(true);
+        scrollTecnicos.setMaxHeight(150);
+        scrollTecnicos.setPrefHeight(Math.min(150, tecnicosModal.size() * 30 + 16));
+        scrollTecnicos.setStyle("-fx-background-color: white; -fx-border-color: #C2C8D0;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4;");
+
+        // ── Botones ───────────────────────────────────────────────────────────
         Button btnConfirmar = new Button("Asignar reparación");
         btnConfirmar.setMaxWidth(Double.MAX_VALUE);
         btnConfirmar.setDisable(true);
-        btnConfirmar.setStyle("-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
-                "-fx-font-size: 12px; -fx-background-radius: 4; -fx-padding: 8;");
+        btnConfirmar.getStyleClass().add("btn-primary");
 
-        // ── Validación + actualización de checkboxes ──────────────────────────
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.setMaxWidth(Double.MAX_VALUE);
+        btnCancelar.getStyleClass().add("btn-secondary");
+
+        HBox botones = new HBox(10, btnCancelar, btnConfirmar);
+        botones.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        // ── Validación ────────────────────────────────────────────────────────
         Runnable validar = () -> {
             String imeiStr = tfImei.getText().trim();
             boolean imeiOk = imeiStr.length() == 15;
             boolean bloqueadoPorHistorial = false;
 
-            // Primero comprobar si el IMEI tiene historial
             if (imeiOk) {
                 try {
                     if (telefonoDAO.exists(imeiStr)) {
                         bloqueadoPorHistorial = true;
                         lblImeiErr.setText("Este teléfono ya tiene historial. Marca una incidencia desde la tabla si necesita reparación.");
-                        lblImeiErr.setStyle("-fx-font-size: 11px; -fx-text-fill: " + com.reparaciones.utils.Colores.TEXTO_ERROR + ";");
                         tfImei.setStyle("-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
-                                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
-                        // Deshabilitar todos los checkboxes
+                                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
+                                "-fx-text-fill: #2C3B54; -fx-font-size: 13px;");
                         checkboxes.forEach(cb -> { cb.setDisable(true); cb.setSelected(false); });
                     }
                 } catch (SQLException ex) {
@@ -389,80 +408,66 @@ public class PendientesAdminController {
             }
 
             if (!bloqueadoPorHistorial) {
-                // Restablecer checkboxes
-                for (int i = 0; i < checkboxes.size(); i++) {
-                    checkboxes.get(i).setDisable(false);
-                    checkboxes.get(i).setText(tecnicos.get(i).getNombre());
-                }
+                checkboxes.forEach(cb -> cb.setDisable(false));
                 tfImei.setStyle(imeiStr.isEmpty()
-                        ? "-fx-background-color: white; -fx-border-color: #A9A9A9;" +
-                                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;"
+                        ? "-fx-background-color: white; -fx-border-color: #C2C8D0;" +
+                                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
+                                "-fx-text-fill: #2C3B54; -fx-font-size: 13px;"
                         : imeiOk
                                 ? "-fx-background-color: white; -fx-border-color: #8AC7AF;" +
-                                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;"
+                                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
+                                        "-fx-text-fill: #2C3B54; -fx-font-size: 13px;"
                                 : "-fx-background-color: white; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
-                                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;");
-                lblImeiErr.setText(!imeiStr.isEmpty() && !imeiOk
-                        ? "El IMEI debe tener exactamente 15 dígitos" : "");
+                                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" +
+                                        "-fx-text-fill: #2C3B54; -fx-font-size: 13px;");
+                lblImeiErr.setText(!imeiStr.isEmpty() && !imeiOk ? "El IMEI debe tener exactamente 15 dígitos" : "");
             }
 
-            boolean algunoSeleccionado = checkboxes.stream()
-                    .anyMatch(cb -> cb.isSelected() && !cb.isDisabled());
-            boolean ok = imeiOk && !bloqueadoPorHistorial && algunoSeleccionado;
-
-            btnConfirmar.setDisable(!ok);
-            btnConfirmar.setStyle(ok
-                    ? "-fx-background-color: #8AC7AF; -fx-text-fill: white; -fx-font-size: 12px;" +
-                            "-fx-background-radius: 4; -fx-padding: 8; -fx-cursor: hand;"
-                    : "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;" +
-                            "-fx-font-size: 12px; -fx-background-radius: 4; -fx-padding: 8;");
+            boolean algunoSeleccionado = checkboxes.stream().anyMatch(cb -> cb.isSelected() && !cb.isDisabled());
+            btnConfirmar.setDisable(!(imeiOk && !bloqueadoPorHistorial && algunoSeleccionado));
         };
 
         // ── Listeners ─────────────────────────────────────────────────────────
         tfImei.textProperty().addListener((obs, o, n) -> {
-            if (!n.matches("\\d*"))
-                tfImei.setText(n.replaceAll("[^\\d]", ""));
-            if (tfImei.getText().length() > 15)
-                tfImei.setText(tfImei.getText().substring(0, 15));
+            if (!n.matches("\\d*")) tfImei.setText(n.replaceAll("[^\\d]", ""));
+            if (tfImei.getText().length() > 15) tfImei.setText(tfImei.getText().substring(0, 15));
             validar.run();
         });
-
         checkboxes.forEach(cb -> cb.selectedProperty().addListener((obs, o, n) -> validar.run()));
 
         // ── Confirmar ─────────────────────────────────────────────────────────
+        VBox contenido = new VBox(12, lblTitulo, lblImei, tfImei, lblImeiErr, lblTecnicos, scrollTecnicos, botones);
+        contenido.setPadding(new Insets(28));
+        contenido.setPrefWidth(400);
+        contenido.setStyle("-fx-background-color: #DDE1E7;");
+
+        javafx.stage.Stage ventana = new javafx.stage.Stage();
+        ventana.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        ventana.setResizable(false);
+        ventana.setTitle("Asignar reparación");
+
+        btnCancelar.setOnAction(ev -> ventana.close());
+
         btnConfirmar.setOnAction(ev -> {
             String imei = tfImei.getText().trim();
             try {
-                telefonoDAO.insertar(imei); // sabemos que no existe, la validación lo garantiza
+                telefonoDAO.insertar(imei);
                 for (int i = 0; i < checkboxes.size(); i++) {
-                    if (checkboxes.get(i).isSelected()) {
-                        reparacionDAO.insertarAsignacion(imei, tecnicos.get(i).getIdTec());
-                    }
+                    if (checkboxes.get(i).isSelected())
+                        reparacionDAO.insertarAsignacion(imei, tecnicosModal.get(i).getIdTec());
                 }
+                ventana.close();
                 cargar();
-                tfImei.clear();
-                for (int i = 0; i < checkboxes.size(); i++) {
-                    checkboxes.get(i).setSelected(false);
-                    checkboxes.get(i).setDisable(false);
-                    checkboxes.get(i).setText(tecnicos.get(i).getNombre());
-                }
-                lblImeiErr.setText("");
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         });
 
-        VBox form = new VBox(8, lblImei, tfImei, lblImeiErr, lblTecnicos, listaTecnicos, btnConfirmar);
-        form.setPadding(new Insets(16));
-        form.setStyle("-fx-background-color: #F0F0F0; -fx-background-radius: 8;");
-        form.setPrefWidth(560);
-
-        Dialog<Void> formDialog = new Dialog<>();
-        formDialog.setTitle("Asignación de Reparación");
-        formDialog.getDialogPane().setContent(form);
-        formDialog.getDialogPane().setPrefWidth(600);
-        formDialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        formDialog.showAndWait();
+        javafx.scene.Scene scene = new javafx.scene.Scene(contenido);
+        scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
+        ventana.setScene(scene);
+        javafx.application.Platform.runLater(tfImei::requestFocus);
+        ventana.showAndWait();
     }
 
     public void resetearCambios() {

@@ -8,23 +8,24 @@
       xmlns="http://javafx.com/javafx/25"
       fx:controller="com.reparaciones.controllers.FormularioReparacionController"
       stylesheets="@../styles/app.css"
+      styleClass="vista-container"
       prefWidth="1000">
 
     <!-- Cabecera info -->
     <HBox alignment="CENTER_LEFT" spacing="16"
-          style="-fx-background-color: #F3F3F3; -fx-padding: 10 16 6 16;">
-        <Label fx:id="lblImei" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+          style="-fx-background-color: #C8CDD6; -fx-padding: 10 16 10 16;">
+        <Label fx:id="lblImei" style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2C3B54;"/>
         <HBox HBox.hgrow="ALWAYS"/>
-        <!-- Filtro de modelo global — arriba a la derecha -->
         <Label text="Filtrar por modelo:"
-               style="-fx-font-size: 12px; -fx-text-fill: #A9A9A9;"/>
+               style="-fx-font-size: 12px; -fx-text-fill: #586376;"/>
         <ComboBox fx:id="cbFiltroModelo"
                   prefWidth="180"
                   style="-fx-font-size: 11px;"/>
     </HBox>
-    <!-- Fila de incidencia pendiente — ancho completo, solo visible si hay incidencia -->
+
+    <!-- Fila de incidencia pendiente -->
     <HBox alignment="CENTER_LEFT"
-          style="-fx-background-color: #FFF4F4; -fx-padding: 5 16 5 16;"
+          style="-fx-padding: 5 16 5 16;"
           visible="false" managed="false" fx:id="filaIncidencia">
         <Label fx:id="lblIncidencia"
                style="-fx-text-fill: #CC4444; -fx-font-size: 12px;"
@@ -32,39 +33,36 @@
     </HBox>
 
     <!-- Cabecera columnas -->
-    <HBox style="-fx-background-color: #EBEBEB;
-                 -fx-border-color: transparent transparent #D0D0D0 transparent;
+    <HBox style="-fx-background-color: #BCC2CB;
+                 -fx-border-color: transparent transparent #A8AEB7 transparent;
                  -fx-border-width: 0 0 1 0;">
-        <Label text="Unit (+/-)"    minWidth="70"  style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
-        <Label text="Componente"    minWidth="100" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
-        <Label text="SKU"           minWidth="170" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
-        <Label text="Stock"         minWidth="70"  style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
-        <Label text="¿Reutilizado?" minWidth="110" style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
+        <Label text="Unit (+/-)"    minWidth="70"  style="-fx-font-size:12px; -fx-text-fill:#586376; -fx-padding:6 10 6 10;"/>
+        <Label text="Componente"    minWidth="100" style="-fx-font-size:12px; -fx-text-fill:#586376; -fx-padding:6 10 6 10;"/>
+        <Label text="SKU"           minWidth="170" style="-fx-font-size:12px; -fx-text-fill:#586376; -fx-padding:6 10 6 10;"/>
+        <Label text="Stock"         minWidth="70"  style="-fx-font-size:12px; -fx-text-fill:#586376; -fx-padding:6 10 6 10;"/>
+        <Label text="¿Reutilizado?" minWidth="110" style="-fx-font-size:12px; -fx-text-fill:#586376; -fx-padding:6 10 6 10;"/>
         <Label text="Observación"   minWidth="280" maxWidth="280"
-               style="-fx-font-size:12px; -fx-text-fill:#A9A9A9; -fx-padding:6 10 6 10;"/>
+               style="-fx-font-size:12px; -fx-text-fill:#586376; -fx-padding:6 10 6 10;"/>
     </HBox>
 
     <!-- Placeholder hasta seleccionar modelo -->
     <Label fx:id="lblSeleccionaModelo"
            text="Selecciona un modelo de iPhone para continuar"
            maxWidth="Infinity"
-           style="-fx-font-size: 13px; -fx-text-fill: #A9A9A9;
+           style="-fx-font-size: 13px; -fx-text-fill: #586376;
                   -fx-padding: 40 0 40 0; -fx-alignment: center;"
            visible="false" managed="false"/>
 
     <!-- Filas de componentes -->
     <VBox fx:id="contenedorFilas"/>
 
-    <!-- Botón guardar -->
-    <HBox fx:id="zonaGuardar" style="-fx-padding: 12 16 12 16;" spacing="8">
+    <!-- Botón guardar — solo visible cuando hay cambios -->
+    <HBox fx:id="zonaGuardar" style="-fx-padding: 12 16 12 16;" spacing="8" alignment="CENTER_RIGHT"
+          visible="false" managed="false">
         <Button fx:id="btnGuardar"
                 text="Guardar reparación"
-                disable="true"
                 onAction="#guardar"
-                style="-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9;
-                       -fx-font-size: 12px; -fx-font-weight: bold;
-                       -fx-background-radius: 0; -fx-padding: 10;"
-                HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                styleClass="btn-primary"/>
     </HBox>
 
 </VBox>

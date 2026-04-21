@@ -56,7 +56,7 @@
                             <TableColumn fx:id="colIdRep" minWidth="110" text="Id Reparación"/>
                             <TableColumn fx:id="colImei" minWidth="130" text="IMEI teléfono"/>
                             <TableColumn fx:id="colReparador" minWidth="100" text="Reparador"/>
-                            <TableColumn fx:id="colFecha" minWidth="110" text="Fecha fin"/>
+                            <TableColumn fx:id="colFecha" minWidth="110" text="Fechas"/>
                             <TableColumn fx:id="colComponente" minWidth="150" text="Componente"/>
                             <TableColumn fx:id="colObservaciones" minWidth="200" maxWidth="320" text="Observaciones"/>
                             <TableColumn fx:id="colEstado" minWidth="110" prefWidth="120" maxWidth="150" text="Estado"/>

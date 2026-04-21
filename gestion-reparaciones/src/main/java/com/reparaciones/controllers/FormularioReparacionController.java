@@ -54,6 +54,7 @@ public class FormularioReparacionController {
     @FXML private Label lblSeleccionaModelo;
     @FXML private VBox contenedorFilas;
     @FXML private Button btnGuardar;
+    @FXML private javafx.scene.layout.HBox zonaGuardar;
     @FXML private ComboBox<String> cbFiltroModelo;
     private boolean tieneSolicitudesIniciales = false;
     private boolean modoEdicion = false;
@@ -80,7 +81,7 @@ public class FormularioReparacionController {
      * agregar "17", "17plus", "17pro", "17promax" al final
      * No hace falta tocar nada más — traducirModelo lo traduce automáticamente.
      */
-    private static final List<String> MODELOS_ORDENADOS = List.of(
+    static final List<String> MODELOS_ORDENADOS = List.of(
             "6s", "6splus", "7", "7plus", "8", "8plus", "se2020",
             "x", "xr", "xs", "xsmax",
             "11", "11pro", "11promax",
@@ -308,12 +309,8 @@ public class FormularioReparacionController {
                     && filasUI.stream().anyMatch(FilaUI::isSolicitud);
             habilitado = activa && !solicitudesPendientes;
         }
-        btnGuardar.setDisable(!habilitado);
-        btnGuardar.setStyle(habilitado
-                ? "-fx-background-color: #8AC7AF; -fx-text-fill: white; -fx-font-size: 12px;" +
-                        "-fx-font-weight: bold; -fx-background-radius: 0; -fx-padding: 10; -fx-cursor: hand;"
-                : "-fx-background-color: #E7E7E7; -fx-text-fill: #A9A9A9; -fx-font-size: 12px;" +
-                        "-fx-font-weight: bold; -fx-background-radius: 0; -fx-padding: 10;");
+        zonaGuardar.setVisible(habilitado);
+        zonaGuardar.setManaged(habilitado);
     }
 
     @FXML

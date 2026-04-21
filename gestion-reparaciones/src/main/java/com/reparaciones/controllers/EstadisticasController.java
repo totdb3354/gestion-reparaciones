@@ -125,6 +125,9 @@ public class EstadisticasController {
     // Callback de navegación inyectado por MainController
     private com.reparaciones.utils.Navegable navegacion;
 
+    // Nombre del técnico en sesión (null si es admin)
+    private String nombreTecnicoSesion;
+
     // ─── Stock fields ──────────────────────────────────────────────────────────
 
     @FXML private javafx.scene.chart.BarChart<String, Number> chartStock;
@@ -190,6 +193,12 @@ public class EstadisticasController {
             e.printStackTrace();
             return;
         }
+
+        Integer idTecSesion = com.reparaciones.Sesion.getIdTec();
+        if (idTecSesion != null)
+            nombreTecnicoSesion = tecnicos.stream()
+                    .filter(t -> t.getIdTec() == idTecSesion)
+                    .map(Tecnico::getNombre).findFirst().orElse(null);
 
         List<Tecnico> activos   = tecnicos.stream().filter(Tecnico::isActivo).collect(Collectors.toList());
         List<Tecnico> inactivos = tecnicos.stream().filter(t -> !t.isActivo()).collect(Collectors.toList());
@@ -629,8 +638,12 @@ public class EstadisticasController {
                 tip.setHideDelay(Duration.millis(100));
                 Tooltip.install(nodo, tip);
 
+                boolean navegable = navegacion != null &&
+                        (com.reparaciones.Sesion.esAdmin() ||
+                         serie.getName().equals(nombreTecnicoSesion));
                 nodo.setOnMouseEntered(e -> {
-                    nodo.setStyle("-fx-background-color: " + color + ", white; -fx-cursor: hand;");
+                    String cursor = navegable ? "; -fx-cursor: hand;" : ";";
+                    nodo.setStyle("-fx-background-color: " + color + ", white" + cursor);
                     if (serieResaltada != serie) { serieResaltada = serie; resaltarSerie(serie, todasSeries); }
                 });
                 nodo.setOnMouseExited(e -> {
@@ -638,7 +651,7 @@ public class EstadisticasController {
                             ? "-fx-background-color: " + color + ", white;"
                             : "-fx-background-color: transparent, transparent;");
                 });
-                if (navegacion != null) {
+                if (navegable) {
                     final XYChart.Series<String, Number> serieClick = serie;
                     nodo.setOnMouseClicked(e -> {
                         String tecnico = "Todos".equals(serieClick.getName()) ? null : serieClick.getName();
@@ -888,11 +901,23 @@ public class EstadisticasController {
             e.printStackTrace();
             return;
         }
-        java.util.LinkedHashSet<String> modelos = new java.util.LinkedHashSet<>();
-        for (Componente c : todosComponentesGestionados)
-            modelos.add(modeloDeComponente(c.getTipo()));
-        cmbModeloFiltro.setItems(FXCollections.observableArrayList(new java.util.ArrayList<>(modelos)));
-        if (!modelos.isEmpty()) cmbModeloFiltro.setValue(modelos.iterator().next());
+        java.util.Set<String> rawModelos = new java.util.HashSet<>();
+        for (Componente c : todosComponentesGestionados) {
+            String lower = c.getTipo().toLowerCase();
+            for (String prefijo : PREFIJO_TIPO.keySet()) {
+                if (lower.startsWith(prefijo)) {
+                    String raw = FormularioReparacionController.extraerModelo(lower, prefijo);
+                    if (!raw.isEmpty()) rawModelos.add(raw);
+                    break;
+                }
+            }
+        }
+        List<String> modelos = FormularioReparacionController.MODELOS_ORDENADOS.stream()
+                .filter(rawModelos::contains)
+                .map(FormularioReparacionController::traducirModelo)
+                .collect(Collectors.toList());
+        cmbModeloFiltro.setItems(FXCollections.observableArrayList(modelos));
+        if (!modelos.isEmpty()) cmbModeloFiltro.setValue(modelos.get(0));
     }
 
     @FXML

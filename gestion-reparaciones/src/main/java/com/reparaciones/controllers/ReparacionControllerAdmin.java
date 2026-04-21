@@ -109,6 +109,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
     @FXML
     public void initialize() {
         tablaReparaciones.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tablaReparaciones.setFixedCellSize(44);
         configurarColumnas();
         configurarFilas();
         configurarFiltros();
@@ -224,16 +225,30 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         });
 
         colFecha.setCellFactory(col -> new TableCell<>() {
+            private final javafx.scene.control.Label lblInicio = new javafx.scene.control.Label();
+            private final javafx.scene.control.Label lblFin    = new javafx.scene.control.Label();
+            private final javafx.scene.layout.VBox   box       = new javafx.scene.layout.VBox(1, lblInicio, lblFin);
+            {
+                actualizarColores(false);
+                tableRowProperty().addListener((obs, oldRow, newRow) -> {
+                    if (newRow != null)
+                        newRow.selectedProperty().addListener((o, wasSelected, isSelected) -> actualizarColores(isSelected));
+                });
+            }
+            private void actualizarColores(boolean selected) {
+                lblInicio.setStyle("-fx-font-size: 10px; -fx-text-fill: " + (selected ? "white" : "#9AA0AA") + ";");
+                lblFin.setStyle("-fx-font-size: 11px; -fx-text-fill: " + (selected ? "white" : "#2C3B54") + ";");
+            }
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(null);
-                if (empty) {
-                    setText(null);
-                    return;
-                }
+                setText(null);
+                if (empty) { setGraphic(null); return; }
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
-                setText(rep.getFechaFin() != null ? rep.getFechaFin().format(FORMATO_FECHA) : "");
+                lblInicio.setText(rep.getFechaAsig() != null ? rep.getFechaAsig().format(FORMATO_FECHA) : "—");
+                lblFin.setText("→ " + (rep.getFechaFin() != null ? rep.getFechaFin().format(FORMATO_FECHA) : "—"));
+                actualizarColores(getTableRow() != null && getTableRow().isSelected());
+                setGraphic(box);
             }
         });
 
@@ -465,9 +480,11 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
     // ─── Filtros ──────────────────────────────────────────────────────────────
 
     private void configurarFiltros() {
-        // Cargar checkboxes de técnicos en el MenuButton
+        // Cargar checkboxes de técnicos en un ScrollPane dentro del MenuButton
         try {
             List<com.reparaciones.models.Tecnico> tecnicos = tecnicoDAO.getAll();
+            VBox cbContainer = new VBox(4);
+            cbContainer.setStyle("-fx-background-color: white; -fx-padding: 4;");
             for (com.reparaciones.models.Tecnico t : tecnicos) {
                 CheckBox cb = new CheckBox(t.getNombre());
                 cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
@@ -476,9 +493,14 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                     aplicarFiltros();
                 });
                 checksTecnico.add(cb);
-                CustomMenuItem item = new CustomMenuItem(cb, false);
-                filtroTecnico.getItems().add(item);
+                cbContainer.getChildren().add(cb);
             }
+            ScrollPane scroll = new ScrollPane(cbContainer);
+            scroll.setFitToWidth(true);
+            scroll.setMaxHeight(180);
+            scroll.setPrefHeight(Math.min(180, tecnicos.size() * 28 + 8));
+            scroll.setStyle("-fx-background-color: white; -fx-border-color: transparent;");
+            filtroTecnico.getItems().add(new CustomMenuItem(scroll, false));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -791,16 +813,16 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         try {
             List<ReparacionResumen> historial = reparacionDAO.getResumenPorImei(imei);
 
-            TableColumn<ReparacionResumen, String> cId = new TableColumn<>("ID");
+            TableColumn<ReparacionResumen, String> cId     = new TableColumn<>("ID");
             TableColumn<ReparacionResumen, String> cTecnico = new TableColumn<>("Técnico");
-            TableColumn<ReparacionResumen, String> cFecha = new TableColumn<>("Fecha");
-            TableColumn<ReparacionResumen, String> cComp = new TableColumn<>("Componente");
-            TableColumn<ReparacionResumen, String> cObs = new TableColumn<>("Observaciones");
-            TableColumn<ReparacionResumen, String> cIncid = new TableColumn<>("Incidencia");
+            TableColumn<ReparacionResumen, String> cFecha  = new TableColumn<>("Fechas");
+            TableColumn<ReparacionResumen, String> cComp   = new TableColumn<>("Componente");
+            TableColumn<ReparacionResumen, String> cObs    = new TableColumn<>("Observaciones");
+            TableColumn<ReparacionResumen, String> cIncid  = new TableColumn<>("Incidencia");
 
-            cId.setPrefWidth(130); cId.setMinWidth(100);
+            cId.setPrefWidth(130);  cId.setMinWidth(100);
             cTecnico.setPrefWidth(110); cTecnico.setMinWidth(80);
-            cFecha.setPrefWidth(120); cFecha.setMinWidth(100);
+            cFecha.setPrefWidth(130); cFecha.setMinWidth(110);
             cComp.setPrefWidth(120); cComp.setMinWidth(90);
             cObs.setPrefWidth(200); cObs.setMinWidth(100); cObs.setMaxWidth(250);
             cIncid.setPrefWidth(200); cIncid.setMinWidth(100);
@@ -808,15 +830,33 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
             cId.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getIdRep()));
             cTecnico.setCellValueFactory(
                     d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getNombreTecnico()));
-            cFecha.setCellValueFactory(d -> {
-                ReparacionResumen r = d.getValue();
-                String texto = r.getFechaFin() != null
-                        ? r.getFechaFin().format(FORMATO_FECHA)
-                        : r.getFechaAsig() != null
-                                ? "Asig. " + r.getFechaAsig().format(FORMATO_FECHA)
-                                : "";
-                return new javafx.beans.property.SimpleStringProperty(texto);
+
+            cFecha.setCellFactory(col -> new TableCell<>() {
+                private final Label lblInicio = new Label();
+                private final Label lblFin    = new Label();
+                private final VBox  box       = new VBox(1, lblInicio, lblFin);
+                {
+                    actualizarColores(false);
+                    tableRowProperty().addListener((obs, oldRow, newRow) -> {
+                        if (newRow != null)
+                            newRow.selectedProperty().addListener((o, was, sel) -> actualizarColores(sel));
+                    });
+                }
+                private void actualizarColores(boolean selected) {
+                    lblInicio.setStyle("-fx-font-size: 10px; -fx-text-fill: " + (selected ? "white" : "#9AA0AA") + ";");
+                    lblFin.setStyle("-fx-font-size: 11px; -fx-text-fill: " + (selected ? "white" : "#2C3B54") + ";");
+                }
+                @Override protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty); setText(null);
+                    if (empty) { setGraphic(null); return; }
+                    ReparacionResumen r = getTableView().getItems().get(getIndex());
+                    lblInicio.setText(r.getFechaAsig() != null ? r.getFechaAsig().format(FORMATO_FECHA) : "—");
+                    lblFin.setText("→ " + (r.getFechaFin() != null ? r.getFechaFin().format(FORMATO_FECHA) : "—"));
+                    actualizarColores(getTableRow() != null && getTableRow().isSelected());
+                    setGraphic(box);
+                }
             });
+
             cComp.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
                     d.getValue().getTipoComponente() != null ? d.getValue().getTipoComponente() : "—"));
             cObs.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
@@ -825,36 +865,54 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                 @Override protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
                     if (empty || item == null || item.isBlank()) { setText(null); setTooltip(null); }
-                    else { setText(item); setTooltip(new javafx.scene.control.Tooltip(item)); }
+                    else { setText(item); setTooltip(new Tooltip(item)); }
                 }
             });
             cIncid.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
                     d.getValue().isEsIncidencia() && d.getValue().getIncidencia() != null
-                            ? d.getValue().getIncidencia()
-                            : ""));
+                            ? d.getValue().getIncidencia() : ""));
             cIncid.setCellFactory(col -> new TableCell<>() {
                 @Override protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
                     if (empty || item == null || item.isBlank()) { setText(null); setTooltip(null); }
-                    else { setText(item); setTooltip(new javafx.scene.control.Tooltip(item)); }
+                    else { setText(item); setTooltip(new Tooltip(item)); }
                 }
             });
 
             TableView<ReparacionResumen> tabla = new TableView<>();
+            tabla.getStyleClass().add("tabla-reparaciones");
             tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
             tabla.setPrefHeight(440);
             tabla.getColumns().addAll(cId, cTecnico, cFecha, cComp, cObs, cIncid);
             tabla.setItems(FXCollections.observableArrayList(historial));
 
-            VBox contenido = new VBox(8, new Label("Historial completo del IMEI: " + imei), tabla);
-            contenido.setPadding(new Insets(8));
+            Label lblTitulo = new Label("Historial del IMEI");
+            lblTitulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+            Label lblImeiLabel = new Label(imei);
+            lblImeiLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376;");
 
-            Dialog<Void> dialog = new Dialog<>();
-            dialog.setTitle("Historial IMEI");
-            dialog.getDialogPane().setContent(contenido);
-            dialog.getDialogPane().setPrefWidth(1000);
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.showAndWait();
+            Button btnCerrar = new Button("Cerrar");
+            btnCerrar.getStyleClass().add("btn-secondary");
+
+            HBox botones = new HBox(btnCerrar);
+            botones.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+            VBox contenido = new VBox(12, lblTitulo, lblImeiLabel, tabla, botones);
+            contenido.setPadding(new Insets(28));
+            contenido.setPrefWidth(1000);
+            contenido.setStyle("-fx-background-color: #DDE1E7;");
+
+            javafx.stage.Stage ventana = new javafx.stage.Stage();
+            ventana.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            ventana.setResizable(true);
+            ventana.setTitle("Historial — " + imei);
+
+            btnCerrar.setOnAction(ev -> ventana.close());
+
+            javafx.scene.Scene scene = new javafx.scene.Scene(contenido);
+            scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
+            ventana.setScene(scene);
+            ventana.showAndWait();
 
         } catch (SQLException e) {
             e.printStackTrace();
