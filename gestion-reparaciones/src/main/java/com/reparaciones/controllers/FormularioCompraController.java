@@ -1,6 +1,7 @@
 package com.reparaciones.controllers;
 
 import com.reparaciones.dao.CompraComponenteDAO;
+import java.util.List;
 import com.reparaciones.dao.ComponenteDAO;
 import com.reparaciones.dao.ProveedorDAO;
 import com.reparaciones.dao.TipoCambioDAO;
@@ -404,7 +405,44 @@ public class FormularioCompraController {
         ((Stage) tablaLineas.getScene().getWindow()).close();
     }
 
+    public void initConSolicitudes(List<com.reparaciones.models.SolicitudResumen> solicitudes, Runnable onGuardado) {
+        this.onGuardado = onGuardado;
+        try {
+            componentesDisponibles = FXCollections.observableArrayList(
+                    componenteDAO.getAllGestionados().stream()
+                            .filter(Componente::isActivo)
+                            .collect(java.util.stream.Collectors.toList()));
+            proveedoresDisponibles = FXCollections.observableArrayList(proveedorDAO.getActivos());
+        } catch (SQLException e) { e.printStackTrace(); }
+        configurarTabla();
+        tablaLineas.setItems(lineas);
+        for (com.reparaciones.models.SolicitudResumen s : solicitudes) {
+            componentesDisponibles.stream()
+                    .filter(c -> c.getIdCom() == s.getIdCom())
+                    .findFirst()
+                    .ifPresent(this::añadirFila);
+        }
+    }
+
     // ─── Apertura estática ────────────────────────────────────────────────────
+
+    public static void abrirConSolicitudes(List<com.reparaciones.models.SolicitudResumen> solicitudes, Runnable onGuardado) {
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(
+                        FormularioCompraController.class.getResource("/views/FormularioCompraView.fxml"));
+                Parent root = loader.load();
+                FormularioCompraController ctrl = loader.getController();
+                Stage stage = new Stage();
+                stage.setTitle("Nuevo pedido — solicitudes pendientes");
+                stage.setScene(new Scene(root));
+                stage.setResizable(false);
+                stage.initModality(Modality.APPLICATION_MODAL);
+                ctrl.initConSolicitudes(solicitudes, onGuardado);
+                stage.show();
+            } catch (Exception e) { e.printStackTrace(); }
+        });
+    }
 
     public static void abrir(Componente preselect, Runnable onGuardado) {
         Platform.runLater(() -> {
