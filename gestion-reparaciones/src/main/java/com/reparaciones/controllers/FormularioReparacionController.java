@@ -321,7 +321,8 @@ public class FormularioReparacionController {
                     && filasUI.stream().anyMatch(FilaUI::isSolicitudCancelada);
             boolean solicitudesPendientes = tieneSolicitudesIniciales
                     && filasUI.stream().anyMatch(FilaUI::isSolicitud);
-            habilitado = (activa && !solicitudesPendientes) || solicitudCancelada;
+            boolean hayNuevasSolicitudes = filasUI.stream().anyMatch(FilaUI::isSolicitudNueva);
+            habilitado = (activa && !solicitudesPendientes) || solicitudCancelada || hayNuevasSolicitudes;
         }
         zonaGuardar.setVisible(habilitado);
         zonaGuardar.setManaged(habilitado);
@@ -559,6 +560,7 @@ public class FormularioReparacionController {
         private String observacion = null;
         private boolean solicitudActiva = false;
         private boolean solicitudFueCancelada = false;
+        private boolean solicitudNuevaEnEstaSesion = false;
         private String descripcionSolicitud = null;
         private Runnable onCambio;
 
@@ -970,6 +972,10 @@ public class FormularioReparacionController {
             return solicitudFueCancelada;
         }
 
+        boolean isSolicitudNueva() {
+            return solicitudNuevaEnEstaSesion;
+        }
+
         String getDescripcionSolicitud() {
             return descripcionSolicitud;
         }
@@ -1024,6 +1030,7 @@ public class FormularioReparacionController {
                 String trimmed = ta.getText().trim();
                 descripcionSolicitud = trimmed.isEmpty() ? null : trimmed;
                 solicitudActiva = true;
+                solicitudNuevaEnEstaSesion = true;
                 cantidad = 0;
                 actualizarContador();
                 chkReutilizado.setSelected(false);

@@ -38,16 +38,25 @@
             <Label fx:id="lblAlertaStock" text="⚠" visible="false" managed="false"
                    style="-fx-text-fill: #F1E356; -fx-font-size: 16px; -fx-cursor: hand;"/>
 
-            <!-- Campana solicitudes (solo admin) -->
-            <StackPane fx:id="campanaPane" visible="false" managed="false" alignment="TOP_RIGHT">
-                <Button fx:id="btnCampana" text="🔔" styleClass="navbar-bell-btn" onAction="#abrirSolicitudes"/>
-                <Label fx:id="lblBadge" styleClass="navbar-badge"
-                       visible="false" managed="false"
-                       StackPane.alignment="TOP_RIGHT"/>
-            </StackPane>
-
             <!-- Espaciador -->
             <HBox HBox.hgrow="ALWAYS"/>
+
+            <!-- Campana solicitudes (solo admin) -->
+            <StackPane fx:id="campanaPane" visible="false" managed="false" alignment="CENTER">
+                <Button fx:id="btnCampana" styleClass="navbar-bell-btn" onAction="#abrirSolicitudes">
+                    <graphic>
+                        <ImageView fx:id="ivCampana" fitWidth="30" fitHeight="30" preserveRatio="true"/>
+                    </graphic>
+                </Button>
+                <StackPane fx:id="badgePane" visible="false" managed="false"
+                           mouseTransparent="true" StackPane.alignment="TOP_RIGHT"
+                           translateX="10" translateY="-7">
+                    <ImageView fitWidth="16" fitHeight="16" preserveRatio="true">
+                        <image><Image url="@/images/Badge.png"/></image>
+                    </ImageView>
+                    <Label fx:id="lblBadge" styleClass="navbar-badge" mouseTransparent="true"/>
+                </StackPane>
+            </StackPane>
 
             <!-- Menú de usuario -->
             <Button fx:id="btnUsuario" styleClass="navbar-user-btn" onAction="#mostrarMenuUsuario">
