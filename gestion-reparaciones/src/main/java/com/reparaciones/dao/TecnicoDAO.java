@@ -1,12 +1,14 @@
 package com.reparaciones.dao;
 
 import com.reparaciones.models.Tecnico;
-import java.sql.*;
-import java.util.ArrayList;
+import com.reparaciones.utils.ApiClient;
+
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Acceso a datos de la tabla {@code Tecnico}.
+ * Acceso a datos de la tabla {@code Tecnico} vía API REST.
  * <p>Proporciona operaciones CRUD básicas sobre técnicos.
  * La activación/desactivación de cuentas se gestiona en {@link UsuarioDAO}.</p>
  *
@@ -18,82 +20,44 @@ public class TecnicoDAO {
      * Devuelve todos los técnicos, activos e inactivos.
      *
      * @return lista completa de técnicos
-     * @throws SQLException si falla la consulta
+     * @throws SQLException si falla la llamada al servidor
      */
     public List<Tecnico> getAll() throws SQLException {
-        List<Tecnico> lista = new ArrayList<>();
-        String sql = "SELECT * FROM Tecnico";
-        try (Connection con = Conexion.getConexion();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                lista.add(new Tecnico(
-                    rs.getInt("ID_TEC"),
-                    rs.getString("NOMBRE"),
-                    rs.getBoolean("ACTIVO")
-                ));
-            }
-        }
-        return lista;
+        return ApiClient.getList("/api/tecnicos", Tecnico.class);
     }
 
     /**
      * Devuelve solo los técnicos activos ({@code ACTIVO = TRUE}).
-     * <p>Usado en el gráfico de estadísticas para excluir técnicos inactivos
-     * de las líneas individuales.</p>
      *
      * @return lista de técnicos activos
-     * @throws SQLException si falla la consulta
+     * @throws SQLException si falla la llamada al servidor
      */
     public List<Tecnico> getAllActivos() throws SQLException {
-        List<Tecnico> lista = new ArrayList<>();
-        String sql = "SELECT * FROM Tecnico WHERE ACTIVO = TRUE";
-        try (Connection con = Conexion.getConexion();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                lista.add(new Tecnico(
-                    rs.getInt("ID_TEC"),
-                    rs.getString("NOMBRE"),
-                    true
-                ));
-            }
-        }
-        return lista;
+        return ApiClient.getList("/api/tecnicos/activos", Tecnico.class);
     }
 
     /**
-     * Inserta un nuevo técnico en BD.
+     * Inserta un nuevo técnico.
      * <p>Usar preferentemente {@link UsuarioDAO#registrarTecnico} que crea
      * técnico y usuario en una sola transacción.</p>
      *
      * @param t técnico a insertar (se usa solo {@code nombre})
-     * @throws SQLException si falla el insert
+     * @throws SQLException si falla la llamada al servidor
      */
     public void insertar(Tecnico t) throws SQLException {
-        String sql = "INSERT INTO Tecnico (NOMBRE) VALUES (?)";
-        try (Connection con = Conexion.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, t.getNombre());
-            ps.executeUpdate();
-        }
+        ApiClient.post("/api/tecnicos", Map.of("nombre", t.getNombre()));
     }
 
     /**
-     * Elimina el técnico de BD.
+     * Elimina el técnico.
      * <p>Solo llamar cuando el técnico no tiene reparaciones asociadas.
      * Preferir {@link UsuarioDAO#eliminarTecnico} que borra también el usuario
      * en transacción.</p>
      *
      * @param idTec ID del técnico a eliminar
-     * @throws SQLException si falla el delete
+     * @throws SQLException si falla la llamada al servidor
      */
     public void eliminar(int idTec) throws SQLException {
-        String sql = "DELETE FROM Tecnico WHERE ID_TEC = ?";
-        try (Connection con = Conexion.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, idTec);
-            ps.executeUpdate();
-        }
+        ApiClient.delete("/api/tecnicos/" + idTec);
     }
 }
