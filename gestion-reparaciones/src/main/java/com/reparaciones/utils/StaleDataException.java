@@ -8,7 +8,7 @@ package com.reparaciones.utils;
  * <p>El controlador que la recibe debe informar al usuario y pedirle que
  * recargue los datos antes de reintentar la operación.</p>
  */
-public class StaleDataException extends Exception {
+public class StaleDataException extends java.sql.SQLException {
 
     /**
      * @param mensaje descripción del conflicto, mostrable directamente al usuario
