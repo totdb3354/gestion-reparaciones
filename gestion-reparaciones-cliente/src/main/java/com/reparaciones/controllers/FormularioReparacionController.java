@@ -319,10 +319,7 @@ public class FormularioReparacionController {
             boolean activa = filasUI.stream().anyMatch(FilaUI::isActiva);
             boolean solicitudCancelada = tieneSolicitudesIniciales
                     && filasUI.stream().anyMatch(FilaUI::isSolicitudCancelada);
-            boolean solicitudesPendientes = tieneSolicitudesIniciales
-                    && filasUI.stream().anyMatch(FilaUI::isSolicitud);
-            boolean hayNuevasSolicitudes = filasUI.stream().anyMatch(FilaUI::isSolicitudNueva);
-            habilitado = (activa && !solicitudesPendientes) || solicitudCancelada || hayNuevasSolicitudes;
+            habilitado = activa || solicitudCancelada;
         }
         zonaGuardar.setVisible(habilitado);
         zonaGuardar.setManaged(habilitado);
@@ -372,15 +369,39 @@ public class FormularioReparacionController {
         List<FilaReparacion> filasActivas = new ArrayList<>();
         for (FilaUI fila : filasUI) {
             if (fila.isActiva()) {
-                filasActivas.add(new FilaReparacion(
-                        fila.getIdComSeleccionado(),
-                        fila.getCantidad(),
-                        fila.isReutilizado(),
-                        fila.getObservacion(),
-                        fila.getPrefijo(),
-                        fila.isSolicitud(),
-                        fila.getDescripcionSolicitud(),
-                        null));
+                boolean esSolicitudNueva = fila.isSolicitud() && fila.isSolicitudNueva();
+                boolean tieneUso = fila.getCantidad() > 0 || fila.isReutilizado();
+                if (esSolicitudNueva && tieneUso) {
+                    // Fila con componente usado Y aviso de solicitud: emitir dos entradas separadas
+                    filasActivas.add(new FilaReparacion(
+                            fila.getIdComSeleccionado(),
+                            fila.getCantidad(),
+                            fila.isReutilizado(),
+                            fila.getObservacion(),
+                            fila.getPrefijo(),
+                            false,
+                            null,
+                            null));
+                    filasActivas.add(new FilaReparacion(
+                            fila.getIdComSeleccionado(),
+                            1,
+                            false,
+                            null,
+                            fila.getPrefijo(),
+                            true,
+                            fila.getDescripcionSolicitud(),
+                            null));
+                } else {
+                    filasActivas.add(new FilaReparacion(
+                            fila.getIdComSeleccionado(),
+                            fila.getCantidad(),
+                            fila.isReutilizado(),
+                            fila.getObservacion(),
+                            fila.getPrefijo(),
+                            esSolicitudNueva,
+                            fila.getDescripcionSolicitud(),
+                            null));
+                }
             }
         }
         try {
@@ -933,7 +954,7 @@ public class FormularioReparacionController {
         // ── Estado público ────────────────────────────────────────────────────
 
         boolean isActiva() {
-            return cantidad > 0 || chkReutilizado.isSelected() || solicitudActiva;
+            return cantidad > 0 || chkReutilizado.isSelected() || solicitudNuevaEnEstaSesion;
         }
 
         int getIdComSeleccionado() {
@@ -1033,12 +1054,6 @@ public class FormularioReparacionController {
                 descripcionSolicitud = trimmed.isEmpty() ? null : trimmed;
                 solicitudActiva = true;
                 solicitudNuevaEnEstaSesion = true;
-                cantidad = 0;
-                actualizarContador();
-                chkReutilizado.setSelected(false);
-                chkReutilizado.setDisable(true);
-                btnMas.setDisable(true);
-                btnMenos.setDisable(true);
                 btnSolicitud.setText("⚠ Pieza pendiente");
                 btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
                 dialog.close();
@@ -1088,17 +1103,22 @@ public class FormularioReparacionController {
                         descripcionSolicitud = null;
                         notificar();
                     } else {
-                        // PENDIENTE (sin importar stock) o GESTIONADA sin stock aún
+                        // PENDIENTE o GESTIONADA sin stock: mostrar aviso, bloquear solo si no hay stock
                         descripcionSolicitud = descripcion;
                         solicitudActiva = true;
                         cantidad = 0;
                         actualizarContador();
                         chkReutilizado.setSelected(false);
                         chkReutilizado.setDisable(true);
-                        btnMas.setDisable(true);
-                        btnMenos.setDisable(true);
                         btnSolicitud.setText("⚠ Pieza pendiente");
                         btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                        if (c.getStock() > 0) {
+                            btnMas.setDisable(false);
+                            btnMenos.setDisable(true);
+                        } else {
+                            btnMas.setDisable(true);
+                            btnMenos.setDisable(true);
+                        }
                         notificar();
                     }
                     return;

@@ -138,6 +138,7 @@ public class PendientesTecnicoController {
                 btn.setOnAction(e -> {
                     ReparacionResumen asig = getTableView().getItems().get(getIndex());
                     Runnable alCerrar = () -> {
+                        cargar();
                         if (onCerrar != null) onCerrar.run();
                         if (onVolverAHistorial != null) onVolverAHistorial.run();
                     };
