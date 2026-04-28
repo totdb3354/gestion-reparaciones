@@ -416,11 +416,22 @@ public class FormularioCompraController {
         } catch (SQLException e) { e.printStackTrace(); }
         configurarTabla();
         tablaLineas.setItems(lineas);
-        for (com.reparaciones.models.SolicitudResumen s : solicitudes) {
+        // Agrupar por idCom: una fila por componente, cantidad = nº de veces solicitado
+        java.util.Map<Integer, Long> conteo = solicitudes.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        com.reparaciones.models.SolicitudResumen::getIdCom,
+                        java.util.LinkedHashMap::new,
+                        java.util.stream.Collectors.counting()));
+        for (java.util.Map.Entry<Integer, Long> entry : conteo.entrySet()) {
+            int idCom = entry.getKey();
+            int cantidad = entry.getValue().intValue();
             componentesDisponibles.stream()
-                    .filter(c -> c.getIdCom() == s.getIdCom())
+                    .filter(c -> c.getIdCom() == idCom)
                     .findFirst()
-                    .ifPresent(this::añadirFila);
+                    .ifPresent(comp -> {
+                        añadirFila(comp);
+                        lineas.get(lineas.size() - 1).setCantidad(cantidad);
+                    });
         }
     }
 

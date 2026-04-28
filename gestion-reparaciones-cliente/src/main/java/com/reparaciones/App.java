@@ -34,4 +34,3 @@ public class App extends Application {
         launch(args);
     }
 }
-//prueba para un commit

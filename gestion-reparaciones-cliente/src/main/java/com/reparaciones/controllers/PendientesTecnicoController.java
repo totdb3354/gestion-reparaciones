@@ -43,7 +43,6 @@ public class PendientesTecnicoController {
     private CheckBox cbSoloAsignaciones;
 
     private Runnable onCerrar;
-    private Runnable onVolverAHistorial;
 
     @FXML
     public void initialize() {
@@ -88,7 +87,7 @@ public class PendientesTecnicoController {
                             "-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;");
                     return;
                 }
-                if (item.getEsSolicitud() == 1) {
+                if (item.getEsSolicitud() > 0) {
                     setStyle("-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
                 } else if (item.isEsIncidencia()) {
@@ -116,7 +115,7 @@ public class PendientesTecnicoController {
                     badge.setStyle(base +
                         "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
                         "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
-                } else if (rep.getEsSolicitud() == 1) {
+                } else if (rep.getEsSolicitud() > 0) {
                     badge.setText("Solicitud");
                     badge.setStyle(base +
                         "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
@@ -140,7 +139,6 @@ public class PendientesTecnicoController {
                     Runnable alCerrar = () -> {
                         cargar();
                         if (onCerrar != null) onCerrar.run();
-                        if (onVolverAHistorial != null) onVolverAHistorial.run();
                     };
                     FormularioReparacionController.abrir(
                             asig.getImei(), null, asig.getIdRep(), alCerrar);
@@ -193,7 +191,7 @@ public class PendientesTecnicoController {
         boolean filtrarAsig = cbSoloAsignaciones.isSelected();
         datosFiltrados.setPredicate(rep -> {
             if (!filtrarSol && !filtrarInc && !filtrarAsig) return true;
-            boolean esSol  = rep.getEsSolicitud() == 1;
+            boolean esSol  = rep.getEsSolicitud() > 0;
             boolean esInc  = rep.isEsIncidencia();
             boolean esAsig = !esSol && !esInc;
             boolean mostrar = false;
@@ -228,10 +226,6 @@ public class PendientesTecnicoController {
 
     public void setOnCerrar(Runnable onCerrar) {
         this.onCerrar = onCerrar;
-    }
-
-    public void setOnVolverAHistorial(Runnable onVolverAHistorial) {
-        this.onVolverAHistorial = onVolverAHistorial;
     }
 
     /** @return los ítems actualmente visibles en la tabla (respetando filtros activos) */

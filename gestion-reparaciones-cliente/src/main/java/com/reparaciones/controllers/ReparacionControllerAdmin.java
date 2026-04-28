@@ -115,8 +115,8 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         configurarFiltros();
 
         // Callbacks para los paneles embebidos (antes de mostrar el panel inicial)
+        pendientesAdminController.setOnActualizar(this::cargarDatos);
         misPendientesController.setOnCerrar(this::cargarDatos);
-        misPendientesController.setOnVolverAHistorial(() -> mostrarPanel(pnlHistorial, btnTabHistorial));
 
         mostrarPanel(pnlPendientes, btnTabPendientes);
 

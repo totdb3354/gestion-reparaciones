@@ -105,7 +105,6 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         configurarFiltros();
 
         misPendientesController.setOnCerrar(this::cargarDatos);
-        misPendientesController.setOnVolverAHistorial(() -> mostrarPanel(pnlHistorial, btnTabHistorial));
 
         misPendientesController.cargar();
 

@@ -57,6 +57,7 @@ public class PendientesAdminController {
 
     private final ObservableList<ReparacionResumen> datos = FXCollections.observableArrayList();
     private FilteredList<ReparacionResumen> datosFiltrados;
+    private Runnable onActualizar;
 
     @FXML private Button btnConfirmarCambios;
     @FXML private Label  lblUltimaActualizacion;
@@ -149,7 +150,7 @@ public class PendientesAdminController {
                     setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.AZUL_MEDIO + ";" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SELECTED_BRD + " transparent;" +
                             "-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;");
-                } else if (item.getEsSolicitud() == 1) {
+                } else if (item.getEsSolicitud() > 0) {
                     setStyle("-fx-border-width: 0 0 1 8; -fx-border-insets: 1 0 0 0;" +
                             "-fx-border-color: transparent transparent " + com.reparaciones.utils.Colores.FILA_SEP + " " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
                 } else if (item.isEsIncidencia()) {
@@ -180,7 +181,7 @@ public class PendientesAdminController {
                     badge.setStyle(base +
                         "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
                         "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
-                } else if (rep.getEsSolicitud() == 1) {
+                } else if (rep.getEsSolicitud() > 0) {
                     badge.setText("Solicitud");
                     badge.setStyle(base +
                         "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
@@ -214,8 +215,10 @@ public class PendientesAdminController {
                                 try {
                                     if (rep.isEsIncidencia())
                                         reparacionDAO.borrarIncidenciaPorImei(rep.getImei());
-                                    reparacionDAO.eliminarAsignacion(rep.getIdRep());
+                                    else
+                                        reparacionDAO.eliminarAsignacion(rep.getIdRep());
                                     cargar();
+                                    if (onActualizar != null) onActualizar.run();
                                 } catch (SQLException ex) { ex.printStackTrace(); }
                             });
                 });
@@ -306,7 +309,7 @@ public class PendientesAdminController {
         datosFiltrados.setPredicate(rep -> {
             if (!idsTecSelec.isEmpty() && !idsTecSelec.contains(rep.getIdTec())) return false;
             if (filtrarSol || filtrarInc || filtrarAsig) {
-                boolean esSol  = rep.getEsSolicitud() == 1;
+                boolean esSol  = rep.getEsSolicitud() > 0;
                 boolean esInc  = rep.isEsIncidencia();
                 boolean esAsig = !esSol && !esInc;
                 boolean mostrar = false;
@@ -328,6 +331,8 @@ public class PendientesAdminController {
         filtroTecnico.setText("Técnico");
         filtroSolicitud.setText("Tipo");
     }
+
+    public void setOnActualizar(Runnable onActualizar) { this.onActualizar = onActualizar; }
 
     // ─── Carga ────────────────────────────────────────────────────────────────
 
