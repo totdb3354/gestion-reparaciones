@@ -483,8 +483,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         // Cargar checkboxes de técnicos en un ScrollPane dentro del MenuButton
         try {
             List<com.reparaciones.models.Tecnico> tecnicos = tecnicoDAO.getAll();
-            VBox cbContainer = new VBox(4);
-            cbContainer.setStyle("-fx-background-color: white; -fx-padding: 4;");
             for (com.reparaciones.models.Tecnico t : tecnicos) {
                 CheckBox cb = new CheckBox(t.getNombre());
                 cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
@@ -493,14 +491,8 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                     aplicarFiltros();
                 });
                 checksTecnico.add(cb);
-                cbContainer.getChildren().add(cb);
+                filtroTecnico.getItems().add(new CustomMenuItem(cb, false));
             }
-            ScrollPane scroll = new ScrollPane(cbContainer);
-            scroll.setFitToWidth(true);
-            scroll.setMaxHeight(180);
-            scroll.setPrefHeight(Math.min(180, tecnicos.size() * 28 + 8));
-            scroll.setStyle("-fx-background-color: white; -fx-border-color: transparent;");
-            filtroTecnico.getItems().add(new CustomMenuItem(scroll, false));
         } catch (SQLException e) {
             e.printStackTrace();
         }
