@@ -45,6 +45,27 @@ ALTER TABLE Reparacion_componente
 2. Al escribir (`UPDATE`) se añade `AND UPDATED_AT = ?` a la query.
 3. Si `executeUpdate()` devuelve 0 filas afectadas, otro usuario modificó el registro entre la carga y el guardado → se lanza `StaleDataException`.
 
+**Por qué el UPDATE debe ser atómico (problema TOCTOU):**
+
+TOCTOU (*Time-Of-Check-Time-Of-Use*) es una clase de bug de concurrencia: hay una ventana de tiempo entre el momento en que compruebas una condición y el momento en que actúas sobre ella. Otro hilo puede cambiar el estado en esa ventana.
+
+```
+// PATRÓN INCORRECTO — dos operaciones separadas
+Admin A:  SELECT UPDATED_AT  →  "10:00:00"           ← check
+                                                       ← ventana: Admin B modifica la fila
+Admin A:  UPDATE … SET …     WHERE ID_REP = ?         ← use (ya sin check real)
+          → pisa el cambio de B sin detectar conflicto
+```
+
+```
+// PATRÓN CORRECTO — una sola operación atómica
+Admin A:  UPDATE … SET … WHERE ID_REP = ? AND UPDATED_AT = "10:00:00"
+          → InnoDB evalúa el WHERE y aplica el SET en una sola operación
+          → si B modificó la fila, UPDATED_AT ya no coincide → 0 filas → 409
+```
+
+El `AND UPDATED_AT = ?` en el `WHERE` convierte el check y el update en una operación indivisible: InnoDB no puede ejecutar el SET sin haber comprobado el timestamp en el mismo instante. No existe ventana entre ambos.
+
 **Archivos afectados:**
 
 | Archivo | Cambio |
