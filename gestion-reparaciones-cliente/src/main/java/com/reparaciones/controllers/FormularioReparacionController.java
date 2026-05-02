@@ -420,6 +420,11 @@ public class FormularioReparacionController {
             stage.close();
             if (onGuardado != null)
                 onGuardado.run();
+        } catch (StaleDataException ex) {
+            new Alert(Alert.AlertType.WARNING,
+                    "No se pudo guardar: " + ex.getMessage() + "\n" +
+                    "Cierra el formulario y comprueba el estado de la asignación.")
+                    .showAndWait();
         } catch (SQLException ex) {
             ex.printStackTrace();
             new Alert(Alert.AlertType.ERROR,
