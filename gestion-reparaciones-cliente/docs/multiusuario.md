@@ -54,9 +54,13 @@ ALTER TABLE Reparacion_componente
 | `CompraComponente.java` | Campo `updatedAt` + getter |
 | `Reparacion.java` | Campo `updatedAt` + getter |
 | `ReparacionResumen.java` | Campo `updatedAt` + getter |
-| `ComponenteDAO.java` | `actualizar()` valida `UPDATED_AT`, lanza `StaleDataException` |
-| `CompraComponenteDAO.java` | Todas las operaciones de escritura validan `UPDATED_AT` |
-| `ReparacionDAO.java` | `actualizarTecnico()` valida `UPDATED_AT` |
+| `ComponenteDAO.java` (servidor) | `actualizar()` UPDATE atómico con `AND UPDATED_AT = ?` → elimina TOCTOU |
+| `CompraComponenteDAO.java` (servidor) | Todas las operaciones de escritura validan `UPDATED_AT` |
+| `ReparacionDAO.java` (servidor) | `actualizarTecnico()` UPDATE atómico · `editarReparacion()` check UPDATED_AT de `Reparacion_componente` |
+| `ReparacionDAO.java` (cliente) | `DetalleEdicion` expone `updatedAt` · `editarReparacion()` lo envía en el body |
+| `FormularioReparacionController.java` | Guarda `updatedAtEdicion` al abrir y lo pasa al guardar · catch `StaleDataException` con aviso específico |
+
+> **Patrón atómico vs. TOCTOU:** el patrón `SELECT UPDATED_AT → comparar → UPDATE` tiene una ventana entre las dos operaciones donde otro hilo puede modificar la fila. El patrón correcto es `UPDATE … WHERE UPDATED_AT = ?`: es una sola operación atómica en InnoDB. Si `rowsAffected == 0` se lanza 409 CONFLICT.
 
 **Excepción personalizada:**
 ```java
@@ -352,14 +356,14 @@ Para el contexto real de un taller de reparaciones, estos números son muy altos
 
 ## 6. Qué se dejó fuera intencionalmente
 
-| Mejora | Motivo |
-|---|---|
-| Locking pesimista | Solo útil con >50 admins editando simultáneamente |
-| WebSockets / push del servidor | Requiere reescribir la arquitectura como API REST |
-| Pool de conexiones JDBC | No necesario hasta ~80 usuarios concurrentes |
-| Caché de lectura | Complejidad desproporcionada para el tamaño del taller |
+| Mejora | Estado | Motivo |
+|---|---|---|
+| Locking pesimista (`SELECT FOR UPDATE`) | **Implementado selectivamente** (ver §8) | Se usa solo en las rutas críticas donde el optimistic locking no es suficiente |
+| WebSockets / push del servidor | Pendiente | Requiere cambio arquitectónico mayor |
+| Pool de conexiones JDBC | Pendiente | No necesario hasta ~80 usuarios concurrentes |
+| Caché de lectura | Pendiente | Complejidad desproporcionada para el tamaño del taller |
 
-Estas mejoras quedan documentadas aquí para una futura migración si el sistema escala significativamente.
+El locking pesimista se descartó inicialmente como medida general, pero la migración a API REST reveló vértices de concurrencia donde el optimistic locking llega tarde (p.ej. `nextId()` o la comprobación de existencia de una `A*` antes de insertar filas dependientes). En esos puntos concretos se usa `SELECT ... FOR UPDATE` dentro de `@Transactional`, con impacto mínimo porque las transacciones son muy cortas.
 
 ---
 
@@ -434,12 +438,55 @@ if (response.statusCode() == 401) {
 
 ---
 
-### Resumen de validaciones pendientes
+### Resumen de validaciones
 
-| Validación | Mecanismo | Capa |
-|---|---|---|
-| Stock negativo | `CHECK (STOCK >= 0)` + 409 en API | BD + API |
-| Asignaciones duplicadas | `UNIQUE (IMEI)` o `SELECT FOR UPDATE` + 409 | BD + API |
-| Recepción simultánea de pedidos | Transacción única pedido + stock + 409 | API |
-| Vistas desactualizadas | Polling 30s + SSE a largo plazo | Cliente + API |
-| Expiración JWT | Interceptor central en `ApiClient` | Cliente |
+| Validación | Mecanismo | Capa | Estado |
+|---|---|---|---|
+| Stock negativo | `UPDATE … SET STOCK = STOCK ± ?` es atómico en InnoDB | BD | ✓ Cubierto (aritmética atómica) |
+| IDs duplicados en inserción concurrente | `SELECT MAX … FOR UPDATE` en `nextId()` | API | ✓ Implementado (§8, Fix #1) |
+| Edición simultánea de una reparación | `UPDATED_AT` de `Reparacion_componente` en `editarReparacion` | API | ✓ Implementado (§8, Fix #2) |
+| Admin borra A* / Técnico la completa | `SELECT FOR UPDATE` + 409 en `insertarCompleta` | API | ✓ Implementado (§8, Fix #3) |
+| Admin cancela incidencia / Técnico completa A* | Recheck `FECHA_FIN IS NULL` con `FOR UPDATE` en `borrarIncidenciaPorImei` | API | ✓ Implementado (§8, Fix #4) |
+| `completar()` sobre A* ya eliminada | `UPDATE … AND FECHA_FIN IS NULL` + 409 | API | ✓ Implementado (§8, Fix #5) |
+| Recepción simultánea de pedidos | `UPDATED_AT` en `CompraComponenteDAO` (transacción única) | API | ✓ Implementado (rama anterior) |
+| Vistas desactualizadas | Polling 60s + recarga al recuperar foco | Cliente | ✓ Implementado |
+| Expiración JWT | `ApiClient` convierte 401 en `StaleDataException` | Cliente | ✓ Implementado |
+| `CHECK (STOCK >= 0)` en BD | Restricción de BD como última red de seguridad | BD | Pendiente |
+| WebSockets / SSE | Push del servidor para eliminar polling | API + Cliente | Pendiente (escala grande) |
+
+---
+
+## 8. Vértices de concurrencia — análisis completo (rama `dev_concurrencia`)
+
+### Contexto
+
+Con la migración a API REST varios clientes pueden llamar al servidor simultáneamente. El optimistic locking de la sección 2.1 cubre las ediciones usuario-a-usuario, pero hay operaciones donde dos transacciones pueden interferir aunque ninguna esté "editando" el mismo registro. Estos son los **vértices**: pares de operaciones que, ejecutadas en paralelo, pueden corromper datos.
+
+### Tabla de vértices por combinación de roles
+
+| # | Operación A | Operación B | Riesgo sin protección | Mecanismo de protección | Fix |
+|---|---|---|---|---|---|
+| 1 | Admin/Técnico inserta nueva rep. | Admin/Técnico inserta nueva rep. | `nextId()` lee el mismo MAX → dos rep. con el mismo ID → PK violation | `SELECT … FOR UPDATE` en `nextId()` serializa las lecturas | #1 |
+| 2 | Admin edita una reparación R* | Admin edita la misma R* | Último en guardar pisa al primero sin aviso | `UPDATED_AT` de `Reparacion_componente` en `editarReparacion` + 409 | #2 |
+| 3 | Admin elimina A* | Técnico completa la misma A* | Técnico inserta `Reparacion_componente` sobre A* ya borrada → FK violation o trabajo perdido | `SELECT FOR UPDATE` al inicio de `insertarCompleta` verifica existencia | #3 |
+| 4 | Admin cancela incidencia (borra A*) | Técnico completa la A* asociada | Admin puede borrar una A* que Técnico acaba de cerrar, o Técnico ve la A* abierta que Admin ya cerró | `FOR UPDATE` + recheck `FECHA_FIN IS NULL` en `borrarIncidenciaPorImei` | #4 |
+| 5 | Admin elimina A* | Técnico pulsa "Completar" sobre la misma A* | `UPDATE FECHA_FIN` afecta 0 filas silenciosamente (éxito falso) | `UPDATE … AND FECHA_FIN IS NULL` + 409 si 0 filas | #5 |
+| 6 | Admin A reasigna técnico de A* | Admin B reasigna el mismo técnico | Último en guardar pisa al primero (TOCTOU en patrón SELECT→UPDATE) | UPDATE atómico `WHERE UPDATED_AT = ?` en `actualizarTecnico` | #6 |
+| 7 | Admin A edita un componente | Admin B edita el mismo componente | TOCTOU idéntico al caso 6 | UPDATE atómico `WHERE UPDATED_AT = ?` en `ComponenteDAO.actualizar` | #7 |
+
+### Vértices descartados (no son race conditions reales)
+
+| Par de operaciones | Motivo |
+|---|---|
+| Dos técnicos consumen stock del mismo componente | `UPDATE … SET STOCK = STOCK - ?` es atómico en InnoDB; no hay TOCTOU |
+| Técnico completa A* / Técnico completa la misma A* | Imposible: cada A* está asignada a un único técnico |
+| Admin lee historial / Admin escribe reparación | Lectura y escritura no interfieren; el polling recarga tras la escritura |
+| Dos admins reciben el mismo pedido | `UPDATED_AT` en `CompraComponenteDAO` + transacción única stock+pedido (implementado en rama anterior) |
+
+### Notas de implementación
+
+**`FOR UPDATE` dentro de `@Transactional`:** MariaDB InnoDB adquiere un lock exclusivo de fila. Si una segunda transacción intenta leer la misma fila con `FOR UPDATE`, bloquea hasta que la primera hace commit o rollback. El riesgo de deadlock es bajo porque las transacciones son cortas (< 100ms), pero si dos transacciones adquieren locks en orden inverso puede ocurrir. InnoDB detecta deadlocks automáticamente y hace rollback del más nuevo lanzando una excepción, que el cliente recibe como error genérico de servidor.
+
+**Truncado a segundos:** `Timestamp` en MariaDB tiene precisión de 1 segundo. El cliente almacena `LocalDateTime` con precisión de nanosegundos. Ambos lados truncan a segundos antes de comparar para evitar falsos positivos.
+
+**`nextId()` sin `@Transactional` propio:** el `FOR UPDATE` en `nextId()` solo funciona dentro de una transacción ya activa (la del método que lo llama). Los métodos `insertar`, `insertarAsignacion`, `insertarCompleta` y `marcarIncidenciaYAsignar` son todos `@Transactional`, por lo que el lock se mantiene hasta el commit de la transacción completa.
