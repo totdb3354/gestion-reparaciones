@@ -22,7 +22,10 @@ import javafx.scene.text.FontWeight;
 import javafx.geometry.Pos;
 import javafx.util.Duration;
 
+import com.reparaciones.utils.StaleDataException;
+
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +60,11 @@ public class FormularioReparacionController {
     @FXML private ComboBox<String> cbFiltroModelo;
     private boolean tieneSolicitudesIniciales = false;
     private List<FilaReparacion> solicitudesCargadas = null;
-    private boolean modoEdicion = false;
-    private String  idRepEditar;
-    private String  imeiEditar;
-    private int     idTecEditar;
+    private boolean       modoEdicion = false;
+    private String        idRepEditar;
+    private String        imeiEditar;
+    private int           idTecEditar;
+    private LocalDateTime updatedAtEdicion;
     private boolean esperandoConfirmacion = false;
     private Timeline timelineReset;
     private int segundosRestantes;
@@ -155,8 +159,9 @@ public class FormularioReparacionController {
         try {
             ReparacionDAO.DetalleEdicion d = reparacionDAO.getDetalleEdicion(idRep);
             if (d == null) return;
-            this.imeiEditar = d.imei;
-            this.idTecEditar = d.idTec;
+            this.imeiEditar      = d.imei;
+            this.idTecEditar     = d.idTec;
+            this.updatedAtEdicion = d.updatedAt;
 
             lblImei.setText("IMEI: " + d.imei + "  ·  Editando " + idRep);
             btnGuardar.setText("Guardar cambios");
@@ -432,7 +437,8 @@ public class FormularioReparacionController {
                             fila.getIdComSeleccionado(),
                             fila.isReutilizado(),
                             fila.getObservacion(),
-                            fila.getCantidad());
+                            fila.getCantidad(),
+                            updatedAtEdicion);
                     break;
                 }
             }
@@ -457,6 +463,11 @@ public class FormularioReparacionController {
             stage.close();
             if (onGuardado != null)
                 onGuardado.run();
+        } catch (StaleDataException ex) {
+            new Alert(Alert.AlertType.WARNING,
+                    "No se pudo guardar: otro usuario modificó esta reparación.\n" +
+                    "Cierra y vuelve a abrir el formulario para ver los cambios actuales.")
+                    .showAndWait();
         } catch (SQLException ex) {
             ex.printStackTrace();
             new Alert(Alert.AlertType.ERROR,

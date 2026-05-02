@@ -38,11 +38,13 @@ public class ReparacionDAO {
         public final boolean esReutilizado;
         public final String  observacion;
         public final int     cantidad;
+        public final LocalDateTime updatedAt;
         public DetalleEdicion(String imei, int idTec, int idCom,
-                              boolean esReutilizado, String observacion, int cantidad) {
+                              boolean esReutilizado, String observacion, int cantidad,
+                              LocalDateTime updatedAt) {
             this.imei = imei; this.idTec = idTec; this.idCom = idCom;
             this.esReutilizado = esReutilizado; this.observacion = observacion;
-            this.cantidad = cantidad;
+            this.cantidad = cantidad; this.updatedAt = updatedAt;
         }
     }
 
@@ -336,12 +338,14 @@ public class ReparacionDAO {
      * @throws SQLException si falla la llamada al servidor
      */
     public void editarReparacion(String idRep, int idComNuevo, boolean esReutilizadoNuevo,
-            String observacionNueva, int nNuevas) throws SQLException {
+            String observacionNueva, int nNuevas, LocalDateTime updatedAt)
+            throws SQLException {
         Map<String, Object> body = new HashMap<>();
         body.put("idComNuevo",         idComNuevo);
         body.put("esReutilizadoNuevo", esReutilizadoNuevo);
         body.put("observacionNueva",   observacionNueva);
         body.put("nNuevas",            nNuevas);
+        body.put("updatedAt",          updatedAt);
         ApiClient.put("/api/reparaciones/" + idRep, body);
     }
 
