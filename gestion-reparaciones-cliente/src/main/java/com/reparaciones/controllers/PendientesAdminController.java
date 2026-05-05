@@ -67,7 +67,8 @@ public class PendientesAdminController {
     private CheckBox cbSoloAsignaciones;
     private final List<CheckBox>        cbsTecnico       = new ArrayList<>();
     private final List<Tecnico>         tecnicos         = new ArrayList<>();
-    private final Map<String, Tecnico>  cambiosPendientes = new HashMap<>();
+    private record CambioPendiente(Tecnico tecnico, java.time.LocalDateTime updatedAt) {}
+    private final Map<String, CambioPendiente> cambiosPendientes = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -87,7 +88,7 @@ public class PendientesAdminController {
                     Tecnico sel = cb.getValue();
                     if (sel == null) return;
                     if (sel.getIdTec() != rep.getIdTec()) {
-                        cambiosPendientes.put(rep.getIdRep(), sel);
+                        cambiosPendientes.put(rep.getIdRep(), new CambioPendiente(sel, rep.getUpdatedAt()));
                     } else {
                         cambiosPendientes.remove(rep.getIdRep());
                     }
@@ -105,9 +106,10 @@ public class PendientesAdminController {
                 actualizando = true;
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
                 cb.getItems().setAll(tecnicos);
-                Tecnico mostrar = cambiosPendientes.getOrDefault(rep.getIdRep(),
+                CambioPendiente cambio = cambiosPendientes.get(rep.getIdRep());
+                Tecnico mostrar = cambio != null ? cambio.tecnico() :
                         tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec())
-                                .findFirst().orElse(null));
+                                .findFirst().orElse(null);
                 cb.setValue(mostrar);
                 actualizando = false;
                 boolean modificada = cambiosPendientes.containsKey(rep.getIdRep());
@@ -508,19 +510,19 @@ public class PendientesAdminController {
     @FXML
     private void confirmarCambiosTecnico() {
         List<String> conflictos = new ArrayList<>();
-        for (Map.Entry<String, Tecnico> entry : new java.util.ArrayList<>(cambiosPendientes.entrySet())) {
-            String  idRep   = entry.getKey();
-            Tecnico tecnico = entry.getValue();
+        for (Map.Entry<String, CambioPendiente> entry : new java.util.ArrayList<>(cambiosPendientes.entrySet())) {
+            String          idRep   = entry.getKey();
+            CambioPendiente cambio  = entry.getValue();
             ReparacionResumen rep = datos.stream()
                     .filter(r -> r.getIdRep().equals(idRep)).findFirst().orElse(null);
             if (rep == null) continue;
             try {
-                reparacionDAO.actualizarTecnico(idRep, tecnico.getIdTec(), rep.getUpdatedAt());
-                rep.setIdTec(tecnico.getIdTec());
-                rep.setNombreTecnico(tecnico.getNombre());
+                reparacionDAO.actualizarTecnico(idRep, cambio.tecnico().getIdTec(), cambio.updatedAt());
+                rep.setIdTec(cambio.tecnico().getIdTec());
+                rep.setNombreTecnico(cambio.tecnico().getNombre());
                 cambiosPendientes.remove(idRep);
             } catch (com.reparaciones.utils.StaleDataException e) {
-                conflictos.add(mensajeConflicto(idRep, tecnico));
+                conflictos.add(mensajeConflicto(idRep, cambio.tecnico()));
             } catch (SQLException e) { e.printStackTrace(); }
         }
         if (!conflictos.isEmpty()) {
