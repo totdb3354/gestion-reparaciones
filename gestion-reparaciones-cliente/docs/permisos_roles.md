@@ -97,6 +97,8 @@ Incluye todo lo de TECNICO, más:
 - ✅ Sus propias reparaciones y asignaciones
 - ✅ Estadísticas propias
 - ✅ Stock — solo lectura en formulario de reparación
+- ✅ Historial IMEI
+- ✅ Exportar CSV
 
 ### SUPERTECNICO
 - ✅ Todo lo de TECNICO
@@ -106,11 +108,19 @@ Incluye todo lo de TECNICO, más:
 - ✅ Pedidos (crear, editar, recibir, cancelar)
 - ✅ Proveedores (gestión completa)
 - ✅ Estadísticas globales (todos los técnicos)
+- ✅ Notificaciones/campana de solicitudes
+- ✅ Alertas de stock bajo
 - ✅ Exportar CSV
+- ❌ Gestión de usuarios
+- ❌ Ver logs de actividad
 
 ### ADMIN
 - ✅ Gestión de usuarios (crear, desactivar, asignar roles)
 - ✅ Estadísticas globales — solo lectura
 - ✅ Stock — solo consulta (sin editar, sin pedidos)
 - ✅ Historial de reparaciones — solo lectura (sin asignar ni editar)
+- ✅ Ver logs de actividad
+- ✅ Historial IMEI
+- ✅ Exportar CSV
 - ❌ Asignaciones, pedidos, proveedores
+- ❌ Notificaciones/campana
