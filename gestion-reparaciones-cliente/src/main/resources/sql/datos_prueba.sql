@@ -333,11 +333,11 @@ INSERT INTO Componente (TIPO, STOCK, STOCK_MINIMO) VALUES ('mci16enegra', 5, 2);
 -- ── Técnicos ──────────────────────────────────────────────────────────────────
 INSERT INTO Tecnico (ID_TEC, NOMBRE) VALUES (1, 'Ángelo');
 INSERT INTO Tecnico (ID_TEC, NOMBRE) VALUES (2, 'Daniel');
-INSERT INTO Tecnico (ID_TEC, NOMBRE) VALUES (3, 'Admin');
+
 
 -- ── Usuarios ──────────────────────────────────────────────────────────────────
 INSERT INTO Usuario (NOMBRE_USUARIO, PASSWORD, ROL, ID_TEC)
-VALUES ('admin',  '$2a$10$89OoWr1AD1dbESqCVGhGVOBWILu0ld117qcCSS68z1dH4k/A7MjBu', 'ADMIN',   3);
+VALUES ('admin',  '$2a$10$89OoWr1AD1dbESqCVGhGVOBWILu0ld117qcCSS68z1dH4k/A7MjBu', 'ADMIN',   NULL);
 INSERT INTO Usuario (NOMBRE_USUARIO, PASSWORD, ROL, ID_TEC)
 VALUES ('angelo', '$2a$10$WwWX69tAaqxGhUmwD6Rlj.Z0k3deSmIwpidcGBNnAhHD.wlAraVRa', 'TECNICO', 1);
 INSERT INTO Usuario (NOMBRE_USUARIO, PASSWORD, ROL, ID_TEC)
