@@ -454,7 +454,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             if (lblUltimaActualizacion != null)
                 lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -675,7 +675,7 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             ventana.showAndWait();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -715,5 +715,9 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
             ));
         }
         com.reparaciones.utils.CsvExporter.exportar(owner, nombre, cabeceras, filas);
+    }
+
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }

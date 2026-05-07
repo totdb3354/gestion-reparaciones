@@ -78,7 +78,7 @@ public class FormularioCompraController {
                             .collect(java.util.stream.Collectors.toList()));
             proveedoresDisponibles = FXCollections.observableArrayList(proveedorDAO.getActivos());
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
         configurarTabla();
         tablaLineas.setItems(lineas);
@@ -413,7 +413,7 @@ public class FormularioCompraController {
                             .filter(Componente::isActivo)
                             .collect(java.util.stream.Collectors.toList()));
             proveedoresDisponibles = FXCollections.observableArrayList(proveedorDAO.getActivos());
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) { mostrarError(e); }
         configurarTabla();
         tablaLineas.setItems(lineas);
         // Agrupar por idCom: una fila por componente, cantidad = nº de veces solicitado
@@ -451,7 +451,7 @@ public class FormularioCompraController {
                 stage.initModality(Modality.APPLICATION_MODAL);
                 ctrl.initConSolicitudes(solicitudes, onGuardado);
                 stage.show();
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) { mostrarError(e); }
         });
     }
 
@@ -469,8 +469,12 @@ public class FormularioCompraController {
                 stage.initModality(Modality.APPLICATION_MODAL);
                 ctrl.init(preselect, onGuardado);
                 stage.show();
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) { mostrarError(e); }
         });
+    }
+
+    private static void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 
     public static void abrirEditar(CompraComponente pedido, Runnable onGuardado) {
@@ -487,7 +491,7 @@ public class FormularioCompraController {
                 stage.initModality(Modality.APPLICATION_MODAL);
                 ctrl.init(pedido, onGuardado);
                 stage.show();
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) { mostrarError(e); }
         });
     }
 }

@@ -220,7 +220,7 @@ public class PendientesTecnicoController {
             String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
             if (lblUltimaActualizacion != null) lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -245,5 +245,9 @@ public class PendientesTecnicoController {
         if (col == cImei) return rep.getImei();
         if (col == cFecha) return rep.getFechaAsig() != null ? rep.getFechaAsig().format(FMT) : "";
         return null;
+    }
+
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }

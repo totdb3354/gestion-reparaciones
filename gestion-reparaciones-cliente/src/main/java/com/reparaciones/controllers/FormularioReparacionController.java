@@ -107,7 +107,7 @@ public class FormularioReparacionController {
             try {
                 this.idRepAnterior = reparacionDAO.getIncidenciaActivaPorImei(imei);
             } catch (SQLException e) {
-                e.printStackTrace();
+                mostrarError(e);
             }
         }
 
@@ -136,7 +136,7 @@ public class FormularioReparacionController {
                     }
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                mostrarError(e);
             }
         }
         configurarFiltroModelo(); // el auto-filtro de modelo dispara aplicarFiltroModelo → resetea solicitudActiva
@@ -187,7 +187,7 @@ public class FormularioReparacionController {
                     fila.configurarTecnicoEdicion(tecnicos, d.idTec);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -211,7 +211,7 @@ public class FormularioReparacionController {
                 stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
                 stage.show();
             } catch (Exception e) {
-                e.printStackTrace();
+                new Alert(Alert.AlertType.ERROR, e.getMessage()).showAndWait();
             }
         });
     }
@@ -229,7 +229,7 @@ public class FormularioReparacionController {
                 filasUI.add(fila);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -426,7 +426,6 @@ public class FormularioReparacionController {
                     "Cierra el formulario y comprueba el estado de la asignación.")
                     .showAndWait();
         } catch (SQLException ex) {
-            ex.printStackTrace();
             new Alert(Alert.AlertType.ERROR,
                     "No se pudo guardar: " + ex.getMessage()).showAndWait();
         }
@@ -474,7 +473,6 @@ public class FormularioReparacionController {
                     "Cierra y vuelve a abrir el formulario para ver los cambios actuales.")
                     .showAndWait();
         } catch (SQLException ex) {
-            ex.printStackTrace();
             new Alert(Alert.AlertType.ERROR,
                     "No se pudo guardar: " + ex.getMessage()).showAndWait();
         }
@@ -503,9 +501,13 @@ public class FormularioReparacionController {
                 stage.show();
 
             } catch (Exception e) {
-                e.printStackTrace();
+                new Alert(Alert.AlertType.ERROR, e.getMessage()).showAndWait();
             }
         });
+    }
+
+    private void mostrarError(Exception e) {
+        new Alert(Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 
     // ─── Utilidades estáticas ─────────────────────────────────────────────────

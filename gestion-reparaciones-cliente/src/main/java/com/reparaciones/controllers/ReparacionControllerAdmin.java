@@ -483,7 +483,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
             lblUltimaActualizacion.setText("Actualizado " +
                     java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -504,7 +504,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                 filtroTecnico.getItems().add(new CustomMenuItem(cb, false));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
 
         // Listeners de los demás filtros
@@ -694,7 +694,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                     .findFirst()
                     .ifPresent(cbTecnico::setValue);
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            mostrarError(ex);
         }
 
         cbTecnico.setCellFactory(lv -> new ListCell<>() {
@@ -755,7 +755,6 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                 dialog.close();
                 cargarDatos();
             } catch (SQLException ex) {
-                ex.printStackTrace();
                 new Alert(Alert.AlertType.ERROR,
                         "No se pudo guardar: " + ex.getMessage()).showAndWait();
             }
@@ -774,7 +773,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                         reparacionComponenteDAO.borrarIncidencia(rep.getIdRep());
                         cargarDatos();
                     } catch (SQLException e) {
-                        e.printStackTrace();
+                        mostrarError(e);
                     }
                 }
         );
@@ -800,12 +799,12 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                             reparacionDAO.eliminar(rep.getIdRep());
                             cargarDatos();
                         } catch (SQLException e) {
-                            e.printStackTrace();
+                            mostrarError(e);
                         }
                     }
             );
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -917,7 +916,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
             ventana.showAndWait();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -961,5 +960,9 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
             ));
         }
         com.reparaciones.utils.CsvExporter.exportar(owner, nombre, cabeceras, filas);
+    }
+
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }

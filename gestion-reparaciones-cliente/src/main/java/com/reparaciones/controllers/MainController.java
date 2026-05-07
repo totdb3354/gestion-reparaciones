@@ -135,7 +135,7 @@ public class MainController {
                 badgePane.setManaged(false);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            // silencioso: polling de fondo
         }
     }
 
@@ -179,7 +179,7 @@ public class MainController {
                     listaPendientes.getChildren().add(tarjetaSolicitud(s, ventana, fmt));
                 for (SolicitudResumen s : rechazadas)
                     listaRechazadas.getChildren().add(tarjetaRechazada(s, ventana, fmt));
-            } catch (SQLException ex) { ex.printStackTrace(); }
+            } catch (SQLException ex) { mostrarError(ex); }
         };
 
         // guardamos la referencia para poder llamarla desde los botones
@@ -216,12 +216,12 @@ public class MainController {
                 FormularioCompraController.abrirConSolicitudes(pendientes, () -> {
                     for (SolicitudResumen s : pendientes) {
                         try { rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "GESTIONADA"); }
-                        catch (SQLException ex) { ex.printStackTrace(); }
+                        catch (SQLException ex) { mostrarError(ex); }
                     }
                     recargarRef[0].run();
                 });
                 ventana.close();
-            } catch (SQLException ex) { ex.printStackTrace(); }
+            } catch (SQLException ex) { mostrarError(ex); }
         });
 
         VBox raiz = new VBox(12, cabecera, scroll, btnPedir);
@@ -276,7 +276,7 @@ public class MainController {
                 actualizarBadge();
                 // recargar panel
                 ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { ex.printStackTrace(); }
+            } catch (SQLException ex) { mostrarError(ex); }
         });
 
         HBox card = new HBox(10, textos, btnRechazar);
@@ -313,7 +313,7 @@ public class MainController {
                 rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "PENDIENTE");
                 actualizarBadge();
                 ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { ex.printStackTrace(); }
+            } catch (SQLException ex) { mostrarError(ex); }
         });
 
         ImageView ivBorrar = new ImageView(
@@ -324,7 +324,7 @@ public class MainController {
             try {
                 rcDAO.limpiarSolicitud(s.getIdRc());
                 ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { ex.printStackTrace(); }
+            } catch (SQLException ex) { mostrarError(ex); }
         });
 
         HBox card = new HBox(10, textos, btnRecuperar, ivBorrar);
@@ -346,7 +346,7 @@ public class MainController {
                     .filter(c -> c.getStock() <= c.getStockMinimo())
                     .collect(Collectors.toList());
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
             return;
         }
         if (alertasCriticas.isEmpty()) return;
@@ -517,7 +517,7 @@ public class MainController {
             ventana.showAndWait();
             if (accionVistaActual != null) accionVistaActual.run();
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -532,7 +532,7 @@ public class MainController {
             ventana.setResizable(true);
             ventana.show();
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -568,7 +568,7 @@ public class MainController {
             stage.centerOnScreen();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -633,7 +633,7 @@ public class MainController {
             contenedor.getChildren().setAll(vista);
             setActivo(activo, inactivos);
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarError(e);
         } finally {
             btnReparaciones.setDisable(false);
             btnStock.setDisable(false);
@@ -648,6 +648,10 @@ public class MainController {
      * @param activo    botón que representa la vista activa
      * @param inactivos resto de botones de navegación
      */
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
+    }
+
     private void setActivo(Button activo, Button... inactivos) {
         activo.getStyleClass().remove("nav-btn");
         if (!activo.getStyleClass().contains("nav-btn-active"))

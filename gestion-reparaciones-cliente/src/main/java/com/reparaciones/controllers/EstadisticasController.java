@@ -190,7 +190,7 @@ public class EstadisticasController {
         try {
             tecnicos = new TecnicoDAO().getAll();
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
             return;
         }
 
@@ -282,7 +282,7 @@ public class EstadisticasController {
             todosPuntos = new ReparacionDAO().getEstadisticasPorTecnico(
                     granularidad, desde, hasta);
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
             return;
         }
 
@@ -898,7 +898,7 @@ public class EstadisticasController {
                     .filter(com.reparaciones.models.Componente::isActivo)
                     .collect(java.util.stream.Collectors.toList());
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
             return;
         }
         java.util.Set<String> rawModelos = new java.util.HashSet<>();
@@ -1069,5 +1069,9 @@ public class EstadisticasController {
                 yield new java.time.LocalDate[]{lunes, lunes.plusDays(6)};
             }
         };
+    }
+
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }
