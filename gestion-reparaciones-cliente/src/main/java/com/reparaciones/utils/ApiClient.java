@@ -269,7 +269,8 @@ public class ApiClient {
         try {
             return HTTP.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
-            throw new SQLException("Sin conexión con el servidor: " + e.getMessage(), e);
+            String detalle = e.getMessage() != null ? ": " + e.getMessage() : "";
+            throw new SQLException("Sin conexión con el servidor" + detalle, e);
         }
     }
 
@@ -290,7 +291,9 @@ public class ApiClient {
         if (body == null || body.isBlank()) return "Sin detalles.";
         try {
             JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
-            if (obj.has("message")) return obj.get("message").getAsString();
+            if (obj.has("message") && !obj.get("message").getAsString().isBlank())
+                return obj.get("message").getAsString();
+            if (obj.has("error")) return obj.get("error").getAsString();
         } catch (Exception ignored) {}
         return body;
     }

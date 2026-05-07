@@ -55,7 +55,7 @@ public class FormularioCompraEditarController {
         try {
             cmbProveedor.getItems().setAll(proveedorDAO.getActivos());
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
 
         cmbDivisa.getItems().setAll(List.of("EUR", "USD"));
@@ -152,5 +152,9 @@ public class FormularioCompraEditarController {
 
     private void cerrarVentana() {
         ((Stage) cmbProveedor.getScene().getWindow()).close();
+    }
+
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }

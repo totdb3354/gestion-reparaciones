@@ -104,7 +104,6 @@ public class LoginController {
             Sesion.iniciar(u);
             cargarMainView();
         } catch (SQLException e) {
-            e.printStackTrace();
             mostrarError("Error de conexión con la base de datos.");
         }
     }
@@ -138,7 +137,7 @@ public class LoginController {
                 javafx.application.Platform.runLater(() -> stage.setMaximized(true));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarError("No se pudo cargar la aplicación: " + e.getMessage());
         }
     }
 

@@ -221,7 +221,7 @@ public class PendientesAdminController {
                                         reparacionDAO.eliminarAsignacion(rep.getIdRep());
                                     cargar();
                                     if (onActualizar != null) onActualizar.run();
-                                } catch (SQLException ex) { ex.printStackTrace(); }
+                                } catch (SQLException ex) { mostrarError(ex); }
                             });
                 });
             }
@@ -253,7 +253,7 @@ public class PendientesAdminController {
                 CustomMenuItem item = new CustomMenuItem(cb, false);
                 filtroTecnico.getItems().add(item);
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) { mostrarError(e); }
 
         // Filtro tipo
         cbSoloSolicitudes = new CheckBox("Solicitudes pieza");
@@ -344,7 +344,7 @@ public class PendientesAdminController {
             String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
             if (lblUltimaActualizacion != null) lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError(e);
         }
     }
 
@@ -384,7 +384,7 @@ public class PendientesAdminController {
                 cbContainer.getChildren().add(cb);
             }
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            mostrarError(ex);
         }
 
         ScrollPane scrollTecnicos = new ScrollPane(cbContainer);
@@ -424,7 +424,7 @@ public class PendientesAdminController {
                         checkboxes.forEach(cb -> { cb.setDisable(true); cb.setSelected(false); });
                     }
                 } catch (SQLException ex) {
-                    ex.printStackTrace();
+                    // silencioso: se llama en cada tecla del campo IMEI
                 }
             }
 
@@ -484,7 +484,7 @@ public class PendientesAdminController {
                         "Este teléfono ya tiene historial. Usa la opción de incidencia desde la tabla.")
                         .showAndWait();
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                mostrarError(ex);
             }
         });
 
@@ -523,7 +523,7 @@ public class PendientesAdminController {
                 cambiosPendientes.remove(idRep);
             } catch (com.reparaciones.utils.StaleDataException e) {
                 conflictos.add(mensajeConflicto(idRep, cambio.tecnico()));
-            } catch (SQLException e) { e.printStackTrace(); }
+            } catch (SQLException e) { mostrarError(e); }
         }
         if (!conflictos.isEmpty()) {
             String detalle = String.join("\n", conflictos);
@@ -568,5 +568,9 @@ public class PendientesAdminController {
         if (col == cImei)  return rep.getImei();
         if (col == cFecha) return rep.getFechaAsig() != null ? rep.getFechaAsig().format(FMT) : "";
         return null;
+    }
+
+    private void mostrarError(Exception e) {
+        new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, e.getMessage()).showAndWait();
     }
 }

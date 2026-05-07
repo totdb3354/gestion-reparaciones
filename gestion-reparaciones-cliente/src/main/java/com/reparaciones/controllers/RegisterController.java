@@ -157,7 +157,7 @@ public class RegisterController {
             List<Usuario> lista = usuarioDAO.getUsuariosTecnicos();
             datos.setAll(lista);
         } catch (SQLException e) {
-            e.printStackTrace();
+            mostrarError("Error al cargar los usuarios.");
         }
     }
 
@@ -174,7 +174,6 @@ public class RegisterController {
             }
             cargarUsuarios();
         } catch (SQLException e) {
-            e.printStackTrace();
             mostrarError("Error al cambiar el estado del técnico.");
         }
     }
@@ -205,13 +204,11 @@ public class RegisterController {
                         usuarioDAO.eliminarTecnico(u.getIdUsu(), u.getIdTec());
                         cargarUsuarios();
                     } catch (SQLException e) {
-                        e.printStackTrace();
                         mostrarError("Error al eliminar el técnico.");
                     }
                 }
             });
         } catch (SQLException e) {
-            e.printStackTrace();
             mostrarError("Error al comprobar las reparaciones del técnico.");
         }
     }
@@ -251,7 +248,6 @@ public class RegisterController {
             if (e.getErrorCode() == 1062) {
                 mostrarError("Ese nombre de usuario ya existe.");
             } else {
-                e.printStackTrace();
                 mostrarError("Error al registrar. Inténtalo de nuevo.");
             }
         }
