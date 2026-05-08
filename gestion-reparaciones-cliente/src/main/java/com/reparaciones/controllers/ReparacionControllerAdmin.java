@@ -686,7 +686,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                 "-fx-border-radius: 4; -fx-background-radius: 4;");
 
         try {
-            List<Tecnico> tecnicos = tecnicoDAO.getAll();
+            List<Tecnico> tecnicos = tecnicoDAO.getAllActivos();
             cbTecnico.getItems().addAll(tecnicos);
             // Preseleccionar el técnico actual de la reparación
             tecnicos.stream()
