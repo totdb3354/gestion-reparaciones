@@ -241,7 +241,7 @@ public class PendientesAdminController {
     private void configurarFiltros() {
         // Filtro técnico
         try {
-            tecnicos.addAll(tecnicoDAO.getAll());
+            tecnicos.addAll(tecnicoDAO.getAllActivos());
             for (Tecnico t : tecnicos) {
                 CheckBox cb = new CheckBox(t.getNombre());
                 cb.setStyle("-fx-font-size: 12px; -fx-padding: 2 4 2 4;");
