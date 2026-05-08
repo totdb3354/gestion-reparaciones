@@ -12,3 +12,6 @@ Thumbs.db
 
 # Claude Code — configuración local
 .claude/
+
+# Configuración local — contiene la IP/URL de producción
+src/main/resources/config.properties
