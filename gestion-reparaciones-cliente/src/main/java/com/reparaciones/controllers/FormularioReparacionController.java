@@ -166,7 +166,7 @@ public class FormularioReparacionController {
             lblImei.setText("IMEI: " + d.imei + "  ·  Editando " + idRep);
             btnGuardar.setText("Guardar cambios");
 
-            List<Tecnico> tecnicos = new TecnicoDAO().getAll();
+            List<Tecnico> tecnicos = new TecnicoDAO().getAllActivos();
 
             cargarFilas();
             Set<Integer> yaReparados = reparacionDAO.getIdComsYaReparados(d.imei, idRep);
