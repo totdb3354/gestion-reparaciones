@@ -69,7 +69,7 @@ public class ApiClient {
     private static String token;
 
     static {
-        String url = "http://localhost:8080/api";
+        String url = "http://localhost:8080";
         try (InputStream is = ApiClient.class.getResourceAsStream("/config.properties")) {
             if (is != null) {
                 Properties props = new Properties();
