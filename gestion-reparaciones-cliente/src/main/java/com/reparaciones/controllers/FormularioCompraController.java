@@ -130,8 +130,12 @@ public class FormularioCompraController {
                     @Override protected void updateItem(Componente c, boolean empty) {
                         super.updateItem(c, empty);
                         setText(empty || c == null ? "" : c.toString());
-                        setStyle("-fx-text-fill: #FAFAFA;");
                     }
+                });
+                tableRowProperty().addListener((obs, oldRow, newRow) -> {
+                    if (newRow != null)
+                        newRow.selectedProperty().addListener((o, old, selected) ->
+                            combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
                 combo.setOnAction(e -> {
@@ -170,8 +174,12 @@ public class FormularioCompraController {
                     @Override protected void updateItem(Proveedor p, boolean empty) {
                         super.updateItem(p, empty);
                         setText(empty || p == null ? "" : p.getNombre());
-                        setStyle("-fx-text-fill: #FAFAFA;");
                     }
+                });
+                tableRowProperty().addListener((obs, oldRow, newRow) -> {
+                    if (newRow != null)
+                        newRow.selectedProperty().addListener((o, old, selected) ->
+                            combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
                 combo.setOnAction(e -> {
