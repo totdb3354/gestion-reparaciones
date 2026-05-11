@@ -14,12 +14,14 @@
                 <Insets top="0" right="20" bottom="0" left="20"/>
             </padding>
 
-            <!-- Logo + Título -->
-            <ImageView fitHeight="38" preserveRatio="true">
-                <image>
-                    <Image url="@/images/logoNavBar.png"/>
-                </image>
-            </ImageView>
+            <!-- Logo clicable → inicio según rol -->
+            <Button styleClass="navbar-logo-btn" onAction="#irAInicio">
+                <graphic>
+                    <ImageView fitHeight="38" preserveRatio="true">
+                        <image><Image url="@/images/logoNavBar.png"/></image>
+                    </ImageView>
+                </graphic>
+            </Button>
             <Label text="FSGR:" styleClass="navbar-title" style="-fx-font-weight: bold;"/>
             <Label text="Gestión de Stock y Reparaciones V.1" styleClass="navbar-title" style="-fx-font-weight: normal;"/>
 

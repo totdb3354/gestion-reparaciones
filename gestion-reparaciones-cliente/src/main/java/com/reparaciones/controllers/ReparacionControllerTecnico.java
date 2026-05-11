@@ -135,6 +135,8 @@ public class ReparacionControllerTecnico implements com.reparaciones.utils.Recar
         cargarDatos();
     }
 
+    public void irAInicio() { mostrarPanel(pnlMisPendientes, btnTabMisPendientes); }
+
     private void mostrarPanel(VBox panel, Button btnActivo) {
         pnlHistorial    .setVisible(false); pnlHistorial    .setManaged(false);
         pnlMisPendientes.setVisible(false); pnlMisPendientes.setManaged(false);

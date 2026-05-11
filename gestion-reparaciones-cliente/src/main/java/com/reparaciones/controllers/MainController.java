@@ -157,8 +157,11 @@ public class MainController {
         Label lblX = new Label("✕");
         lblX.setStyle("-fx-font-size: 14px; -fx-cursor: hand; -fx-text-fill: #586376;");
         lblX.setOnMouseClicked(e -> ventana.close());
+        Label lblIrPedidos = new Label("→ Ir a pedidos");
+        lblIrPedidos.setStyle("-fx-font-size: 12px; -fx-cursor: hand; -fx-text-fill: #001232; -fx-font-weight: bold;");
+        lblIrPedidos.setOnMouseClicked(e -> { ventana.close(); mostrarStockEnPedidos(); });
         HBox spacerH = new HBox(); HBox.setHgrow(spacerH, Priority.ALWAYS);
-        HBox cabecera = new HBox(8, lblTitulo, spacerH, lblX);
+        HBox cabecera = new HBox(8, lblTitulo, spacerH, lblIrPedidos, lblX);
         cabecera.setAlignment(Pos.CENTER_LEFT);
         cabecera.setPadding(new Insets(0, 0, 12, 0));
 
@@ -447,6 +450,22 @@ public class MainController {
         ventana.showAndWait();
     }
 
+    /** Navega a la vista de inicio según el rol (clickable desde el logo). */
+    @FXML
+    private void irAInicio() {
+        mostrarReparaciones();
+        String ruta = Sesion.esAdminOSuperTecnico()
+                ? "/views/ReparacionViewAdmin.fxml"
+                : "/views/ReparacionViewTecnico.fxml";
+        Object[] cached = vistaCache.get(ruta);
+        if (cached != null) {
+            if (cached[1] instanceof ReparacionControllerAdmin rca)
+                Platform.runLater(rca::irAInicio);
+            else if (cached[1] instanceof ReparacionControllerTecnico rct)
+                Platform.runLater(rct::irAInicio);
+        }
+    }
+
     /** Navega a la vista de reparaciones (admin o técnico según el rol). */
     @FXML
     private void mostrarReparaciones() {
@@ -462,6 +481,14 @@ public class MainController {
     private void mostrarStock() {
         accionVistaActual = this::mostrarStock;
         mostrarVista("/views/StockView.fxml", btnStock, btnReparaciones, btnEstadisticas);
+    }
+
+    /** Navega a la vista de stock y abre directamente la sección de pedidos. */
+    private void mostrarStockEnPedidos() {
+        mostrarStock();
+        Object[] cached = vistaCache.get("/views/StockView.fxml");
+        if (cached != null && cached[1] instanceof StockController sc)
+            Platform.runLater(sc::irAPedidos);
     }
 
     /** Navega a la vista de estadísticas. */
