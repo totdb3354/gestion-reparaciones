@@ -110,6 +110,7 @@ public class PendientesAdminController {
                 super.updateItem(item, empty);
                 if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
                     setGraphic(null);
+                    cb.setStyle("-fx-font-size: 11px;");
                     return;
                 }
                 actualizando = true;
@@ -125,6 +126,10 @@ public class PendientesAdminController {
                 setStyle(modificada
                         ? "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_MODIFICADA_BG + ";"
                         : "");
+                boolean selected = getTableRow() != null && getTableRow().isSelected();
+                cb.setStyle(selected
+                        ? "-fx-font-size: 11px; -fx-background-color: transparent;"
+                        : "-fx-font-size: 11px;");
                 setGraphic(cb);
             }
         });
