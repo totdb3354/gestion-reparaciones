@@ -368,10 +368,10 @@ public class MainController {
         ventana.setResizable(false);
 
         Label lblIcono = new Label("⚠");
-        lblIcono.setStyle("-fx-font-size: 20px; -fx-text-fill: " + Colores.AMARILLO + ";");
+        lblIcono.setStyle("-fx-font-size: 20px; -fx-text-fill: #D97B00;");
 
         Label lblTitulo = new Label("Alerta de stock");
-        lblTitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + Colores.CREMA + ";");
+        lblTitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + Colores.AZUL_MEDIO + ";");
 
         Label lblX = new Label("✕");
         lblX.setStyle("-fx-font-size: 16px; -fx-cursor: hand; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
@@ -394,7 +394,7 @@ public class MainController {
             VBox filas = new VBox(4);
             for (Componente c : sinStock) {
                 Label fila = new Label("• " + c.getTipo());
-                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.CREMA + ";");
+                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
                 filas.getChildren().add(fila);
             }
             ScrollPane scroll = new ScrollPane(filas);
@@ -406,11 +406,11 @@ public class MainController {
 
         if (!bajoMin.isEmpty()) {
             Label lblSec = new Label("Bajo mínimo (" + bajoMin.size() + ")");
-            lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + Colores.AMARILLO + ";");
+            lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #D97B00;");
             VBox filas = new VBox(4);
             for (Componente c : bajoMin) {
                 Label fila = new Label("• " + c.getTipo() + "   (" + c.getStock() + " uds.)");
-                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.CREMA + ";");
+                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
                 filas.getChildren().add(fila);
             }
             ScrollPane scroll = new ScrollPane(filas);
@@ -423,7 +423,7 @@ public class MainController {
         Button btnCerrar = new Button("Entendido");
         btnCerrar.setMaxWidth(Double.MAX_VALUE);
         btnCerrar.setStyle(
-                "-fx-background-color: " + Colores.AMARILLO + "; -fx-text-fill: " + Colores.AZUL_NOCHE + ";" +
+                "-fx-background-color: " + Colores.AZUL_NOCHE + "; -fx-text-fill: " + Colores.CREMA + ";" +
                 "-fx-font-weight: bold; -fx-font-size: 12px; -fx-background-radius: 4;" +
                 "-fx-padding: 10; -fx-cursor: hand;");
         btnCerrar.setOnAction(e -> ventana.close());
@@ -431,8 +431,8 @@ public class MainController {
 
         cuerpo.setPadding(new Insets(24));
         cuerpo.setPrefWidth(360);
-        cuerpo.setStyle("-fx-background-color: " + Colores.AZUL_MEDIO + ";" +
-                "-fx-border-color: " + Colores.AZUL_GRIS + "; -fx-border-width: 1;");
+        cuerpo.setStyle("-fx-background-color: " + Colores.CREMA + ";" +
+                "-fx-border-color: #C2C8D0; -fx-border-width: 1;");
 
         final double[] drag = new double[2];
         cuerpo.setOnMousePressed(ev  -> { drag[0] = ev.getSceneX(); drag[1] = ev.getSceneY(); });
@@ -442,7 +442,7 @@ public class MainController {
         });
 
         Scene scene = new Scene(cuerpo);
-        scene.setFill(Color.web(Colores.AZUL_MEDIO));
+        scene.setFill(Color.web(Colores.CREMA));
         ventana.setScene(scene);
         ventana.showAndWait();
     }
