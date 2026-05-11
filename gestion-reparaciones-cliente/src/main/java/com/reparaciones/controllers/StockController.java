@@ -850,9 +850,11 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                 ctx.getItems().addAll(resto, alterado);
             }
             case recibido -> {
-                MenuItem editar = new MenuItem("Editar");
-                editar.setOnAction(e -> editarPedido());
-                ctx.getItems().add(editar);
+                MenuItem desrecibir = new MenuItem("Revertir a pendiente");
+                MenuItem editar     = new MenuItem("Editar");
+                desrecibir.setOnAction(e -> desrecibirPedido());
+                editar    .setOnAction(e -> editarPedido());
+                ctx.getItems().addAll(desrecibir, new SeparatorMenuItem(), editar);
             }
             default -> { /* cancelado: sin acciones */ }
         }
@@ -997,6 +999,27 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                         cargarPedidos();
                     } catch (com.reparaciones.utils.StaleDataException e) {
                         mostrarConflicto(); cargarPedidos();
+                    } catch (SQLException e) { mostrarError(e); }
+                });
+    }
+
+    @FXML private void desrecibirPedido() {
+        CompraComponente sel = tablaPedidos.getSelectionModel().getSelectedItem();
+        if (sel == null) return;
+        int cantidadRevertir = sel.getCantidadRecibida() != null ? sel.getCantidadRecibida() : sel.getCantidad();
+        ConfirmDialog.mostrar(
+                "Desrecibir pedido",
+                "¿Revertir el pedido #" + sel.getIdCompra() + " de " + sel.getTipoComponente() +
+                " a pendiente?\nSe descontarán " + cantidadRevertir + " unidad(es) del stock.",
+                "Desrecibir",
+                () -> {
+                    try {
+                        compraDAO.desrecibir(sel);
+                        cargarPedidos();
+                        cargarStock();
+                    } catch (com.reparaciones.utils.StaleDataException e) {
+                        new Alert(Alert.AlertType.WARNING, e.getMessage()).showAndWait();
+                        cargarPedidos(); cargarStock();
                     } catch (SQLException e) { mostrarError(e); }
                 });
     }
