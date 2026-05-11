@@ -401,12 +401,11 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         tablaReparaciones.setRowFactory(tv -> new TableRow<>() {
             {
                 ContextMenu menu = new ContextMenu();
+                TableColumn<?, ?>[] colRightClick = {null};
                 MenuItem copiar = new MenuItem("📋  Copiar celda");
                 copiar.setOnAction(e -> {
-                    if (getItem() == null) return;
-                    var seleccion = tablaReparaciones.getSelectionModel().getSelectedCells();
-                    if (seleccion.isEmpty()) return;
-                    TableColumn<?, ?> col = seleccion.get(0).getTableColumn();
+                    if (getItem() == null || colRightClick[0] == null) return;
+                    TableColumn<?, ?> col = colRightClick[0];
                     String texto = textoDeCelda(getItem(), col);
                     if (texto == null || texto.isEmpty()) return;
                     javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
@@ -451,6 +450,13 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                     menu.getItems().add(copiar);
                 }
                 setContextMenu(menu);
+                setOnContextMenuRequested(e -> {
+                    double x = e.getX(); double offset = 0;
+                    for (TableColumn<?, ?> c : tv.getVisibleLeafColumns()) {
+                        offset += c.getWidth();
+                        if (x < offset) { colRightClick[0] = c; break; }
+                    }
+                });
                 selectedProperty().addListener((obs, wasSelected, isSelected) -> aplicarEstilo(getItem(), isEmpty()));
             }
 

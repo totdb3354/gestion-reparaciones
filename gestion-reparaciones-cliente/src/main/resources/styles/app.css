@@ -227,6 +227,10 @@
     -fx-fill: #F6F6F6;
 }
 
+.tabla-reparaciones .table-cell {
+    -fx-background-color: transparent;
+}
+
 
 /* ── 6. Sidebar ─────────────────────────────────────────────────────────────── */
 
