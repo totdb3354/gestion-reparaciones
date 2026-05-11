@@ -354,8 +354,8 @@ public class PendientesAdminController {
 
     public void cargar() {
         try {
-            datos.setAll(reparacionDAO.getAsignaciones());
             tablaPendientes.getSelectionModel().clearSelection();
+            datos.setAll(reparacionDAO.getAsignaciones());
             String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
             if (lblUltimaActualizacion != null) lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
