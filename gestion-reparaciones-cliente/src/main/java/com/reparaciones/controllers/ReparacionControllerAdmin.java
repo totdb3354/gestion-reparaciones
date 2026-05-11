@@ -110,6 +110,7 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
     public void initialize() {
         tablaReparaciones.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tablaReparaciones.setFixedCellSize(44);
+
         configurarColumnas();
         configurarFilas();
         configurarFiltros();
@@ -405,11 +406,29 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
                     if (getItem() == null) return;
                     var seleccion = tablaReparaciones.getSelectionModel().getSelectedCells();
                     if (seleccion.isEmpty()) return;
-                    String texto = textoDeCelda(getItem(), seleccion.get(0).getTableColumn());
+                    TableColumn<?, ?> col = seleccion.get(0).getTableColumn();
+                    String texto = textoDeCelda(getItem(), col);
                     if (texto == null || texto.isEmpty()) return;
                     javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
                     content.putString(texto);
                     javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+                    getChildrenUnmodifiable().stream()
+                        .filter(n -> n instanceof TableCell && ((TableCell<?, ?>) n).getTableColumn() == col)
+                        .findFirst()
+                        .ifPresent(cell -> {
+                            javafx.beans.property.DoubleProperty flashAlpha = new javafx.beans.property.SimpleDoubleProperty(1.0);
+                            flashAlpha.addListener((obs2, o2, n2) -> {
+                                double a = n2.doubleValue();
+                                if (a <= 0.02) cell.setStyle("");
+                                else cell.setStyle(String.format(java.util.Locale.US,
+                                    "-fx-background-color: rgba(224,247,250,%.2f);", a));
+                            });
+                            cell.setStyle("-fx-background-color: rgba(224,247,250,1.0);");
+                            new javafx.animation.Timeline(
+                                new javafx.animation.KeyFrame(javafx.util.Duration.millis(600),
+                                    new javafx.animation.KeyValue(flashAlpha, 0.0))
+                            ).play();
+                        });
                 });
                 if (com.reparaciones.Sesion.esSuperTecnico()) {
                     MenuItem editar      = new MenuItem("Editar");

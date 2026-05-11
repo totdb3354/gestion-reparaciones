@@ -214,6 +214,15 @@ public class FormularioCompraController {
                 tf.setPrefWidth(Double.MAX_VALUE);
                 tf.setOnAction(e -> commitEntero());
                 tf.focusedProperty().addListener((o, was, focused) -> { if (!focused) commitEntero(); });
+                tf.textProperty().addListener((obs, o, n) -> {
+                    int idx = getIndex();
+                    if (idx >= 0 && idx < getTableView().getItems().size()) {
+                        try {
+                            int v = Integer.parseInt(n.trim());
+                            if (v > 0) getTableView().getItems().get(idx).setCantidad(v);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                });
                 tableRowProperty().addListener((obs, or, nr) -> {
                     if (nr != null) nr.selectedProperty().addListener((o, w, s) -> refresh());
                 });
@@ -244,15 +253,8 @@ public class FormularioCompraController {
                 tf.selectAll(); tf.requestFocus();
             }
             @Override public void cancelEdit() {
-                int idx = getIndex();
-                if (idx >= 0 && idx < getTableView().getItems().size()) {
-                    try {
-                        int v = Integer.parseInt(tf.getText().trim());
-                        if (v > 0) getTableView().getItems().get(idx).setCantidad(v);
-                    } catch (NumberFormatException ignored) {}
-                }
                 super.cancelEdit(); refresh();
-                javafx.application.Platform.runLater(getTableView()::refresh);
+                getTableView().refresh();
             }
             @Override protected void updateItem(Integer item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
@@ -273,6 +275,15 @@ public class FormularioCompraController {
                 tf.setPrefWidth(Double.MAX_VALUE);
                 tf.setOnAction(e -> commitDecimal());
                 tf.focusedProperty().addListener((o, was, focused) -> { if (!focused) commitDecimal(); });
+                tf.textProperty().addListener((obs, o, n) -> {
+                    int idx = getIndex();
+                    if (idx >= 0 && idx < getTableView().getItems().size()) {
+                        try {
+                            double v = Double.parseDouble(n.trim().replace(",", "."));
+                            if (v >= 0) getTableView().getItems().get(idx).setPrecioUnidad(v);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                });
                 tableRowProperty().addListener((obs, or, nr) -> {
                     if (nr != null) nr.selectedProperty().addListener((o, w, s) -> refresh());
                 });
@@ -308,15 +319,8 @@ public class FormularioCompraController {
                 tf.selectAll(); tf.requestFocus();
             }
             @Override public void cancelEdit() {
-                int idx = getIndex();
-                if (idx >= 0 && idx < getTableView().getItems().size()) {
-                    try {
-                        double v = Double.parseDouble(tf.getText().trim().replace(",", "."));
-                        if (v >= 0) getTableView().getItems().get(idx).setPrecioUnidad(v);
-                    } catch (NumberFormatException ignored) {}
-                }
                 super.cancelEdit(); refresh();
-                javafx.application.Platform.runLater(getTableView()::refresh);
+                getTableView().refresh();
             }
             @Override protected void updateItem(Double item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
