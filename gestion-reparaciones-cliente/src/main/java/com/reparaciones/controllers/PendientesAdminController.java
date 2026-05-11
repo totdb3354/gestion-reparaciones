@@ -47,6 +47,7 @@ public class PendientesAdminController {
     @FXML private TableColumn<ReparacionResumen, String> cImei;
     @FXML private TableColumn<ReparacionResumen, String> cFecha;
     @FXML private TableColumn<ReparacionResumen, Void>   cAccion;
+    @FXML private TextField  filtroImei;
     @FXML private MenuButton filtroTecnico;
     @FXML private MenuButton filtroSolicitud;
 
@@ -303,6 +304,22 @@ public class PendientesAdminController {
         CustomMenuItem itemInc  = new CustomMenuItem(cbSoloIncidencias, false);
         CustomMenuItem itemAsig = new CustomMenuItem(cbSoloAsignaciones, false);
         filtroSolicitud.getItems().addAll(itemSol, itemInc, itemAsig);
+
+        filtroImei.textProperty().addListener((obs, o, n) -> {
+            if (!n.matches("\\d*")) filtroImei.setText(n.replaceAll("[^\\d]", ""));
+            if (filtroImei.getText().length() > 15)
+                filtroImei.setText(filtroImei.getText().substring(0, 15));
+            String val = filtroImei.getText();
+            if (val.isEmpty())
+                filtroImei.setStyle("");
+            else if (val.length() < 15)
+                filtroImei.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
+                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
+            else
+                filtroImei.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";" +
+                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
+            aplicarFiltros();
+        });
     }
 
     private void actualizarTextoFiltroTecnico() {
@@ -333,7 +350,9 @@ public class PendientesAdminController {
         boolean filtrarInc  = cbSoloIncidencias.isSelected();
         boolean filtrarAsig = cbSoloAsignaciones.isSelected();
 
+        String imeiStr = filtroImei != null ? filtroImei.getText().trim() : "";
         datosFiltrados.setPredicate(rep -> {
+            if (imeiStr.length() == 15 && !rep.getImei().equals(imeiStr)) return false;
             if (!idsTecSelec.isEmpty() && !idsTecSelec.contains(rep.getIdTec())) return false;
             if (filtrarSol || filtrarInc || filtrarAsig) {
                 boolean esSol  = rep.getEsSolicitud() > 0;
@@ -351,6 +370,8 @@ public class PendientesAdminController {
 
     @FXML
     private void limpiarFiltros() {
+        filtroImei.clear();
+        filtroImei.setStyle("");
         cbsTecnico.forEach(cb -> cb.setSelected(false));
         cbSoloSolicitudes.setSelected(false);
         cbSoloIncidencias.setSelected(false);
