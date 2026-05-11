@@ -252,6 +252,7 @@ public class FormularioCompraController {
                     } catch (NumberFormatException ignored) {}
                 }
                 super.cancelEdit(); refresh();
+                javafx.application.Platform.runLater(getTableView()::refresh);
             }
             @Override protected void updateItem(Integer item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
@@ -315,6 +316,7 @@ public class FormularioCompraController {
                     } catch (NumberFormatException ignored) {}
                 }
                 super.cancelEdit(); refresh();
+                javafx.application.Platform.runLater(getTableView()::refresh);
             }
             @Override protected void updateItem(Double item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
