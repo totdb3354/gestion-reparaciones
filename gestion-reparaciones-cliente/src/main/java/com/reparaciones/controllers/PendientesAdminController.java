@@ -86,9 +86,21 @@ public class PendientesAdminController {
                     @Override public Tecnico fromString(String s) { return null; }
                 });
                 cb.setCellFactory(lv -> new ListCell<>() {
+                    {
+                        hoverProperty().addListener((obs, o, n) -> actualizarEstiloItem());
+                        selectedProperty().addListener((obs, o, n) -> actualizarEstiloItem());
+                    }
+                    private void actualizarEstiloItem() {
+                        if (isEmpty() || getItem() == null) { setStyle(""); return; }
+                        setStyle(isSelected() || isHover()
+                            ? "-fx-background-color: #001232; -fx-background-radius: 8; -fx-text-fill: #FAFAFA;"
+                            : "-fx-text-fill: #001232;");
+                    }
                     @Override protected void updateItem(Tecnico t, boolean empty) {
                         super.updateItem(t, empty);
-                        setText(empty || t == null ? null : t.getNombre());
+                        if (empty || t == null) { setText(null); setStyle(""); return; }
+                        setText(t.getNombre());
+                        actualizarEstiloItem();
                     }
                 });
                 cb.setOnAction(e -> {
