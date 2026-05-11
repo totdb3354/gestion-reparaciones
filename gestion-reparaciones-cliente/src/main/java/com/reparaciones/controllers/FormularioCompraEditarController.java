@@ -68,7 +68,8 @@ public class FormularioCompraEditarController {
         cmbProveedor.getItems().stream()
                 .filter(p -> p.getIdProv() == pedido.getIdProv())
                 .findFirst().ifPresent(cmbProveedor::setValue);
-        txtCantidad.setText(String.valueOf(pedido.getCantidad()));
+        int cantMostrar = pedido.getCantidadRecibida() != null ? pedido.getCantidadRecibida() : pedido.getCantidad();
+        txtCantidad.setText(String.valueOf(cantMostrar));
         chkUrgente.setSelected(pedido.isEsUrgente());
         txtPrecio.setText(String.format("%.2f", pedido.getPrecioUnidadPedido()));
         cmbDivisa.setValue(pedido.getDivisa());
