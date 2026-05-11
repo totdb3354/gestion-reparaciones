@@ -165,4 +165,17 @@ public class CompraComponenteDAO {
         ApiClient.patch("/api/compras/" + pedido.getIdCompra() + "/cancelar",
                 Map.of("updatedAt", pedido.getUpdatedAt()));
     }
+
+    /**
+     * Revierte un pedido {@code recibido} a {@code pendiente} y descuenta el stock añadido.
+     * El servidor rechaza la operación si el stock actual es insuficiente.
+     *
+     * @param pedido pedido a revertir
+     * @throws SQLException       si falla la llamada al servidor
+     * @throws StaleDataException si otro usuario modificó el pedido antes que este
+     */
+    public void desrecibir(CompraComponente pedido) throws SQLException, StaleDataException {
+        ApiClient.patch("/api/compras/" + pedido.getIdCompra() + "/desrecibir",
+                Map.of("updatedAt", pedido.getUpdatedAt()));
+    }
 }
