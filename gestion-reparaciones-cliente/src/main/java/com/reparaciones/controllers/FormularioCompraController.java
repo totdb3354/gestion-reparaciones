@@ -243,7 +243,16 @@ public class FormularioCompraController {
                 setText(null); setGraphic(tf);
                 tf.selectAll(); tf.requestFocus();
             }
-            @Override public void cancelEdit() { super.cancelEdit(); refresh(); }
+            @Override public void cancelEdit() {
+                int idx = getIndex();
+                if (idx >= 0 && idx < getTableView().getItems().size()) {
+                    try {
+                        int v = Integer.parseInt(tf.getText().trim());
+                        if (v > 0) getTableView().getItems().get(idx).setCantidad(v);
+                    } catch (NumberFormatException ignored) {}
+                }
+                super.cancelEdit(); refresh();
+            }
             @Override protected void updateItem(Integer item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
         colCantidad.setOnEditCommit(e -> {
@@ -297,7 +306,16 @@ public class FormularioCompraController {
                 setText(null); setGraphic(tf);
                 tf.selectAll(); tf.requestFocus();
             }
-            @Override public void cancelEdit() { super.cancelEdit(); refresh(); }
+            @Override public void cancelEdit() {
+                int idx = getIndex();
+                if (idx >= 0 && idx < getTableView().getItems().size()) {
+                    try {
+                        double v = Double.parseDouble(tf.getText().trim().replace(",", "."));
+                        if (v >= 0) getTableView().getItems().get(idx).setPrecioUnidad(v);
+                    } catch (NumberFormatException ignored) {}
+                }
+                super.cancelEdit(); refresh();
+            }
             @Override protected void updateItem(Double item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
         colPrecio.setOnEditCommit(e -> {
