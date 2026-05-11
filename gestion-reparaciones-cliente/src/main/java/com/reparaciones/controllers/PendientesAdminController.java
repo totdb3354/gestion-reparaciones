@@ -534,7 +534,7 @@ public class PendientesAdminController {
             cargar();
         }
         actualizarVisibilidadConfirmar();
-        tablaPendientes.refresh();
+        cargar();
         if (onActualizar != null) onActualizar.run();
     }
 
