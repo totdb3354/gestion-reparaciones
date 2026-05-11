@@ -81,6 +81,16 @@ public class PendientesAdminController {
             {
                 cb.setMaxWidth(Double.MAX_VALUE);
                 cb.setStyle("-fx-font-size: 11px;");
+                cb.setConverter(new javafx.util.StringConverter<>() {
+                    @Override public String toString(Tecnico t) { return t == null ? "" : t.getNombre(); }
+                    @Override public Tecnico fromString(String s) { return null; }
+                });
+                cb.setCellFactory(lv -> new ListCell<>() {
+                    @Override protected void updateItem(Tecnico t, boolean empty) {
+                        super.updateItem(t, empty);
+                        setText(empty || t == null ? null : t.getNombre());
+                    }
+                });
                 cb.setOnAction(e -> {
                     if (actualizando) return;
                     if (getIndex() < 0 || getIndex() >= getTableView().getItems().size()) return;
