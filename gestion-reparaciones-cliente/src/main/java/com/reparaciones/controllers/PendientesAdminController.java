@@ -81,13 +81,26 @@ public class PendientesAdminController {
             {
                 cb.setMaxWidth(Double.MAX_VALUE);
                 cb.setStyle("-fx-font-size: 11px;");
-                tableRowProperty().addListener((obs, oldRow, newRow) -> {
-                    if (newRow != null) {
-                        newRow.selectedProperty().addListener((o, old, selected) ->
-                            cb.setStyle(selected
-                                ? "-fx-font-size: 11px; -fx-background-color: transparent;"
-                                : "-fx-font-size: 11px;")
-                        );
+                cb.setConverter(new javafx.util.StringConverter<>() {
+                    @Override public String toString(Tecnico t) { return t == null ? "" : t.getNombre(); }
+                    @Override public Tecnico fromString(String s) { return null; }
+                });
+                cb.setCellFactory(lv -> new ListCell<>() {
+                    {
+                        hoverProperty().addListener((obs, o, n) -> actualizarEstiloItem());
+                        selectedProperty().addListener((obs, o, n) -> actualizarEstiloItem());
+                    }
+                    private void actualizarEstiloItem() {
+                        if (isEmpty() || getItem() == null) { setStyle(""); return; }
+                        setStyle(isSelected() || isHover()
+                            ? "-fx-background-color: #001232; -fx-background-radius: 8; -fx-text-fill: #FAFAFA;"
+                            : "-fx-text-fill: #001232;");
+                    }
+                    @Override protected void updateItem(Tecnico t, boolean empty) {
+                        super.updateItem(t, empty);
+                        if (empty || t == null) { setText(null); setStyle(""); return; }
+                        setText(t.getNombre());
+                        actualizarEstiloItem();
                     }
                 });
                 cb.setOnAction(e -> {
@@ -102,14 +115,17 @@ public class PendientesAdminController {
                         cambiosPendientes.remove(rep.getIdRep());
                     }
                     actualizarVisibilidadConfirmar();
-                    tablaPendientes.refresh();
+                    boolean mod = cambiosPendientes.containsKey(rep.getIdRep());
+                    setStyle(mod ? "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_MODIFICADA_BG + ";" : "");
                 });
             }
             @Override
             protected void updateItem(String item, boolean empty) {
+                if (cb.isShowing()) return;
                 super.updateItem(item, empty);
                 if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
                     setGraphic(null);
+                    setStyle("");
                     return;
                 }
                 actualizando = true;
@@ -349,8 +365,8 @@ public class PendientesAdminController {
 
     public void cargar() {
         try {
-            datos.setAll(reparacionDAO.getAsignaciones());
             tablaPendientes.getSelectionModel().clearSelection();
+            datos.setAll(reparacionDAO.getAsignaciones());
             String hora = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
             if (lblUltimaActualizacion != null) lblUltimaActualizacion.setText("Actualizado " + hora);
         } catch (SQLException e) {
