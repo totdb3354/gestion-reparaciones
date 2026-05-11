@@ -832,9 +832,19 @@ public class FormularioReparacionController {
             chkReutilizado.setSelected(false);
             chkReutilizado.setDisable(false);
             solicitudActiva = false;
+            solicitudFueCancelada = false;
+            solicitudNuevaEnEstaSesion = false;
             descripcionSolicitud = null;
             btnSolicitud.setText("⚠ Solicitud pieza");
             btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+            observacion = null;
+            lblObservacion.setText("");
+            btnObservacion.setVisible(true);
+            btnObservacion.setManaged(true);
+            lblObservacion.setVisible(false);
+            lblObservacion.setManaged(false);
+            btnBorrarObs.setVisible(false);
+            btnBorrarObs.setManaged(false);
 
             if (modelo == null) {
                 cbSku.getItems().setAll(skus);
@@ -862,16 +872,7 @@ public class FormularioReparacionController {
                 btnMas.setDisable(true);
                 btnMenos.setDisable(true);
                 chkReutilizado.setDisable(true);
-                // Deshabilitar observación y limpiarla — la fila no se guarda
                 btnObservacion.setDisable(true);
-                observacion = null;
-                lblObservacion.setText("");
-                btnObservacion.setVisible(true);
-                btnObservacion.setManaged(true);
-                lblObservacion.setVisible(false);
-                lblObservacion.setManaged(false);
-                btnBorrarObs.setVisible(false);
-                btnBorrarObs.setManaged(false);
                 root.setOpacity(0.4);
             } else {
                 cbSku.getItems().setAll(filtrados);
