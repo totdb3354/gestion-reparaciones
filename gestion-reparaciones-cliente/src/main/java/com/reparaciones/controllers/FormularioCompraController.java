@@ -133,9 +133,11 @@ public class FormularioCompraController {
                     }
                 });
                 tableRowProperty().addListener((obs, oldRow, newRow) -> {
-                    if (newRow != null)
+                    if (newRow != null) {
+                        combo.setStyle(newRow.isSelected() ? "-fx-background-color: transparent;" : "");
                         newRow.selectedProperty().addListener((o, old, selected) ->
                             combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
+                    }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
                 combo.setOnAction(e -> {
@@ -177,9 +179,11 @@ public class FormularioCompraController {
                     }
                 });
                 tableRowProperty().addListener((obs, oldRow, newRow) -> {
-                    if (newRow != null)
+                    if (newRow != null) {
+                        combo.setStyle(newRow.isSelected() ? "-fx-background-color: transparent;" : "");
                         newRow.selectedProperty().addListener((o, old, selected) ->
                             combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
+                    }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
                 combo.setOnAction(e -> {
