@@ -99,6 +99,7 @@ public class PendientesAdminController {
             }
             @Override
             protected void updateItem(String item, boolean empty) {
+                if (cb.isShowing()) return;
                 super.updateItem(item, empty);
                 if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
                     setGraphic(null);
