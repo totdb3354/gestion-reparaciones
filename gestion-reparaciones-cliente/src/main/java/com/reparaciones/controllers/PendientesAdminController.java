@@ -81,6 +81,7 @@ public class PendientesAdminController {
             {
                 cb.setMaxWidth(Double.MAX_VALUE);
                 cb.setStyle("-fx-font-size: 11px;");
+                cb.getItems().setAll(tecnicos);
                 cb.setOnAction(e -> {
                     if (actualizando) return;
                     if (getIndex() < 0 || getIndex() >= getTableView().getItems().size()) return;
@@ -93,7 +94,8 @@ public class PendientesAdminController {
                         cambiosPendientes.remove(rep.getIdRep());
                     }
                     actualizarVisibilidadConfirmar();
-                    tablaPendientes.refresh();
+                    boolean mod = cambiosPendientes.containsKey(rep.getIdRep());
+                    setStyle(mod ? "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_MODIFICADA_BG + ";" : "");
                 });
             }
             @Override
@@ -102,12 +104,10 @@ public class PendientesAdminController {
                 if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()) {
                     setGraphic(null);
                     setStyle("");
-                    cb.setStyle("-fx-font-size: 11px;");
                     return;
                 }
                 actualizando = true;
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
-                cb.getItems().setAll(tecnicos);
                 CambioPendiente cambio = cambiosPendientes.get(rep.getIdRep());
                 Tecnico mostrar = cambio != null ? cambio.tecnico() :
                         tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec())
