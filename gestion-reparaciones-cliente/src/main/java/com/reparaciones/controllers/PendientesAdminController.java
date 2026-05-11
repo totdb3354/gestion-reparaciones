@@ -535,6 +535,7 @@ public class PendientesAdminController {
         }
         actualizarVisibilidadConfirmar();
         tablaPendientes.refresh();
+        if (onActualizar != null) onActualizar.run();
     }
 
     private String mensajeConflicto(String idRep, Tecnico tecnicoIntentado) {
