@@ -81,6 +81,15 @@ public class PendientesAdminController {
             {
                 cb.setMaxWidth(Double.MAX_VALUE);
                 cb.setStyle("-fx-font-size: 11px;");
+                tableRowProperty().addListener((obs, oldRow, newRow) -> {
+                    if (newRow != null) {
+                        newRow.selectedProperty().addListener((o, old, selected) ->
+                            cb.setStyle(selected
+                                ? "-fx-font-size: 11px; -fx-background-color: transparent;"
+                                : "-fx-font-size: 11px;")
+                        );
+                    }
+                });
                 cb.setOnAction(e -> {
                     if (actualizando) return;
                     if (getIndex() < 0 || getIndex() >= getTableView().getItems().size()) return;
