@@ -134,9 +134,9 @@ public class FormularioCompraController {
                 });
                 tableRowProperty().addListener((obs, oldRow, newRow) -> {
                     if (newRow != null) {
-                        combo.setStyle(newRow.isSelected() ? "-fx-background-color: transparent;" : "");
+                        combo.setStyle(newRow.isSelected() ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : "");
                         newRow.selectedProperty().addListener((o, old, selected) ->
-                            combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
+                            combo.setStyle(selected ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : ""));
                     }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
@@ -180,9 +180,9 @@ public class FormularioCompraController {
                 });
                 tableRowProperty().addListener((obs, oldRow, newRow) -> {
                     if (newRow != null) {
-                        combo.setStyle(newRow.isSelected() ? "-fx-background-color: transparent;" : "");
+                        combo.setStyle(newRow.isSelected() ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : "");
                         newRow.selectedProperty().addListener((o, old, selected) ->
-                            combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
+                            combo.setStyle(selected ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : ""));
                     }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
