@@ -133,9 +133,11 @@ public class FormularioCompraController {
                     }
                 });
                 tableRowProperty().addListener((obs, oldRow, newRow) -> {
-                    if (newRow != null)
+                    if (newRow != null) {
+                        combo.setStyle(newRow.isSelected() ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : "");
                         newRow.selectedProperty().addListener((o, old, selected) ->
-                            combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
+                            combo.setStyle(selected ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : ""));
+                    }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
                 combo.setOnAction(e -> {
@@ -177,9 +179,11 @@ public class FormularioCompraController {
                     }
                 });
                 tableRowProperty().addListener((obs, oldRow, newRow) -> {
-                    if (newRow != null)
+                    if (newRow != null) {
+                        combo.setStyle(newRow.isSelected() ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : "");
                         newRow.selectedProperty().addListener((o, old, selected) ->
-                            combo.setStyle(selected ? "-fx-background-color: transparent;" : ""));
+                            combo.setStyle(selected ? "-fx-border-color: rgba(255,255,255,0.35); -fx-border-width: 1;" : ""));
+                    }
                 });
                 combo.setMaxWidth(Double.MAX_VALUE);
                 combo.setOnAction(e -> {
@@ -210,6 +214,15 @@ public class FormularioCompraController {
                 tf.setPrefWidth(Double.MAX_VALUE);
                 tf.setOnAction(e -> commitEntero());
                 tf.focusedProperty().addListener((o, was, focused) -> { if (!focused) commitEntero(); });
+                tf.textProperty().addListener((obs, o, n) -> {
+                    int idx = getIndex();
+                    if (idx >= 0 && idx < getTableView().getItems().size()) {
+                        try {
+                            int v = Integer.parseInt(n.trim());
+                            if (v > 0) getTableView().getItems().get(idx).setCantidad(v);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                });
                 tableRowProperty().addListener((obs, or, nr) -> {
                     if (nr != null) nr.selectedProperty().addListener((o, w, s) -> refresh());
                 });
@@ -239,7 +252,10 @@ public class FormularioCompraController {
                 setText(null); setGraphic(tf);
                 tf.selectAll(); tf.requestFocus();
             }
-            @Override public void cancelEdit() { super.cancelEdit(); refresh(); }
+            @Override public void cancelEdit() {
+                super.cancelEdit(); refresh();
+                getTableView().refresh();
+            }
             @Override protected void updateItem(Integer item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
         colCantidad.setOnEditCommit(e -> {
@@ -259,6 +275,15 @@ public class FormularioCompraController {
                 tf.setPrefWidth(Double.MAX_VALUE);
                 tf.setOnAction(e -> commitDecimal());
                 tf.focusedProperty().addListener((o, was, focused) -> { if (!focused) commitDecimal(); });
+                tf.textProperty().addListener((obs, o, n) -> {
+                    int idx = getIndex();
+                    if (idx >= 0 && idx < getTableView().getItems().size()) {
+                        try {
+                            double v = Double.parseDouble(n.trim().replace(",", "."));
+                            if (v >= 0) getTableView().getItems().get(idx).setPrecioUnidad(v);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                });
                 tableRowProperty().addListener((obs, or, nr) -> {
                     if (nr != null) nr.selectedProperty().addListener((o, w, s) -> refresh());
                 });
@@ -293,7 +318,10 @@ public class FormularioCompraController {
                 setText(null); setGraphic(tf);
                 tf.selectAll(); tf.requestFocus();
             }
-            @Override public void cancelEdit() { super.cancelEdit(); refresh(); }
+            @Override public void cancelEdit() {
+                super.cancelEdit(); refresh();
+                getTableView().refresh();
+            }
             @Override protected void updateItem(Double item, boolean empty) { super.updateItem(item, empty); refresh(); }
         });
         colPrecio.setOnEditCommit(e -> {

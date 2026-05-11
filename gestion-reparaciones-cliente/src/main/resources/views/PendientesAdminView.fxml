@@ -12,6 +12,7 @@
 
     <HBox spacing="12" alignment="CENTER_LEFT">
         <Label text="Asignaciones pendientes" styleClass="vista-titulo" HBox.hgrow="ALWAYS"/>
+        <TextField fx:id="filtroImei" promptText="Filtrar por IMEI" prefWidth="160" styleClass="buscador"/>
         <MenuButton fx:id="filtroTecnico"   text="Técnico" prefWidth="130"/>
         <MenuButton fx:id="filtroSolicitud" text="Tipo"    prefWidth="130"/>
         <Button onAction="#limpiarFiltros" text="Limpiar filtros" styleClass="btn-secondary"/>

@@ -47,6 +47,7 @@ public class PendientesAdminController {
     @FXML private TableColumn<ReparacionResumen, String> cImei;
     @FXML private TableColumn<ReparacionResumen, String> cFecha;
     @FXML private TableColumn<ReparacionResumen, Void>   cAccion;
+    @FXML private TextField  filtroImei;
     @FXML private MenuButton filtroTecnico;
     @FXML private MenuButton filtroSolicitud;
 
@@ -73,6 +74,7 @@ public class PendientesAdminController {
     @FXML
     public void initialize() {
         tablaPendientes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
 
         cId.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getIdRep()));
         cTecnico.setCellFactory(col -> new TableCell<>() {
@@ -160,11 +162,29 @@ public class PendientesAdminController {
                     if (getItem() == null) return;
                     var seleccion = tablaPendientes.getSelectionModel().getSelectedCells();
                     if (seleccion.isEmpty()) return;
-                    String texto = textoDeCelda(getItem(), seleccion.get(0).getTableColumn());
+                    TableColumn<?, ?> col = seleccion.get(0).getTableColumn();
+                    String texto = textoDeCelda(getItem(), col);
                     if (texto == null || texto.isEmpty()) return;
                     javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
                     content.putString(texto);
                     javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+                    getChildrenUnmodifiable().stream()
+                        .filter(n -> n instanceof TableCell && ((TableCell<?, ?>) n).getTableColumn() == col)
+                        .findFirst()
+                        .ifPresent(cell -> {
+                            javafx.beans.property.DoubleProperty flashAlpha = new javafx.beans.property.SimpleDoubleProperty(1.0);
+                            flashAlpha.addListener((obs2, o2, n2) -> {
+                                double a = n2.doubleValue();
+                                if (a <= 0.02) cell.setStyle("");
+                                else cell.setStyle(String.format(java.util.Locale.US,
+                                    "-fx-background-color: rgba(224,247,250,%.2f);", a));
+                            });
+                            cell.setStyle("-fx-background-color: rgba(224,247,250,1.0);");
+                            new javafx.animation.Timeline(
+                                new javafx.animation.KeyFrame(javafx.util.Duration.millis(600),
+                                    new javafx.animation.KeyValue(flashAlpha, 0.0))
+                            ).play();
+                        });
                 });
                 menu.getItems().add(copiar);
                 setContextMenu(menu);
@@ -303,6 +323,22 @@ public class PendientesAdminController {
         CustomMenuItem itemInc  = new CustomMenuItem(cbSoloIncidencias, false);
         CustomMenuItem itemAsig = new CustomMenuItem(cbSoloAsignaciones, false);
         filtroSolicitud.getItems().addAll(itemSol, itemInc, itemAsig);
+
+        filtroImei.textProperty().addListener((obs, o, n) -> {
+            if (!n.matches("\\d*")) filtroImei.setText(n.replaceAll("[^\\d]", ""));
+            if (filtroImei.getText().length() > 15)
+                filtroImei.setText(filtroImei.getText().substring(0, 15));
+            String val = filtroImei.getText();
+            if (val.isEmpty())
+                filtroImei.setStyle("");
+            else if (val.length() < 15)
+                filtroImei.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";" +
+                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
+            else
+                filtroImei.setStyle("-fx-background-color: " + com.reparaciones.utils.Colores.FONDO_INPUT + "; -fx-border-color: " + com.reparaciones.utils.Colores.FILA_REPARADO_ICO + ";" +
+                        "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-font-size: 12px;");
+            aplicarFiltros();
+        });
     }
 
     private void actualizarTextoFiltroTecnico() {
@@ -333,7 +369,9 @@ public class PendientesAdminController {
         boolean filtrarInc  = cbSoloIncidencias.isSelected();
         boolean filtrarAsig = cbSoloAsignaciones.isSelected();
 
+        String imeiStr = filtroImei != null ? filtroImei.getText().trim() : "";
         datosFiltrados.setPredicate(rep -> {
+            if (imeiStr.length() == 15 && !rep.getImei().equals(imeiStr)) return false;
             if (!idsTecSelec.isEmpty() && !idsTecSelec.contains(rep.getIdTec())) return false;
             if (filtrarSol || filtrarInc || filtrarAsig) {
                 boolean esSol  = rep.getEsSolicitud() > 0;
@@ -351,6 +389,8 @@ public class PendientesAdminController {
 
     @FXML
     private void limpiarFiltros() {
+        filtroImei.clear();
+        filtroImei.setStyle("");
         cbsTecnico.forEach(cb -> cb.setSelected(false));
         cbSoloSolicitudes.setSelected(false);
         cbSoloIncidencias.setSelected(false);
