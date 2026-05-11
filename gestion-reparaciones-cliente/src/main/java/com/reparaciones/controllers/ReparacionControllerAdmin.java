@@ -153,6 +153,11 @@ public class ReparacionControllerAdmin implements com.reparaciones.utils.Recarga
         mostrarPanel(pnlHistorial, btnTabHistorial);
     }
 
+    public void irAInicio() {
+        if (com.reparaciones.Sesion.esAdmin()) mostrarPanel(pnlHistorial, btnTabHistorial);
+        else                                   mostrarPanel(pnlPendientes, btnTabPendientes);
+    }
+
 
     private void mostrarPanel(VBox panel, Button btnActivo) {
         if (pnlPendientes.isVisible() && panel != pnlPendientes)

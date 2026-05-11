@@ -198,6 +198,8 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
         cargarPedidos();
     }
 
+    public void irAPedidos() { mostrarTabPedidos(); }
+
     @FXML private void mostrarTabProveedores() {
         mostrarPanel(pnlProveedores, btnTabProveedores);
         cargarProveedores();
