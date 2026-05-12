@@ -345,6 +345,13 @@ public class MainController {
         Scene scene = new Scene(raiz);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         ventana.setScene(scene);
+        ventana.setOnShown(ev -> {
+            javafx.geometry.Bounds b = campanaPane.localToScreen(campanaPane.getBoundsInLocal());
+            double x = b.getMaxX() - ventana.getWidth();
+            double y = b.getMaxY() + 6;
+            ventana.setX(Math.max(0, x));
+            ventana.setY(y);
+        });
         ventana.showAndWait();
         actualizarBadge();
     }
