@@ -1137,6 +1137,22 @@ public class FormularioReparacionController {
                 btnSubAgotado.setManaged(false);
                 btnCancelarAgotado.setVisible(true);
                 btnCancelarAgotado.setManaged(true);
+                // Limpiar y deshabilitar observación (no aplica sin reparación)
+                observacion = null;
+                lblObservacion.setText("");
+                btnObservacion.setVisible(true);
+                btnObservacion.setManaged(true);
+                lblObservacion.setVisible(false);
+                lblObservacion.setManaged(false);
+                btnBorrarObs.setVisible(false);
+                btnBorrarObs.setManaged(false);
+                btnObservacion.setDisable(true);
+                // Limpiar y deshabilitar solicitud normal (ya gestionada por agotado)
+                solicitudActiva = false;
+                solicitudNuevaEnEstaSesion = false;
+                descripcionSolicitud = null;
+                btnSolicitud.setText("⚠ Solicitud pieza");
+                btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
                 btnSolicitud.setDisable(true);
                 subFilaAgotado.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 4 8 4 70;");
                 dialog.close();
@@ -1165,6 +1181,7 @@ public class FormularioReparacionController {
             subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
             subFilaAgotado.setVisible(false);
             subFilaAgotado.setManaged(false);
+            btnObservacion.setDisable(false);
             btnSolicitud.setDisable(false);
             notificar();
         }
