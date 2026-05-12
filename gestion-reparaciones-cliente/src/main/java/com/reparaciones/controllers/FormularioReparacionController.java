@@ -375,8 +375,30 @@ public class FormularioReparacionController {
     }
 
     private void ejecutarGuardarNueva() {
+        // 1. Filas agotadas: descontar stock + crear solicitud, sin crear R*
+        for (FilaUI fila : filasUI) {
+            if (!fila.isAgotado()) continue;
+            try {
+                reparacionDAO.agotarComponente(
+                        idAsignacion,
+                        fila.getIdComSeleccionado(),
+                        fila.getCantidad(),
+                        fila.getDescripcionAgotado());
+            } catch (StaleDataException ex) {
+                new Alert(Alert.AlertType.WARNING,
+                        "No se pudo registrar componente agotado: " + ex.getMessage()).showAndWait();
+                return;
+            } catch (SQLException ex) {
+                new Alert(Alert.AlertType.ERROR,
+                        "Error al registrar componente agotado: " + ex.getMessage()).showAndWait();
+                return;
+            }
+        }
+
+        // 2. Filas normales → insertarCompleta
         List<FilaReparacion> filasActivas = new ArrayList<>();
         for (FilaUI fila : filasUI) {
+            if (fila.isAgotado()) continue;
             if (fila.isActiva()) {
                 boolean esSolicitudNueva = fila.isSolicitud() && fila.isSolicitudNueva();
                 boolean tieneUso = fila.getCantidad() > 0 || fila.isReutilizado();
@@ -413,6 +435,18 @@ public class FormularioReparacionController {
                 }
             }
         }
+
+        // Si solo había filas agotadas, cerrar sin crear reparación
+        boolean soloAgotadas = filasActivas.isEmpty()
+                && filasUI.stream().anyMatch(FilaUI::isAgotado);
+        if (soloAgotadas) {
+            Stage stage = (Stage) btnGuardar.getScene().getWindow();
+            stage.close();
+            if (onGuardado != null)
+                onGuardado.run();
+            return;
+        }
+
         try {
             reparacionDAO.insertarCompleta(filasActivas, imei,
                     Sesion.getIdTec(), idRepAnterior, idAsignacion);
@@ -606,6 +640,14 @@ public class FormularioReparacionController {
         private String descripcionSolicitud = null;
         private Runnable onCambio;
 
+        // ── Agotado ───────────────────────────────────────────────────────────
+        private HBox subFilaAgotado;
+        private Label lblSubAgotado;
+        private Button btnSubAgotado;
+        private Button btnCancelarAgotado;
+        private boolean agotadoConfirmado = false;
+        private String descripcionAgotado = null;
+
         // ── Edición ───────────────────────────────────────────────────────────
         private boolean modoEdicion = false;
         private int idComOriginal = -1;
@@ -714,6 +756,7 @@ public class FormularioReparacionController {
                         }
                     }
                     if (modoEdicion) actualizarStockPreview();
+                    actualizarSubFilaAgotado();
                     notificar();
                 }
             });
@@ -765,10 +808,32 @@ public class FormularioReparacionController {
             mainRow.setAlignment(Pos.CENTER_LEFT);
             mainRow.setMinHeight(37);
 
-            root = new VBox(mainRow);
+            // ── Sub-fila agotado ──────────────────────────────────────────────
+            lblSubAgotado = new Label("⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.");
+            lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #7A5C00;");
+            btnSubAgotado = new Button("Solicitar y descontar stock");
+            btnSubAgotado.setStyle(
+                    "-fx-background-color: #E8A825; -fx-text-fill: white;" +
+                    "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 4 10 4 10;");
+            btnCancelarAgotado = new Button("× Cancelar");
+            btnCancelarAgotado.setStyle(
+                    "-fx-background-color: transparent; -fx-text-fill: #888;" +
+                    "-fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 2 6 2 6;");
+            btnCancelarAgotado.setVisible(false);
+            btnCancelarAgotado.setManaged(false);
+            subFilaAgotado = new HBox(10, lblSubAgotado, btnSubAgotado, btnCancelarAgotado);
+            subFilaAgotado.setAlignment(Pos.CENTER_LEFT);
+            subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
+            subFilaAgotado.setVisible(false);
+            subFilaAgotado.setManaged(false);
+
+            root = new VBox(mainRow, subFilaAgotado);
             root.setStyle("-fx-background-color: #F3F3F3; " +
                     "-fx-border-color: transparent transparent #E0E0E0 transparent;" +
                     "-fx-border-width: 0 0 1 0;");
+
+            btnSubAgotado.setOnAction(e -> abrirDialogoAgotado());
+            btnCancelarAgotado.setOnAction(e -> cancelarAgotado());
 
             btnMas.setOnAction(e -> {
                 if (prefijo.equals("otro")) {
@@ -807,6 +872,7 @@ public class FormularioReparacionController {
                 btnMas.setDisable(marcado);
                 btnMenos.setDisable(marcado);
                 actualizarContador();
+                actualizarSubFilaAgotado();
                 notificar();
             });
 
@@ -827,16 +893,30 @@ public class FormularioReparacionController {
         // ── Filtro global de modelo ───────────────────────────────────────────
 
         void aplicarFiltroModelo(String modelo) {
+            agotadoConfirmado = false;
+            descripcionAgotado = null;
+            subFilaAgotado.setVisible(false);
+            subFilaAgotado.setManaged(false);
+            lblSubAgotado.setText("⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.");
+            lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #7A5C00;");
+            btnSubAgotado.setVisible(true);
+            btnSubAgotado.setManaged(true);
+            btnCancelarAgotado.setVisible(false);
+            btnCancelarAgotado.setManaged(false);
+            subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
+
             cantidad = 0;
             actualizarContador();
             chkReutilizado.setSelected(false);
             chkReutilizado.setDisable(false);
+            cbSku.setDisable(false);
             solicitudActiva = false;
             solicitudFueCancelada = false;
             solicitudNuevaEnEstaSesion = false;
             descripcionSolicitud = null;
             btnSolicitud.setText("⚠ Solicitud pieza");
             btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
+            btnSolicitud.setDisable(false);
             observacion = null;
             lblObservacion.setText("");
             btnObservacion.setVisible(true);
@@ -964,6 +1044,7 @@ public class FormularioReparacionController {
                 color = cantidad > 0 ? "#000000" : "#A9A9A9";
             lblContador.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: " + (modoEdicion && cantidad == 0 && !chkReutilizado.isSelected() ? "bold" : "normal") + ";");
             if (modoEdicion) actualizarStockPreview();
+            actualizarSubFilaAgotado();
         }
 
         private void actualizarStockPreview() {
@@ -1006,10 +1087,92 @@ public class FormularioReparacionController {
             };
         }
 
+        // ── Agotado: métodos ─────────────────────────────────────────────────
+
+        private void actualizarSubFilaAgotado() {
+            if (prefijo.equals("otro") || modoEdicion) return;
+            if (agotadoConfirmado) return;
+            if (solicitudActiva) return; // ya existe una solicitud pendiente para este componente
+            Componente sel = cbSku.getValue();
+            boolean enLimite = sel != null && sel.getStock() > 0
+                    && !chkReutilizado.isSelected()
+                    && cantidad >= sel.getStock();
+            subFilaAgotado.setVisible(enLimite);
+            subFilaAgotado.setManaged(enLimite);
+        }
+
+        private void abrirDialogoAgotado() {
+            Componente sel = cbSku.getValue();
+            int stock = sel != null ? sel.getStock() : 0;
+
+            TextArea ta = new TextArea(descripcionAgotado != null ? descripcionAgotado : "");
+            ta.setPromptText("Describe la pieza que necesitas (opcional)...");
+            ta.setWrapText(true);
+            ta.setPrefRowCount(4);
+            ta.setPrefWidth(380);
+            ta.setStyle("-fx-font-size: 13px;");
+
+            Button btnOk = new Button("Confirmar: descontar " + stock + " ud. de stock y solicitar reposición");
+            btnOk.setMaxWidth(Double.MAX_VALUE);
+            btnOk.setStyle("-fx-background-color: #E8A825; -fx-text-fill: white;" +
+                    "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Stock agotado — " + traducirTipo(prefijo));
+            dialog.setHeaderText("Se descontarán " + stock + " unidades de stock y quedará una solicitud PENDIENTE.\nLa asignación permanecerá abierta hasta recibir la pieza.");
+            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+            dialog.getDialogPane().setPrefWidth(460);
+            dialog.getDialogPane().setContent(new VBox(8, ta, btnOk));
+
+            btnOk.setOnAction(e -> {
+                descripcionAgotado = ta.getText().trim().isEmpty() ? null : ta.getText().trim();
+                agotadoConfirmado = true;
+                btnMas.setDisable(true);
+                btnMenos.setDisable(true);
+                chkReutilizado.setDisable(true);
+                cbSku.setDisable(true);
+                lblSubAgotado.setText("✓  " + stock + " uds. se descontarán al guardar — solicitud de reposición pendiente");
+                lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #2E7D32; -fx-font-weight: bold;");
+                btnSubAgotado.setVisible(false);
+                btnSubAgotado.setManaged(false);
+                btnCancelarAgotado.setVisible(true);
+                btnCancelarAgotado.setManaged(true);
+                btnSolicitud.setDisable(true);
+                subFilaAgotado.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 4 8 4 70;");
+                dialog.close();
+                notificar();
+            });
+
+            dialog.showAndWait();
+        }
+
+        private void cancelarAgotado() {
+            agotadoConfirmado = false;
+            descripcionAgotado = null;
+            cantidad = 0;
+            actualizarContador();
+            chkReutilizado.setDisable(false);
+            cbSku.setDisable(false);
+            Componente sel = cbSku.getValue();
+            if (sel != null && !prefijo.equals("otro"))
+                btnMas.setDisable(sel.getStock() <= 0);
+            lblSubAgotado.setText("⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.");
+            lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #7A5C00;");
+            btnSubAgotado.setVisible(true);
+            btnSubAgotado.setManaged(true);
+            btnCancelarAgotado.setVisible(false);
+            btnCancelarAgotado.setManaged(false);
+            subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
+            subFilaAgotado.setVisible(false);
+            subFilaAgotado.setManaged(false);
+            btnSolicitud.setDisable(false);
+            notificar();
+        }
+
         // ── Estado público ────────────────────────────────────────────────────
 
         boolean isActiva() {
-            return cantidad > 0 || chkReutilizado.isSelected() || solicitudNuevaEnEstaSesion;
+            return cantidad > 0 || chkReutilizado.isSelected() || solicitudNuevaEnEstaSesion || agotadoConfirmado;
         }
 
         boolean tieneUso() {
@@ -1060,6 +1223,14 @@ public class FormularioReparacionController {
 
         String getDescripcionSolicitud() {
             return descripcionSolicitud;
+        }
+
+        boolean isAgotado() {
+            return agotadoConfirmado;
+        }
+
+        String getDescripcionAgotado() {
+            return descripcionAgotado;
         }
 
         private void abrirSolicitud() {
