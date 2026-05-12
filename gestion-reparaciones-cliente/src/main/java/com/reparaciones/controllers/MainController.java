@@ -7,7 +7,6 @@ import com.reparaciones.dao.SolicitudStockDAO;
 import com.reparaciones.models.Componente;
 import com.reparaciones.models.SolicitudResumen;
 import com.reparaciones.models.SolicitudStock;
-import com.reparaciones.utils.Colores;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -166,8 +165,12 @@ public class MainController {
         Label lblX = new Label("✕");
         lblX.setStyle("-fx-font-size: 14px; -fx-cursor: hand; -fx-text-fill: #586376;");
         lblX.setOnMouseClicked(e -> ventana.close());
+        HBox segmentado = new HBox(0, btnTabSol, btnTabAlert);
+        segmentado.setAlignment(Pos.CENTER_LEFT);
+        segmentado.setStyle("-fx-background-color: white; -fx-background-radius: 20;" +
+                "-fx-border-color: #D0D4DC; -fx-border-radius: 20; -fx-border-width: 1; -fx-padding: 3;");
         HBox spacerH = new HBox(); HBox.setHgrow(spacerH, Priority.ALWAYS);
-        HBox tabBar = new HBox(4, btnTabSol, btnTabAlert, spacerH, lblIrPedidos, lblX);
+        HBox tabBar = new HBox(8, segmentado, spacerH, lblIrPedidos, lblX);
         tabBar.setAlignment(Pos.CENTER_LEFT);
         tabBar.setPadding(new Insets(0, 0, 8, 0));
 
@@ -190,14 +193,16 @@ public class MainController {
 
         Button btnPedir = new Button("Pedir piezas");
         btnPedir.setMaxWidth(Double.MAX_VALUE);
-        btnPedir.getStyleClass().add("btn-primary");
+        btnPedir.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
+                "-fx-font-weight: bold; -fx-padding: 11;");
         HBox.setHgrow(btnPedir, Priority.ALWAYS);
 
         Button btnRechazarTodo = new Button("Rechazar todo");
         btnRechazarTodo.setMaxWidth(Double.MAX_VALUE);
         btnRechazarTodo.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;" +
-                "-fx-font-size: 12px; -fx-background-radius: 6; -fx-cursor: hand;" +
-                "-fx-font-weight: bold; -fx-padding: 10;");
+                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
+                "-fx-font-weight: bold; -fx-padding: 11;");
         HBox.setHgrow(btnRechazarTodo, Priority.ALWAYS);
 
         HBox botones = new HBox(8, btnPedir, btnRechazarTodo);
@@ -206,50 +211,49 @@ public class MainController {
         // ── Panel Alertas ─────────────────────────────────────────────────────
         List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
         List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
-        VBox contenidoAlertas = new VBox(8);
-        contenidoAlertas.setPadding(new Insets(4));
-        if (alertasCriticas.isEmpty()) {
-            Label lblSinAlertas = new Label("Sin alertas de stock");
-            lblSinAlertas.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
-            contenidoAlertas.getChildren().add(lblSinAlertas);
-        } else {
-            Label lblResumen = new Label(alertasCriticas.size() + " componente(s) requieren atención");
-            lblResumen.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
-            contenidoAlertas.getChildren().add(lblResumen);
-            if (!sinStock.isEmpty()) {
-                Label lblSec = new Label("Sin stock (" + sinStock.size() + ")");
-                lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + Colores.ROJO_SIN_STOCK + ";");
-                VBox filas = new VBox(4);
-                for (Componente c : sinStock) {
-                    Label fila = new Label("• " + c.getTipo());
-                    fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
-                    filas.getChildren().add(fila);
-                }
-                ScrollPane scrollA = new ScrollPane(filas);
-                scrollA.setFitToWidth(true); scrollA.setMaxHeight(140);
-                scrollA.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-                contenidoAlertas.getChildren().addAll(lblSec, scrollA);
-            }
-            if (!bajoMin.isEmpty()) {
-                Label lblSec = new Label("Bajo mínimo (" + bajoMin.size() + ")");
-                lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #D97B00;");
-                VBox filas = new VBox(4);
-                for (Componente c : bajoMin) {
-                    Label fila = new Label("• " + c.getTipo() + "   (" + c.getStock() + " uds.)");
-                    fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
-                    filas.getChildren().add(fila);
-                }
-                ScrollPane scrollA = new ScrollPane(filas);
-                scrollA.setFitToWidth(true); scrollA.setMaxHeight(140);
-                scrollA.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-                contenidoAlertas.getChildren().addAll(lblSec, scrollA);
-            }
+
+        Label lblSecAlertas = new Label("Alertas de Stock");
+        lblSecAlertas.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+        VBox listaAlertas = new VBox(6);
+        int ia = 0;
+        for (Componente c : sinStock)
+            listaAlertas.getChildren().add(tarjetaAlerta(c, true, ia++ % 2 != 0, ventana));
+        for (Componente c : bajoMin)
+            listaAlertas.getChildren().add(tarjetaAlerta(c, false, ia++ % 2 != 0, ventana));
+        if (listaAlertas.getChildren().isEmpty()) {
+            Label lbl = new Label("Sin alertas de stock");
+            lbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
+            listaAlertas.getChildren().add(lbl);
         }
+        VBox contenidoAlertas = new VBox(8, lblSecAlertas, listaAlertas);
+        contenidoAlertas.setPadding(new Insets(4));
         ScrollPane scrollAlertas = new ScrollPane(contenidoAlertas);
         scrollAlertas.setFitToWidth(true);
-        scrollAlertas.setPrefHeight(370);
+        scrollAlertas.setPrefHeight(320);
         scrollAlertas.setStyle("-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;");
-        VBox panelAlertas = new VBox(8, scrollAlertas);
+
+        Button btnPedirTodas = new Button("Pedir todas las piezas");
+        btnPedirTodas.setMaxWidth(Double.MAX_VALUE);
+        btnPedirTodas.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
+                "-fx-font-weight: bold; -fx-padding: 11;");
+        HBox.setHgrow(btnPedirTodas, Priority.ALWAYS);
+        btnPedirTodas.setOnAction(e -> {
+            if (alertasCriticas.isEmpty()) return;
+            FormularioCompraController.abrirConComponentes(alertasCriticas, () -> {});
+            ventana.close();
+        });
+
+        Button btnVerStock = new Button("Ver Stock Completo");
+        btnVerStock.setMaxWidth(Double.MAX_VALUE);
+        btnVerStock.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
+                "-fx-font-weight: bold; -fx-padding: 11;");
+        HBox.setHgrow(btnVerStock, Priority.ALWAYS);
+        btnVerStock.setOnAction(e -> { ventana.close(); mostrarStock(); });
+
+        HBox botonesAlertas = new HBox(8, btnPedirTodas, btnVerStock);
+        VBox panelAlertas = new VBox(8, scrollAlertas, botonesAlertas);
         panelAlertas.setVisible(false);
         panelAlertas.setManaged(false);
 
@@ -259,14 +263,16 @@ public class MainController {
             listaPendientes.getChildren().clear();
             listaRechazadas.getChildren().clear();
             try {
+                int ip = 0;
                 for (SolicitudResumen s : rcDAO.getSolicitudes("PENDIENTE"))
-                    listaPendientes.getChildren().add(tarjetaSolicitud(s, ventana, fmt));
+                    listaPendientes.getChildren().add(tarjetaSolicitud(s, ventana, fmt, ip++ % 2 != 0));
                 for (SolicitudStock s : solicitudStockDAO.getSolicitudes("PENDIENTE"))
-                    listaPendientes.getChildren().add(tarjetaSolicitudPreventiva(s, ventana, fmt));
+                    listaPendientes.getChildren().add(tarjetaSolicitudPreventiva(s, ventana, fmt, ip++ % 2 != 0));
+                int ir = 0;
                 for (SolicitudResumen s : rcDAO.getSolicitudes("RECHAZADA"))
-                    listaRechazadas.getChildren().add(tarjetaRechazada(s, ventana, fmt));
+                    listaRechazadas.getChildren().add(tarjetaRechazada(s, ventana, fmt, ir++ % 2 != 0));
                 for (SolicitudStock s : solicitudStockDAO.getSolicitudes("RECHAZADA"))
-                    listaRechazadas.getChildren().add(tarjetaRechazadaPreventiva(s, ventana, fmt));
+                    listaRechazadas.getChildren().add(tarjetaRechazadaPreventiva(s, ventana, fmt, ir++ % 2 != 0));
             } catch (SQLException ex) { mostrarError(ex); }
             actualizarBadge();
         };
@@ -345,14 +351,14 @@ public class MainController {
 
     private static String estiloTabActivo() {
         return "-fx-background-color: #2C3B54; -fx-text-fill: white;" +
-               "-fx-font-size: 12px; -fx-background-radius: 20; -fx-padding: 6 16 6 16;" +
+               "-fx-font-size: 12px; -fx-background-radius: 17; -fx-padding: 7 18 7 18;" +
                "-fx-cursor: hand; -fx-font-weight: bold;";
     }
 
     private static String estiloTabInactivo() {
         return "-fx-background-color: transparent; -fx-text-fill: #586376;" +
-               "-fx-font-size: 12px; -fx-background-radius: 20; -fx-padding: 6 16 6 16;" +
-               "-fx-cursor: hand; -fx-border-color: #C4C9D4; -fx-border-radius: 20; -fx-border-width: 1;";
+               "-fx-font-size: 12px; -fx-background-radius: 17; -fx-padding: 7 18 7 18;" +
+               "-fx-cursor: hand;";
     }
 
     /**
@@ -363,7 +369,7 @@ public class MainController {
      * @param fmt     formateador de fecha
      * @return HBox listo para insertar en el panel de solicitudes
      */
-    private HBox tarjetaSolicitud(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt) {
+    private HBox tarjetaSolicitud(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
         // Icono circular con inicial del componente
         String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
                 ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
@@ -394,13 +400,13 @@ public class MainController {
 
         Button btnRechazar = new Button("Rechazar");
         btnRechazar.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;" +
-                "-fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand;");
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
         btnRechazar.setOnAction(e -> rechazarSolicitud(s.getIdRc(), ventana));
 
         HBox card = new HBox(10, icoPane, textos, btnRechazar);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(10));
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 6;");
+        card.setStyle("-fx-background-color: " + (alterno ? "#F5F6F8" : "white") + "; -fx-background-radius: 6;");
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRechazarSol = new MenuItem("Rechazar solicitud");
@@ -428,7 +434,7 @@ public class MainController {
      * @param fmt     formateador de fecha
      * @return HBox listo para insertar en el panel de solicitudes
      */
-    private HBox tarjetaRechazada(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt) {
+    private HBox tarjetaRechazada(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
         String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
                 ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
         Label lblIco = new Label(inicial);
@@ -450,8 +456,8 @@ public class MainController {
         HBox.setHgrow(textos, Priority.ALWAYS);
 
         Button btnRecuperar = new Button("Recuperar");
-        btnRecuperar.setStyle("-fx-background-color: #C8D8C8; -fx-text-fill: #2C4A2C;" +
-                "-fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand;");
+        btnRecuperar.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
         btnRecuperar.setOnAction(e -> recuperarSolicitud(s.getIdRc(), ventana));
 
         ImageView ivBorrar = new ImageView(
@@ -468,7 +474,7 @@ public class MainController {
         HBox card = new HBox(10, icoPane, textos, btnRecuperar, ivBorrar);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(8));
-        card.setStyle("-fx-background-color: #F0F1F3; -fx-background-radius: 6;");
+        card.setStyle("-fx-background-color: " + (alterno ? "#E9EAEC" : "#F0F1F3") + "; -fx-background-radius: 6;");
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRecuperarSol = new MenuItem("Recuperar solicitud");
@@ -486,7 +492,7 @@ public class MainController {
         } catch (SQLException ex) { mostrarError(ex); }
     }
 
-    private HBox tarjetaSolicitudPreventiva(SolicitudStock s, Stage ventana, DateTimeFormatter fmt) {
+    private HBox tarjetaSolicitudPreventiva(SolicitudStock s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
         String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
                 ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
         Label lblIco = new Label(inicial);
@@ -510,13 +516,13 @@ public class MainController {
 
         Button btnRechazar = new Button("Rechazar");
         btnRechazar.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;" +
-                "-fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand;");
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
         btnRechazar.setOnAction(e -> rechazarPreventiva(s.getIdSol(), ventana));
 
         HBox card = new HBox(10, icoPane, textos, btnRechazar);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(10));
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 6;");
+        card.setStyle("-fx-background-color: " + (alterno ? "#F5F6F8" : "white") + "; -fx-background-radius: 6;");
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRechazarSol = new MenuItem("Rechazar solicitud");
@@ -527,7 +533,7 @@ public class MainController {
         return card;
     }
 
-    private HBox tarjetaRechazadaPreventiva(SolicitudStock s, Stage ventana, DateTimeFormatter fmt) {
+    private HBox tarjetaRechazadaPreventiva(SolicitudStock s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
         String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
                 ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
         Label lblIco = new Label(inicial);
@@ -544,8 +550,8 @@ public class MainController {
         HBox.setHgrow(textos, Priority.ALWAYS);
 
         Button btnRecuperar = new Button("Recuperar");
-        btnRecuperar.setStyle("-fx-background-color: #C8D8C8; -fx-text-fill: #2C4A2C;" +
-                "-fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand;");
+        btnRecuperar.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
         btnRecuperar.setOnAction(e -> recuperarPreventiva(s.getIdSol(), ventana));
 
         ImageView ivBorrar = new ImageView(
@@ -562,7 +568,7 @@ public class MainController {
         HBox card = new HBox(10, icoPane, textos, btnRecuperar, ivBorrar);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(8));
-        card.setStyle("-fx-background-color: #F0F1F3; -fx-background-radius: 6;");
+        card.setStyle("-fx-background-color: " + (alterno ? "#E9EAEC" : "#F0F1F3") + "; -fx-background-radius: 6;");
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRecuperarSol = new MenuItem("Recuperar solicitud");
@@ -585,6 +591,43 @@ public class MainController {
             solicitudStockDAO.actualizarEstado(idSol, "PENDIENTE");
             ((Runnable) ventana.getUserData()).run();
         } catch (SQLException ex) { mostrarError(ex); }
+    }
+
+    private HBox tarjetaAlerta(Componente c, boolean sinStock, boolean alterno, Stage ventana) {
+        Label lblIco = new Label(sinStock ? "✕" : "!");
+        lblIco.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: white;");
+        StackPane icoPane = new StackPane(lblIco);
+        icoPane.setMinSize(40, 40); icoPane.setMaxSize(40, 40);
+        icoPane.setStyle("-fx-background-color: " + (sinStock ? "#E8504A" : "#E8903A") +
+                "; -fx-background-radius: 50;");
+
+        Label lblComp = new Label(c.getTipo());
+        lblComp.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2C3B54;");
+        String etiqueta  = sinStock ? "Sin Stock" : "Stock Bajo";
+        String unidades  = sinStock ? "Sin unidades" : c.getStock() + " unid. restantes";
+        Label lblEtiq = new Label(etiqueta);
+        lblEtiq.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " +
+                (sinStock ? "#E8504A" : "#E8903A") + ";");
+        Label lblInfo = new Label(unidades);
+        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #9AA0AA;");
+        HBox infoRow = new HBox(6, lblEtiq, lblInfo);
+        infoRow.setAlignment(Pos.CENTER_LEFT);
+        VBox textos = new VBox(3, lblComp, infoRow);
+        HBox.setHgrow(textos, Priority.ALWAYS);
+
+        Button btnPedir = new Button("Pedir");
+        btnPedir.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 16 6 16;");
+        btnPedir.setOnAction(e -> {
+            FormularioCompraController.abrir(c, () -> {});
+            ventana.close();
+        });
+
+        HBox card = new HBox(12, icoPane, textos, btnPedir);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(12));
+        card.setStyle("-fx-background-color: " + (alterno ? "#F5F6F8" : "white") + "; -fx-background-radius: 6;");
+        return card;
     }
 
     /**
