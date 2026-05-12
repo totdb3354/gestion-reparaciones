@@ -365,6 +365,26 @@ public class ReparacionDAO {
     }
 
     /**
+     * Descuenta stock de un componente agotado y crea una solicitud PENDIENTE de reposición,
+     * sin crear ningún registro de reparación R* (la asignación queda abierta).
+     *
+     * @param idAsignacion ID de la asignación ({@code A*})
+     * @param idCom        ID del componente agotado
+     * @param cantidad     unidades a descontar del stock
+     * @param descripcion  descripción opcional para la solicitud
+     * @throws SQLException       si falla la llamada al servidor
+     * @throws StaleDataException si la asignación ya fue cerrada (409)
+     */
+    public void agotarComponente(String idAsignacion, int idCom, int cantidad, String descripcion)
+            throws SQLException, StaleDataException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("idCom",       idCom);
+        body.put("cantidad",    cantidad);
+        body.put("descripcion", descripcion);
+        ApiClient.post("/api/reparaciones/" + idAsignacion + "/agotar-componente", body);
+    }
+
+    /**
      * Cancela la incidencia activa (no resuelta) de un IMEI.
      *
      * @param imei IMEI del dispositivo
