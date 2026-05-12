@@ -219,11 +219,12 @@ public class FormularioReparacionController {
     private void cargarFilas() {
         try {
             Map<String, List<Componente>> grupos = componenteDAO.getAgrupadosPorTipo();
-            Image imgBorrar = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+            Image imgBorrar  = new Image(getClass().getResourceAsStream("/images/borrar.png"));
+            Image imgEditar  = new Image(getClass().getResourceAsStream("/images/editar.png"));
             for (Map.Entry<String, List<Componente>> entry : grupos.entrySet()) {
                 if (entry.getValue().isEmpty())
                     continue;
-                FilaUI fila = new FilaUI(entry.getKey(), entry.getValue(), imgBorrar);
+                FilaUI fila = new FilaUI(entry.getKey(), entry.getValue(), imgBorrar, imgEditar);
                 fila.setOnCambio(this::actualizarBoton);
                 contenedorFilas.getChildren().add(fila.getRoot());
                 filasUI.add(fila);
@@ -644,7 +645,7 @@ public class FormularioReparacionController {
         private HBox subFilaAgotado;
         private Label lblSubAgotado;
         private Button btnSubAgotado;
-        private Button btnCancelarAgotado;
+        private Button btnEditarDesc;
         private boolean agotadoConfirmado = false;
         private String descripcionAgotado = null;
 
@@ -655,7 +656,7 @@ public class FormularioReparacionController {
         private boolean esReutilizadoOriginal = false;
         private String observacionOriginal = null;
 
-        FilaUI(String prefijo, List<Componente> skus, Image imgBorrar) {
+        FilaUI(String prefijo, List<Componente> skus, Image imgBorrar, Image imgEditar) {
             this.prefijo = prefijo;
             this.skus = skus;
 
@@ -799,10 +800,9 @@ public class FormularioReparacionController {
             btnSolicitud.setMinHeight(27);
             btnSolicitud.setMaxHeight(27);
             btnSolicitud.setOnAction(e -> abrirSolicitud());
-            if (prefijo.equals("otro")) {
-                btnSolicitud.setVisible(false);
-                btnSolicitud.setManaged(false);
-            }
+            // Oculto siempre — solo se muestra cuando activarSolicitud() carga una solicitud existente de BD
+            btnSolicitud.setVisible(false);
+            btnSolicitud.setManaged(false);
 
             mainRow = new HBox(wrapContador, lblNombre, cbSku, lblStock, chkReutilizado, wrapObs, btnSolicitud);
             mainRow.setAlignment(Pos.CENTER_LEFT);
@@ -815,13 +815,16 @@ public class FormularioReparacionController {
             btnSubAgotado.setStyle(
                     "-fx-background-color: #E8A825; -fx-text-fill: white;" +
                     "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 4 10 4 10;");
-            btnCancelarAgotado = new Button("× Cancelar");
-            btnCancelarAgotado.setStyle(
-                    "-fx-background-color: transparent; -fx-text-fill: #888;" +
-                    "-fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 2 6 2 6;");
-            btnCancelarAgotado.setVisible(false);
-            btnCancelarAgotado.setManaged(false);
-            subFilaAgotado = new HBox(10, lblSubAgotado, btnSubAgotado, btnCancelarAgotado);
+            ImageView ivEditar = new ImageView(imgEditar);
+            ivEditar.setFitWidth(16); ivEditar.setFitHeight(16); ivEditar.setPreserveRatio(true);
+            btnEditarDesc = new Button();
+            btnEditarDesc.setGraphic(ivEditar);
+            btnEditarDesc.setStyle(
+                    "-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 2 4 2 4;");
+            btnEditarDesc.setVisible(false);
+            btnEditarDesc.setManaged(false);
+            btnEditarDesc.setOnAction(e -> editarDescripcionAgotado());
+            subFilaAgotado = new HBox(10, lblSubAgotado, btnSubAgotado, btnEditarDesc);
             subFilaAgotado.setAlignment(Pos.CENTER_LEFT);
             subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
             subFilaAgotado.setVisible(false);
@@ -833,7 +836,6 @@ public class FormularioReparacionController {
                     "-fx-border-width: 0 0 1 0;");
 
             btnSubAgotado.setOnAction(e -> abrirDialogoAgotado());
-            btnCancelarAgotado.setOnAction(e -> cancelarAgotado());
 
             btnMas.setOnAction(e -> {
                 if (prefijo.equals("otro")) {
@@ -877,6 +879,7 @@ public class FormularioReparacionController {
             });
 
             btnObservacion.setOnAction(e -> abrirObservacion());
+            Platform.runLater(this::actualizarSubFilaAgotado);
 
             btnBorrarObs.setOnAction(e -> {
                 observacion = null;
@@ -901,8 +904,7 @@ public class FormularioReparacionController {
             lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #7A5C00;");
             btnSubAgotado.setVisible(true);
             btnSubAgotado.setManaged(true);
-            btnCancelarAgotado.setVisible(false);
-            btnCancelarAgotado.setManaged(false);
+            btnEditarDesc.setVisible(false); btnEditarDesc.setManaged(false);
             subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
 
             cantidad = 0;
@@ -1092,18 +1094,29 @@ public class FormularioReparacionController {
         private void actualizarSubFilaAgotado() {
             if (prefijo.equals("otro") || modoEdicion) return;
             if (agotadoConfirmado) return;
-            if (solicitudActiva) return; // ya existe una solicitud pendiente para este componente
+            if (solicitudActiva) return;
             Componente sel = cbSku.getValue();
-            boolean enLimite = sel != null && sel.getStock() > 0
-                    && !chkReutilizado.isSelected()
-                    && cantidad >= sel.getStock();
-            subFilaAgotado.setVisible(enLimite);
-            subFilaAgotado.setManaged(enLimite);
+            if (sel == null) { subFilaAgotado.setVisible(false); subFilaAgotado.setManaged(false); return; }
+            boolean sinStock = sel.getStock() == 0;
+            boolean enLimite = !chkReutilizado.isSelected() && sel.getStock() > 0 && cantidad >= sel.getStock();
+            boolean mostrar = sinStock || enLimite;
+            if (mostrar) {
+                if (sinStock) {
+                    lblSubAgotado.setText("⚠  Sin stock disponible. Solicita la pieza para que el admin gestione el pedido.");
+                    btnSubAgotado.setText("Solicitar pieza");
+                } else {
+                    lblSubAgotado.setText("⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.");
+                    btnSubAgotado.setText("Solicitar y descontar stock");
+                }
+            }
+            subFilaAgotado.setVisible(mostrar);
+            subFilaAgotado.setManaged(mostrar);
         }
 
         private void abrirDialogoAgotado() {
             Componente sel = cbSku.getValue();
             int stock = sel != null ? sel.getStock() : 0;
+            boolean sinStock = stock == 0;
 
             TextArea ta = new TextArea(descripcionAgotado != null ? descripcionAgotado : "");
             ta.setPromptText("Describe la pieza que necesitas (opcional)...");
@@ -1112,14 +1125,20 @@ public class FormularioReparacionController {
             ta.setPrefWidth(380);
             ta.setStyle("-fx-font-size: 13px;");
 
-            Button btnOk = new Button("Confirmar: descontar " + stock + " ud. de stock y solicitar reposición");
+            String btnOkText = sinStock
+                    ? "Confirmar: solicitar pieza"
+                    : "Confirmar: descontar " + stock + " ud. de stock y solicitar";
+            Button btnOk = new Button(btnOkText);
             btnOk.setMaxWidth(Double.MAX_VALUE);
             btnOk.setStyle("-fx-background-color: #E8A825; -fx-text-fill: white;" +
                     "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
 
+            String headerText = sinStock
+                    ? "Sin stock disponible.\nSe creará una solicitud PENDIENTE para que el admin gestione el pedido."
+                    : "Se descontarán " + stock + " unidades de stock y quedará una solicitud PENDIENTE.\nLa asignación permanecerá abierta hasta recibir la pieza.";
             Dialog<Void> dialog = new Dialog<>();
-            dialog.setTitle("Stock agotado — " + traducirTipo(prefijo));
-            dialog.setHeaderText("Se descontarán " + stock + " unidades de stock y quedará una solicitud PENDIENTE.\nLa asignación permanecerá abierta hasta recibir la pieza.");
+            dialog.setTitle("Solicitar pieza — " + traducirTipo(prefijo));
+            dialog.setHeaderText(headerText);
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
             dialog.getDialogPane().setPrefWidth(460);
             dialog.getDialogPane().setContent(new VBox(8, ta, btnOk));
@@ -1131,29 +1150,20 @@ public class FormularioReparacionController {
                 btnMenos.setDisable(true);
                 chkReutilizado.setDisable(true);
                 cbSku.setDisable(true);
-                lblSubAgotado.setText("✓  " + stock + " uds. se descontarán al guardar — solicitud de reposición pendiente");
-                lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #2E7D32; -fx-font-weight: bold;");
-                btnSubAgotado.setVisible(false);
-                btnSubAgotado.setManaged(false);
-                btnCancelarAgotado.setVisible(true);
-                btnCancelarAgotado.setManaged(true);
-                // Limpiar y deshabilitar observación (no aplica sin reparación)
                 observacion = null;
                 lblObservacion.setText("");
-                btnObservacion.setVisible(true);
-                btnObservacion.setManaged(true);
-                lblObservacion.setVisible(false);
-                lblObservacion.setManaged(false);
-                btnBorrarObs.setVisible(false);
-                btnBorrarObs.setManaged(false);
+                btnObservacion.setVisible(true);  btnObservacion.setManaged(true);
+                lblObservacion.setVisible(false);  lblObservacion.setManaged(false);
+                btnBorrarObs.setVisible(false);    btnBorrarObs.setManaged(false);
                 btnObservacion.setDisable(true);
-                // Limpiar y deshabilitar solicitud normal (ya gestionada por agotado)
                 solicitudActiva = false;
                 solicitudNuevaEnEstaSesion = false;
                 descripcionSolicitud = null;
-                btnSolicitud.setText("⚠ Solicitud pieza");
-                btnSolicitud.setStyle(STYLE_SOL_INACTIVA);
                 btnSolicitud.setDisable(true);
+                actualizarLabelConfirmado(stock);
+                lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #2E7D32; -fx-font-weight: bold;");
+                btnSubAgotado.setVisible(false); btnSubAgotado.setManaged(false);
+                btnEditarDesc.setVisible(true);  btnEditarDesc.setManaged(true);
                 subFilaAgotado.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 4 8 4 70;");
                 dialog.close();
                 notificar();
@@ -1162,7 +1172,55 @@ public class FormularioReparacionController {
             dialog.showAndWait();
         }
 
-        private void cancelarAgotado() {
+        private void editarDescripcionAgotado() {
+            TextArea ta = new TextArea(descripcionAgotado != null ? descripcionAgotado : "");
+            ta.setPromptText("Describe la pieza que necesitas (opcional)...");
+            ta.setWrapText(true);
+            ta.setPrefRowCount(4);
+            ta.setPrefWidth(380);
+            ta.setStyle("-fx-font-size: 13px;");
+
+            Button btnOk = new Button("Guardar descripción");
+            btnOk.setMaxWidth(Double.MAX_VALUE);
+            btnOk.setStyle("-fx-background-color: #E8A825; -fx-text-fill: white;" +
+                    "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+
+            Button btnBorrar = new Button("Cancelar solicitud");
+            btnBorrar.setMaxWidth(Double.MAX_VALUE);
+            btnBorrar.setStyle("-fx-background-color: #C94040; -fx-text-fill: white;" +
+                    "-fx-font-size: 12px; -fx-padding: 8; -fx-cursor: hand;");
+
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Editar descripción de solicitud");
+            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+            dialog.getDialogPane().setPrefWidth(440);
+            dialog.getDialogPane().setContent(new VBox(8, ta, btnOk, btnBorrar));
+
+            btnOk.setOnAction(e -> {
+                descripcionAgotado = ta.getText().trim().isEmpty() ? null : ta.getText().trim();
+                Componente s = cbSku.getValue();
+                actualizarLabelConfirmado(s != null ? s.getStock() : 0);
+                dialog.close();
+            });
+
+            btnBorrar.setOnAction(e -> {
+                dialog.close();
+                resetearAgotado();
+            });
+
+            dialog.showAndWait();
+        }
+
+        private void actualizarLabelConfirmado(int stock) {
+            String desc = descripcionAgotado != null ? " — " + descripcionAgotado : "";
+            if (stock == 0) {
+                lblSubAgotado.setText("✓  Solicitud de reposición pendiente" + desc);
+            } else {
+                lblSubAgotado.setText("✓  " + stock + " uds. se descontarán al guardar — solicitud pendiente" + desc);
+            }
+        }
+
+        private void resetearAgotado() {
             agotadoConfirmado = false;
             descripcionAgotado = null;
             cantidad = 0;
@@ -1172,17 +1230,13 @@ public class FormularioReparacionController {
             Componente sel = cbSku.getValue();
             if (sel != null && !prefijo.equals("otro"))
                 btnMas.setDisable(sel.getStock() <= 0);
-            lblSubAgotado.setText("⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.");
             lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #7A5C00;");
-            btnSubAgotado.setVisible(true);
-            btnSubAgotado.setManaged(true);
-            btnCancelarAgotado.setVisible(false);
-            btnCancelarAgotado.setManaged(false);
+            btnSubAgotado.setVisible(true);  btnSubAgotado.setManaged(true);
+            btnEditarDesc.setVisible(false); btnEditarDesc.setManaged(false);
             subFilaAgotado.setStyle("-fx-background-color: #FFF8E0; -fx-padding: 4 8 4 70;");
-            subFilaAgotado.setVisible(false);
-            subFilaAgotado.setManaged(false);
             btnObservacion.setDisable(false);
             btnSolicitud.setDisable(false);
+            actualizarSubFilaAgotado();
             notificar();
         }
 
