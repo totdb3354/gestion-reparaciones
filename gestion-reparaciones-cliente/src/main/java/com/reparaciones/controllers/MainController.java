@@ -106,10 +106,15 @@ public class MainController {
             if (newScene == null) return;
             newScene.windowProperty().addListener((obs2, oldWin, win) -> {
                 if (win == null) return;
-                win.showingProperty().addListener((obs3, wasShowing, isShowing) -> {
-                    if (isShowing && !alertasCriticas.isEmpty())
+                if (win.isShowing()) {
+                    if (!alertasCriticas.isEmpty())
                         Platform.runLater(() -> abrirSolicitudes(true));
-                });
+                } else {
+                    win.showingProperty().addListener((obs3, wasShowing, isShowing) -> {
+                        if (isShowing && !alertasCriticas.isEmpty())
+                            Platform.runLater(() -> abrirSolicitudes(true));
+                    });
+                }
                 win.focusedProperty().addListener((obs3, wasFocused, isFocused) -> {
                     if (isFocused && controladorActivo != null) {
                         controladorActivo.recargar();
