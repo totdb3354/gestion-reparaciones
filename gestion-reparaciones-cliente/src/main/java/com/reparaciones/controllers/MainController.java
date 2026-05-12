@@ -276,11 +276,16 @@ public class MainController {
         // ── Acciones ──────────────────────────────────────────────────────────
         btnPedir.setOnAction(e -> {
             try {
-                List<SolicitudResumen> pendientes = rcDAO.getSolicitudes("PENDIENTE");
-                if (pendientes.isEmpty()) return;
-                FormularioCompraController.abrirConSolicitudes(pendientes, () -> {
-                    for (SolicitudResumen s : pendientes) {
+                List<SolicitudResumen> urgentes   = rcDAO.getSolicitudes("PENDIENTE");
+                List<SolicitudStock>   preventivas = solicitudStockDAO.getSolicitudes("PENDIENTE");
+                if (urgentes.isEmpty() && preventivas.isEmpty()) return;
+                FormularioCompraController.abrirConSolicitudes(urgentes, preventivas, () -> {
+                    for (SolicitudResumen s : urgentes) {
                         try { rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "GESTIONADA"); }
+                        catch (SQLException ex) { mostrarError(ex); }
+                    }
+                    for (SolicitudStock s : preventivas) {
+                        try { solicitudStockDAO.actualizarEstado(s.getIdSol(), "GESTIONADA"); }
                         catch (SQLException ex) { mostrarError(ex); }
                     }
                     recargarRef[0].run();
