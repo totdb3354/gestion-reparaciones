@@ -74,6 +74,7 @@ public class MainController {
     private final ReparacionComponenteDAO rcDAO             = new ReparacionComponenteDAO();
     private final SolicitudStockDAO       solicitudStockDAO = new SolicitudStockDAO();
     private ContextMenu menuUsuario;
+    private Stage ventanaNotificaciones;
 
     private List<Componente> alertasCriticas = List.of();
     private com.reparaciones.utils.Recargable controladorActivo;
@@ -157,8 +158,12 @@ public class MainController {
     private void abrirSolicitudes() { abrirSolicitudes(false); }
 
     private void abrirSolicitudes(boolean abrirEnAlertas) {
+        if (ventanaNotificaciones != null && ventanaNotificaciones.isShowing()) {
+            ventanaNotificaciones.close();
+            return;
+        }
         Stage ventana = new Stage();
-        ventana.initModality(Modality.APPLICATION_MODAL);
+        ventana.initOwner(campanaPane.getScene().getWindow());
         ventana.initStyle(StageStyle.UNDECORATED);
         ventana.setResizable(false);
 
@@ -171,15 +176,12 @@ public class MainController {
         Label lblIrPedidos = new Label("→ Ir a pedidos");
         lblIrPedidos.setStyle("-fx-font-size: 12px; -fx-cursor: hand; -fx-text-fill: #001232; -fx-font-weight: bold;");
         lblIrPedidos.setOnMouseClicked(e -> { ventana.close(); mostrarStockEnPedidos(); });
-        Label lblX = new Label("✕");
-        lblX.setStyle("-fx-font-size: 14px; -fx-cursor: hand; -fx-text-fill: #586376;");
-        lblX.setOnMouseClicked(e -> ventana.close());
         HBox segmentado = new HBox(0, btnTabSol, btnTabAlert);
         segmentado.setAlignment(Pos.CENTER_LEFT);
         segmentado.setStyle("-fx-background-color: white; -fx-background-radius: 20;" +
                 "-fx-border-color: #D0D4DC; -fx-border-radius: 20; -fx-border-width: 1; -fx-padding: 3;");
         HBox spacerH = new HBox(); HBox.setHgrow(spacerH, Priority.ALWAYS);
-        HBox tabBar = new HBox(8, segmentado, spacerH, lblIrPedidos, lblX);
+        HBox tabBar = new HBox(8, segmentado, spacerH, lblIrPedidos);
         tabBar.setAlignment(Pos.CENTER_LEFT);
         tabBar.setPadding(new Insets(0, 0, 8, 0));
 
@@ -337,13 +339,6 @@ public class MainController {
         raiz.setPrefWidth(480);
         raiz.setStyle("-fx-background-color: #DDE1E7; -fx-border-color: #C4C9D4; -fx-border-width: 1;");
 
-        final double[] drag = new double[2];
-        raiz.setOnMousePressed(ev -> { drag[0] = ev.getSceneX(); drag[1] = ev.getSceneY(); });
-        raiz.setOnMouseDragged(ev -> {
-            ventana.setX(ev.getScreenX() - drag[0]);
-            ventana.setY(ev.getScreenY() - drag[1]);
-        });
-
         if (abrirEnAlertas) {
             btnTabSol  .setStyle(estiloTabInactivo());
             btnTabAlert.setStyle(estiloTabActivo());
@@ -361,8 +356,9 @@ public class MainController {
             ventana.setX(Math.max(0, x));
             ventana.setY(y);
         });
-        ventana.showAndWait();
-        actualizarBadge();
+        ventana.setOnHidden(ev -> actualizarBadge());
+        ventana.show();
+        ventanaNotificaciones = ventana;
     }
 
     private static String estiloTabActivo() {
