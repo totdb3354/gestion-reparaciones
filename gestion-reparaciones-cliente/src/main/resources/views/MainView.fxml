@@ -37,9 +37,6 @@
                         styleClass="nav-btn"
                         onAction="#mostrarEstadisticas"/>
             </HBox>
-            <Label fx:id="lblAlertaStock" text="⚠" visible="false" managed="false"
-                   style="-fx-text-fill: #F1E356; -fx-font-size: 16px; -fx-cursor: hand;"/>
-
             <!-- Espaciador -->
             <HBox HBox.hgrow="ALWAYS"/>
 

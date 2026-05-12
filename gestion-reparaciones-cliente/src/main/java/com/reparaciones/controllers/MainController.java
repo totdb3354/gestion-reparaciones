@@ -28,7 +28,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -65,7 +64,6 @@ public class MainController {
     @FXML private Button    btnEstadisticas;
     @FXML private Button    btnUsuario;
     @FXML private Label     lblUsuario;
-    @FXML private Label     lblAlertaStock;
     @FXML private StackPane  campanaPane;
     @FXML private ImageView  ivCampana;
     @FXML private StackPane  badgePane;
@@ -148,7 +146,9 @@ public class MainController {
      * para gestionar, rechazar, recuperar o limpiar cada una.</p>
      */
     @FXML
-    private void abrirSolicitudes() {
+    private void abrirSolicitudes() { abrirSolicitudes(false); }
+
+    private void abrirSolicitudes(boolean abrirEnAlertas) {
         Stage ventana = new Stage();
         ventana.initModality(Modality.APPLICATION_MODAL);
         ventana.initStyle(StageStyle.UNDECORATED);
@@ -203,12 +203,53 @@ public class MainController {
         HBox botones = new HBox(8, btnPedir, btnRechazarTodo);
         VBox panelSolicitudes = new VBox(8, scroll, botones);
 
-        // ── Panel Alertas (placeholder) ───────────────────────────────────────
-        Label lblProximamente = new Label("Próximamente");
-        lblProximamente.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
-        VBox panelAlertas = new VBox(lblProximamente);
-        panelAlertas.setAlignment(Pos.CENTER);
-        panelAlertas.setPrefHeight(420);
+        // ── Panel Alertas ─────────────────────────────────────────────────────
+        List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
+        List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
+        VBox contenidoAlertas = new VBox(8);
+        contenidoAlertas.setPadding(new Insets(4));
+        if (alertasCriticas.isEmpty()) {
+            Label lblSinAlertas = new Label("Sin alertas de stock");
+            lblSinAlertas.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
+            contenidoAlertas.getChildren().add(lblSinAlertas);
+        } else {
+            Label lblResumen = new Label(alertasCriticas.size() + " componente(s) requieren atención");
+            lblResumen.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
+            contenidoAlertas.getChildren().add(lblResumen);
+            if (!sinStock.isEmpty()) {
+                Label lblSec = new Label("Sin stock (" + sinStock.size() + ")");
+                lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + Colores.ROJO_SIN_STOCK + ";");
+                VBox filas = new VBox(4);
+                for (Componente c : sinStock) {
+                    Label fila = new Label("• " + c.getTipo());
+                    fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
+                    filas.getChildren().add(fila);
+                }
+                ScrollPane scrollA = new ScrollPane(filas);
+                scrollA.setFitToWidth(true); scrollA.setMaxHeight(140);
+                scrollA.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+                contenidoAlertas.getChildren().addAll(lblSec, scrollA);
+            }
+            if (!bajoMin.isEmpty()) {
+                Label lblSec = new Label("Bajo mínimo (" + bajoMin.size() + ")");
+                lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #D97B00;");
+                VBox filas = new VBox(4);
+                for (Componente c : bajoMin) {
+                    Label fila = new Label("• " + c.getTipo() + "   (" + c.getStock() + " uds.)");
+                    fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
+                    filas.getChildren().add(fila);
+                }
+                ScrollPane scrollA = new ScrollPane(filas);
+                scrollA.setFitToWidth(true); scrollA.setMaxHeight(140);
+                scrollA.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+                contenidoAlertas.getChildren().addAll(lblSec, scrollA);
+            }
+        }
+        ScrollPane scrollAlertas = new ScrollPane(contenidoAlertas);
+        scrollAlertas.setFitToWidth(true);
+        scrollAlertas.setPrefHeight(370);
+        scrollAlertas.setStyle("-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;");
+        VBox panelAlertas = new VBox(8, scrollAlertas);
         panelAlertas.setVisible(false);
         panelAlertas.setManaged(false);
 
@@ -282,6 +323,13 @@ public class MainController {
             ventana.setX(ev.getScreenX() - drag[0]);
             ventana.setY(ev.getScreenY() - drag[1]);
         });
+
+        if (abrirEnAlertas) {
+            btnTabSol  .setStyle(estiloTabInactivo());
+            btnTabAlert.setStyle(estiloTabActivo());
+            panelSolicitudes.setVisible(false); panelSolicitudes.setManaged(false);
+            panelAlertas    .setVisible(true);  panelAlertas    .setManaged(true);
+        }
 
         Scene scene = new Scene(raiz);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
@@ -587,100 +635,7 @@ public class MainController {
         }
         if (alertasCriticas.isEmpty()) return;
 
-        lblAlertaStock.setVisible(true);
-        lblAlertaStock.setManaged(true);
-        lblAlertaStock.setOnMouseClicked(e -> mostrarDialogoAlerta());
-        Platform.runLater(this::mostrarDialogoAlerta);
-    }
-
-    /** Muestra el popup modal con la lista de componentes sin stock y bajo mínimo. */
-    private void mostrarDialogoAlerta() {
-        List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
-        List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
-
-        Stage ventana = new Stage();
-        ventana.initModality(Modality.APPLICATION_MODAL);
-        ventana.initStyle(StageStyle.UNDECORATED);
-        ventana.setResizable(false);
-
-        Label lblIcono = new Label("⚠");
-        lblIcono.setStyle("-fx-font-size: 20px; -fx-text-fill: #D97B00;");
-
-        Label lblTitulo = new Label("Alerta de stock");
-        lblTitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + Colores.AZUL_MEDIO + ";");
-
-        Label lblX = new Label("✕");
-        lblX.setStyle("-fx-font-size: 16px; -fx-cursor: hand; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
-        lblX.setOnMouseClicked(e -> ventana.close());
-
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox cabecera = new HBox(8, lblIcono, lblTitulo, spacer, lblX);
-        cabecera.setAlignment(Pos.CENTER_LEFT);
-        cabecera.setPadding(new Insets(0, 0, 12, 0));
-
-        Label lblResumen = new Label(alertasCriticas.size() + " componente(s) requieren atención");
-        lblResumen.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
-
-        VBox cuerpo = new VBox(10, cabecera, lblResumen);
-
-        if (!sinStock.isEmpty()) {
-            Label lblSec = new Label("Sin stock (" + sinStock.size() + ")");
-            lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + Colores.ROJO_SIN_STOCK + ";");
-            VBox filas = new VBox(4);
-            for (Componente c : sinStock) {
-                Label fila = new Label("• " + c.getTipo());
-                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
-                filas.getChildren().add(fila);
-            }
-            ScrollPane scroll = new ScrollPane(filas);
-            scroll.setFitToWidth(true);
-            scroll.setMaxHeight(140);
-            scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-            cuerpo.getChildren().addAll(lblSec, scroll);
-        }
-
-        if (!bajoMin.isEmpty()) {
-            Label lblSec = new Label("Bajo mínimo (" + bajoMin.size() + ")");
-            lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #D97B00;");
-            VBox filas = new VBox(4);
-            for (Componente c : bajoMin) {
-                Label fila = new Label("• " + c.getTipo() + "   (" + c.getStock() + " uds.)");
-                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
-                filas.getChildren().add(fila);
-            }
-            ScrollPane scroll = new ScrollPane(filas);
-            scroll.setFitToWidth(true);
-            scroll.setMaxHeight(140);
-            scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-            cuerpo.getChildren().addAll(lblSec, scroll);
-        }
-
-        Button btnCerrar = new Button("Entendido");
-        btnCerrar.setMaxWidth(Double.MAX_VALUE);
-        btnCerrar.setStyle(
-                "-fx-background-color: " + Colores.AZUL_NOCHE + "; -fx-text-fill: " + Colores.CREMA + ";" +
-                "-fx-font-weight: bold; -fx-font-size: 12px; -fx-background-radius: 4;" +
-                "-fx-padding: 10; -fx-cursor: hand;");
-        btnCerrar.setOnAction(e -> ventana.close());
-        cuerpo.getChildren().add(btnCerrar);
-
-        cuerpo.setPadding(new Insets(24));
-        cuerpo.setPrefWidth(360);
-        cuerpo.setStyle("-fx-background-color: " + Colores.CREMA + ";" +
-                "-fx-border-color: #C2C8D0; -fx-border-width: 1;");
-
-        final double[] drag = new double[2];
-        cuerpo.setOnMousePressed(ev  -> { drag[0] = ev.getSceneX(); drag[1] = ev.getSceneY(); });
-        cuerpo.setOnMouseDragged(ev  -> {
-            ventana.setX(ev.getScreenX() - drag[0]);
-            ventana.setY(ev.getScreenY() - drag[1]);
-        });
-
-        Scene scene = new Scene(cuerpo);
-        scene.setFill(Color.web(Colores.CREMA));
-        ventana.setScene(scene);
-        ventana.showAndWait();
+        Platform.runLater(() -> abrirSolicitudes(true));
     }
 
     /** Navega a la vista de inicio según el rol (clickable desde el logo). */
