@@ -108,11 +108,11 @@ public class MainController {
                 if (win == null) return;
                 if (win.isShowing()) {
                     if (!alertasCriticas.isEmpty())
-                        Platform.runLater(() -> abrirSolicitudes(true));
+                        Platform.runLater(() -> Platform.runLater(() -> abrirSolicitudes(true)));
                 } else {
                     win.showingProperty().addListener((obs3, wasShowing, isShowing) -> {
                         if (isShowing && !alertasCriticas.isEmpty())
-                            Platform.runLater(() -> abrirSolicitudes(true));
+                            Platform.runLater(() -> Platform.runLater(() -> abrirSolicitudes(true)));
                     });
                 }
                 win.focusedProperty().addListener((obs3, wasFocused, isFocused) -> {
