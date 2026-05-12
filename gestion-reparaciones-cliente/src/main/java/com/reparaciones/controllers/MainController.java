@@ -399,17 +399,8 @@ public class MainController {
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRechazarSol = new MenuItem("Rechazar solicitud");
-        MenuItem itemRechazarSel = new MenuItem("Rechazar selección");  // mismo componente
-        ctx.getItems().addAll(itemRechazarSol, itemRechazarSel);
+        ctx.getItems().add(itemRechazarSol);
         itemRechazarSol.setOnAction(e -> rechazarSolicitud(s.getIdRc(), ventana));
-        itemRechazarSel.setOnAction(e -> {
-            try {
-                for (SolicitudResumen r : rcDAO.getSolicitudes("PENDIENTE"))
-                    if (r.getIdCom() == s.getIdCom())
-                        rcDAO.actualizarEstadoSolicitud(r.getIdRc(), "RECHAZADA");
-                ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { mostrarError(ex); }
-        });
         card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
 
         return card;
@@ -476,17 +467,8 @@ public class MainController {
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRecuperarSol = new MenuItem("Recuperar solicitud");
-        MenuItem itemRecuperarSel = new MenuItem("Recuperar selección");
-        ctx.getItems().addAll(itemRecuperarSol, itemRecuperarSel);
+        ctx.getItems().add(itemRecuperarSol);
         itemRecuperarSol.setOnAction(e -> recuperarSolicitud(s.getIdRc(), ventana));
-        itemRecuperarSel.setOnAction(e -> {
-            try {
-                for (SolicitudResumen r : rcDAO.getSolicitudes("RECHAZADA"))
-                    if (r.getIdCom() == s.getIdCom())
-                        rcDAO.actualizarEstadoSolicitud(r.getIdRc(), "PENDIENTE");
-                ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { mostrarError(ex); }
-        });
         card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
 
         return card;
@@ -533,17 +515,8 @@ public class MainController {
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRechazarSol = new MenuItem("Rechazar solicitud");
-        MenuItem itemRechazarSel = new MenuItem("Rechazar selección");
-        ctx.getItems().addAll(itemRechazarSol, itemRechazarSel);
+        ctx.getItems().add(itemRechazarSol);
         itemRechazarSol.setOnAction(e -> rechazarPreventiva(s.getIdSol(), ventana));
-        itemRechazarSel.setOnAction(e -> {
-            try {
-                for (SolicitudStock r : solicitudStockDAO.getSolicitudes("PENDIENTE"))
-                    if (r.getIdCom() == s.getIdCom())
-                        solicitudStockDAO.actualizarEstado(r.getIdSol(), "RECHAZADA");
-                ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { mostrarError(ex); }
-        });
         card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
 
         return card;
@@ -588,17 +561,8 @@ public class MainController {
 
         ContextMenu ctx = new ContextMenu();
         MenuItem itemRecuperarSol = new MenuItem("Recuperar solicitud");
-        MenuItem itemRecuperarSel = new MenuItem("Recuperar selección");
-        ctx.getItems().addAll(itemRecuperarSol, itemRecuperarSel);
+        ctx.getItems().add(itemRecuperarSol);
         itemRecuperarSol.setOnAction(e -> recuperarPreventiva(s.getIdSol(), ventana));
-        itemRecuperarSel.setOnAction(e -> {
-            try {
-                for (SolicitudStock r : solicitudStockDAO.getSolicitudes("RECHAZADA"))
-                    if (r.getIdCom() == s.getIdCom())
-                        solicitudStockDAO.actualizarEstado(r.getIdSol(), "PENDIENTE");
-                ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { mostrarError(ex); }
-        });
         card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
 
         return card;
