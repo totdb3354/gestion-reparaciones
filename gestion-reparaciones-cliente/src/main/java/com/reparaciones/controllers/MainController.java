@@ -101,11 +101,15 @@ public class MainController {
             campanaPane.setManaged(true);
             actualizarBadge();
         }
-        // Recargar al recuperar el foco de la ventana principal
+        // Recargar al recuperar el foco; abrir alertas la primera vez que la ventana se muestra
         contenedor.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) return;
             newScene.windowProperty().addListener((obs2, oldWin, win) -> {
                 if (win == null) return;
+                win.showingProperty().addListener((obs3, wasShowing, isShowing) -> {
+                    if (isShowing && !alertasCriticas.isEmpty())
+                        Platform.runLater(() -> abrirSolicitudes(true));
+                });
                 win.focusedProperty().addListener((obs3, wasFocused, isFocused) -> {
                     if (isFocused && controladorActivo != null) {
                         controladorActivo.recargar();
@@ -652,9 +656,6 @@ public class MainController {
             mostrarError(e);
             return;
         }
-        if (alertasCriticas.isEmpty()) return;
-
-        Platform.runLater(() -> abrirSolicitudes(true));
     }
 
     /** Navega a la vista de inicio según el rol (clickable desde el logo). */
