@@ -30,4 +30,8 @@ public class SolicitudStockDAO {
         ApiClient.patch("/api/solicitudes-stock/" + idSol + "/estado",
                 Map.of("estado", estado));
     }
+
+    public void borrar(int idSol) throws SQLException {
+        ApiClient.delete("/api/solicitudes-stock/" + idSol);
+    }
 }
