@@ -121,6 +121,8 @@ public class MainController {
                         controladorActivo.recargar();
                         if (Sesion.esSuperTecnico()) actualizarBadge();
                     }
+                    if (isFocused && ventanaNotificaciones != null && ventanaNotificaciones.isShowing())
+                        ((Runnable) ventanaNotificaciones.getUserData()).run();
                 });
             });
         });
@@ -194,18 +196,28 @@ public class MainController {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
         // ── Panel Alertas — poblar contenedor del FXML ────────────────────────
-        List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
-        List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
-        int ia = 0;
-        for (Componente c : sinStock)
-            contenedorAlertas.getChildren().add(tarjetaAlerta(c, true,  ia++ % 2 != 0, ventana));
-        for (Componente c : bajoMin)
-            contenedorAlertas.getChildren().add(tarjetaAlerta(c, false, ia++ % 2 != 0, ventana));
-        if (contenedorAlertas.getChildren().isEmpty()) {
-            Label lbl = new Label("Sin alertas de stock");
-            lbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
-            contenedorAlertas.getChildren().add(lbl);
-        }
+        final Runnable recargarAlertas = () -> {
+            try {
+                List<Componente> todos = new ComponenteDAO().getAllGestionados();
+                alertasCriticas = todos.stream()
+                        .filter(c -> c.getStock() <= c.getStockMinimo())
+                        .collect(Collectors.toList());
+            } catch (SQLException ex) { /* silencioso: polling de fondo */ }
+            contenedorAlertas.getChildren().clear();
+            List<Componente> sinStk = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
+            List<Componente> bajMin = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
+            int ia = 0;
+            for (Componente c : sinStk)
+                contenedorAlertas.getChildren().add(tarjetaAlerta(c, true,  ia++ % 2 != 0, ventana));
+            for (Componente c : bajMin)
+                contenedorAlertas.getChildren().add(tarjetaAlerta(c, false, ia++ % 2 != 0, ventana));
+            if (contenedorAlertas.getChildren().isEmpty()) {
+                Label lbl = new Label("Sin alertas de stock");
+                lbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
+                contenedorAlertas.getChildren().add(lbl);
+            }
+        };
+        recargarAlertas.run();
         btnPedirTodas.setOnAction(e -> {
             if (alertasCriticas.isEmpty()) return;
             FormularioCompraController.abrirConComponentes(alertasCriticas, () -> {});
@@ -232,7 +244,20 @@ public class MainController {
             actualizarBadge();
         };
         recargarRef[0].run();
-        ventana.setUserData(recargarRef[0]);
+        ventana.setUserData((Runnable) () -> { recargarRef[0].run(); recargarAlertas.run(); });
+
+        java.util.concurrent.ScheduledExecutorService poller =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "poller-notificaciones");
+                t.setDaemon(true);
+                return t;
+            });
+        poller.scheduleAtFixedRate(
+            () -> Platform.runLater(() -> {
+                recargarRef[0].run();
+                recargarAlertas.run();
+            }),
+            60, 60, java.util.concurrent.TimeUnit.SECONDS);
 
         // ── Acciones ──────────────────────────────────────────────────────────
         btnPedir.setOnAction(e -> {
@@ -307,6 +332,7 @@ public class MainController {
 
         ventana.setOnShown(ev -> reposicionar.run());
         ventana.setOnHidden(ev -> {
+            poller.shutdownNow();
             mainStage.xProperty().removeListener(moveListener);
             mainStage.yProperty().removeListener(moveListener);
             mainStage.widthProperty().removeListener(resizeListener);
