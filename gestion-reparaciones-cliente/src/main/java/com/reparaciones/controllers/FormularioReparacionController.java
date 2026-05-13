@@ -955,6 +955,7 @@ public class FormularioReparacionController {
                 btnMenos.setDisable(true);
                 chkReutilizado.setDisable(true);
                 btnObservacion.setDisable(true);
+                lblStock.setText("—");
                 root.setOpacity(0.4);
             } else {
                 cbSku.getItems().setAll(filtrados);
