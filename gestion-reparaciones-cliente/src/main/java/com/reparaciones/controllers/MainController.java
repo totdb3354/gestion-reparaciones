@@ -21,7 +21,6 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -35,6 +34,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -162,111 +162,55 @@ public class MainController {
             ventanaNotificaciones.close();
             return;
         }
+
+        // ── Cargar estructura desde FXML ──────────────────────────────────────
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/NotificacionesModal.fxml"));
+        VBox raiz;
+        try { raiz = loader.load(); } catch (IOException e) { mostrarError(e); return; }
+        Map<String, Object> ns = loader.getNamespace();
+
+        Button btnTabSol      = (Button) ns.get("btnTabSolicitudes");
+        Button btnTabAlert    = (Button) ns.get("btnTabAlertas");
+        Label  lblIrPedidos   = (Label)  ns.get("lblIrPedidos");
+        VBox   panelSolicitudes = (VBox) ns.get("panelSolicitudes");
+        VBox   panelAlertas     = (VBox) ns.get("panelAlertas");
+        VBox   listaPendientes  = (VBox) ns.get("listaPendientes");
+        VBox   listaRechazadas  = (VBox) ns.get("listaRechazadas");
+        VBox   contenedorAlertas = (VBox) ns.get("contenedorAlertas");
+        Button btnPedir         = (Button) ns.get("btnPedir");
+        Button btnRechazarTodo  = (Button) ns.get("btnRechazarTodo");
+        Button btnPedirTodas    = (Button) ns.get("btnPedirTodas");
+        Button btnVerStock      = (Button) ns.get("btnVerStock");
+
         Stage ventana = new Stage();
         ventana.initOwner(campanaPane.getScene().getWindow());
         ventana.initStyle(StageStyle.UNDECORATED);
         ventana.setResizable(false);
 
-        // ── Tab bar ───────────────────────────────────────────────────────────
-        Button btnTabSol   = new Button("Solicitudes");
-        Button btnTabAlert = new Button("Alertas");
         btnTabSol  .setStyle(estiloTabActivo());
         btnTabAlert.setStyle(estiloTabInactivo());
-
-        Label lblIrPedidos = new Label("→ Ir a pedidos");
-        lblIrPedidos.setStyle("-fx-font-size: 12px; -fx-cursor: hand; -fx-text-fill: #001232; -fx-font-weight: bold;");
         lblIrPedidos.setOnMouseClicked(e -> { ventana.close(); mostrarStockEnPedidos(); });
-        HBox segmentado = new HBox(0, btnTabSol, btnTabAlert);
-        segmentado.setAlignment(Pos.CENTER_LEFT);
-        segmentado.setStyle("-fx-background-color: white; -fx-background-radius: 20;" +
-                "-fx-border-color: #D0D4DC; -fx-border-radius: 20; -fx-border-width: 1; -fx-padding: 3;");
-        HBox spacerH = new HBox(); HBox.setHgrow(spacerH, Priority.ALWAYS);
-        HBox tabBar = new HBox(8, segmentado, spacerH, lblIrPedidos);
-        tabBar.setAlignment(Pos.CENTER_LEFT);
-        tabBar.setPadding(new Insets(0, 0, 8, 0));
 
-        // ── Panel Solicitudes ─────────────────────────────────────────────────
-        VBox listaPendientes = new VBox(6);
-        VBox listaRechazadas = new VBox(6);
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-        Label lblSeccion = new Label("Solicitudes de pieza");
-        lblSeccion.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
-        Label lblRech = new Label("Rechazadas");
-        lblRech.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #9AA0AA;");
-
-        VBox contenidoSol = new VBox(8, lblSeccion, listaPendientes, lblRech, listaRechazadas);
-        contenidoSol.setPadding(new Insets(4));
-        ScrollPane scroll = new ScrollPane(contenidoSol);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(370);
-        scroll.setStyle("-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;");
-
-        Button btnPedir = new Button("Pedir piezas");
-        btnPedir.setMaxWidth(Double.MAX_VALUE);
-        btnPedir.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
-                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
-                "-fx-font-weight: bold; -fx-padding: 11;");
-        HBox.setHgrow(btnPedir, Priority.ALWAYS);
-
-        Button btnRechazarTodo = new Button("Rechazar todo");
-        btnRechazarTodo.setMaxWidth(Double.MAX_VALUE);
-        btnRechazarTodo.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;" +
-                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
-                "-fx-font-weight: bold; -fx-padding: 11;");
-        HBox.setHgrow(btnRechazarTodo, Priority.ALWAYS);
-
-        HBox botones = new HBox(8, btnPedir, btnRechazarTodo);
-        VBox panelSolicitudes = new VBox(8, scroll, botones);
-
-        // ── Panel Alertas ─────────────────────────────────────────────────────
+        // ── Panel Alertas — poblar contenedor del FXML ────────────────────────
         List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
         List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
-
-        Label lblSecAlertas = new Label("Alertas de Stock");
-        lblSecAlertas.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
-        VBox listaAlertas = new VBox(6);
         int ia = 0;
         for (Componente c : sinStock)
-            listaAlertas.getChildren().add(tarjetaAlerta(c, true, ia++ % 2 != 0, ventana));
+            contenedorAlertas.getChildren().add(tarjetaAlerta(c, true,  ia++ % 2 != 0, ventana));
         for (Componente c : bajoMin)
-            listaAlertas.getChildren().add(tarjetaAlerta(c, false, ia++ % 2 != 0, ventana));
-        if (listaAlertas.getChildren().isEmpty()) {
+            contenedorAlertas.getChildren().add(tarjetaAlerta(c, false, ia++ % 2 != 0, ventana));
+        if (contenedorAlertas.getChildren().isEmpty()) {
             Label lbl = new Label("Sin alertas de stock");
             lbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
-            listaAlertas.getChildren().add(lbl);
+            contenedorAlertas.getChildren().add(lbl);
         }
-        VBox contenidoAlertas = new VBox(8, lblSecAlertas, listaAlertas);
-        contenidoAlertas.setPadding(new Insets(4));
-        ScrollPane scrollAlertas = new ScrollPane(contenidoAlertas);
-        scrollAlertas.setFitToWidth(true);
-        scrollAlertas.setPrefHeight(320);
-        scrollAlertas.setStyle("-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;");
-
-        Button btnPedirTodas = new Button("Pedir todas las piezas");
-        btnPedirTodas.setMaxWidth(Double.MAX_VALUE);
-        btnPedirTodas.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
-                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
-                "-fx-font-weight: bold; -fx-padding: 11;");
-        HBox.setHgrow(btnPedirTodas, Priority.ALWAYS);
         btnPedirTodas.setOnAction(e -> {
             if (alertasCriticas.isEmpty()) return;
             FormularioCompraController.abrirConComponentes(alertasCriticas, () -> {});
-            ventana.close();
         });
-
-        Button btnVerStock = new Button("Ver Stock Completo");
-        btnVerStock.setMaxWidth(Double.MAX_VALUE);
-        btnVerStock.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
-                "-fx-font-size: 13px; -fx-background-radius: 20; -fx-cursor: hand;" +
-                "-fx-font-weight: bold; -fx-padding: 11;");
-        HBox.setHgrow(btnVerStock, Priority.ALWAYS);
         btnVerStock.setOnAction(e -> { ventana.close(); mostrarStock(); });
-
-        HBox botonesAlertas = new HBox(8, btnPedirTodas, btnVerStock);
-        VBox panelAlertas = new VBox(8, scrollAlertas, botonesAlertas);
-        panelAlertas.setVisible(false);
-        panelAlertas.setManaged(false);
 
         // ── Recargar ──────────────────────────────────────────────────────────
         final Runnable[] recargarRef = { null };
@@ -307,7 +251,6 @@ public class MainController {
                     }
                     recargarRef[0].run();
                 });
-                ventana.close();
             } catch (SQLException ex) { mostrarError(ex); }
         });
 
@@ -333,12 +276,6 @@ public class MainController {
             panelAlertas    .setVisible(true);  panelAlertas    .setManaged(true);
         });
 
-        // ── Raíz ──────────────────────────────────────────────────────────────
-        VBox raiz = new VBox(12, tabBar, panelSolicitudes, panelAlertas);
-        raiz.setPadding(new Insets(20));
-        raiz.setPrefWidth(480);
-        raiz.setStyle("-fx-background-color: #DDE1E7; -fx-border-color: #C4C9D4; -fx-border-width: 1;");
-
         if (abrirEnAlertas) {
             btnTabSol  .setStyle(estiloTabInactivo());
             btnTabAlert.setStyle(estiloTabActivo());
@@ -349,14 +286,34 @@ public class MainController {
         Scene scene = new Scene(raiz);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         ventana.setScene(scene);
-        ventana.setOnShown(ev -> {
+        Stage mainStage = (Stage) campanaPane.getScene().getWindow();
+        Runnable reposicionar = () -> {
             javafx.geometry.Bounds b = campanaPane.localToScreen(campanaPane.getBoundsInLocal());
+            if (b == null) return;
             double x = b.getMaxX() - ventana.getWidth();
             double y = b.getMaxY() + 6;
             ventana.setX(Math.max(0, x));
             ventana.setY(y);
+        };
+        javafx.beans.value.ChangeListener<Number> moveListener   = (obs, o, n) -> reposicionar.run();
+        javafx.beans.value.ChangeListener<Number> resizeListener = (obs, o, n) -> ventana.close();
+        javafx.beans.value.ChangeListener<Boolean> iconListener  = (obs, o, n) -> { if (n) ventana.close(); };
+
+        mainStage.xProperty().addListener(moveListener);
+        mainStage.yProperty().addListener(moveListener);
+        mainStage.widthProperty().addListener(resizeListener);
+        mainStage.heightProperty().addListener(resizeListener);
+        mainStage.iconifiedProperty().addListener(iconListener);
+
+        ventana.setOnShown(ev -> reposicionar.run());
+        ventana.setOnHidden(ev -> {
+            mainStage.xProperty().removeListener(moveListener);
+            mainStage.yProperty().removeListener(moveListener);
+            mainStage.widthProperty().removeListener(resizeListener);
+            mainStage.heightProperty().removeListener(resizeListener);
+            mainStage.iconifiedProperty().removeListener(iconListener);
+            actualizarBadge();
         });
-        ventana.setOnHidden(ev -> actualizarBadge());
         ventana.show();
         ventanaNotificaciones = ventana;
     }
@@ -632,7 +589,6 @@ public class MainController {
                 "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 16 6 16;");
         btnPedir.setOnAction(e -> {
             FormularioCompraController.abrir(c, () -> {});
-            ventana.close();
         });
 
         HBox card = new HBox(12, icoPane, textos, btnPedir);
