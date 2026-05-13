@@ -7,9 +7,17 @@ import com.reparaciones.dao.SolicitudStockDAO;
 import com.reparaciones.models.Componente;
 import com.reparaciones.models.SolicitudResumen;
 import com.reparaciones.models.SolicitudStock;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
+import javafx.util.Duration;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -78,6 +86,7 @@ public class MainController {
 
     private List<Componente> alertasCriticas = List.of();
     private com.reparaciones.utils.Recargable controladorActivo;
+    private Timeline pulsoAlertas;
     private Runnable accionVistaActual;
     private final java.util.Map<String, Object[]> vistaCache = new java.util.HashMap<>();
 
@@ -107,13 +116,9 @@ public class MainController {
             if (newScene == null) return;
             newScene.windowProperty().addListener((obs2, oldWin, win) -> {
                 if (win == null) return;
-                if (win.isShowing()) {
-                    if (!alertasCriticas.isEmpty())
-                        Platform.runLater(() -> Platform.runLater(() -> abrirSolicitudes(true)));
-                } else {
+                if (!win.isShowing()) {
                     win.showingProperty().addListener((obs3, wasShowing, isShowing) -> {
-                        if (isShowing && !alertasCriticas.isEmpty())
-                            Platform.runLater(() -> Platform.runLater(() -> abrirSolicitudes(true)));
+                        if (isShowing && !alertasCriticas.isEmpty()) iniciarPulso();
                     });
                 }
                 win.focusedProperty().addListener((obs3, wasFocused, isFocused) -> {
@@ -151,15 +156,50 @@ public class MainController {
         }
     }
 
+    private void iniciarPulso() {
+        if (pulsoAlertas != null && pulsoAlertas.getStatus() == Timeline.Status.RUNNING) return;
+        DropShadow glow = new DropShadow();
+        glow.setColor(Color.RED);
+        glow.setRadius(0);
+        campanaPane.setEffect(glow);
+        pulsoAlertas = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(glow.radiusProperty(),       0),
+                new KeyValue(campanaPane.scaleXProperty(), 1.0),
+                new KeyValue(campanaPane.scaleYProperty(), 1.0)),
+            new KeyFrame(Duration.millis(600),
+                new KeyValue(glow.radiusProperty(),       40),
+                new KeyValue(campanaPane.scaleXProperty(), 1.25),
+                new KeyValue(campanaPane.scaleYProperty(), 1.25)),
+            new KeyFrame(Duration.millis(1200),
+                new KeyValue(glow.radiusProperty(),       0),
+                new KeyValue(campanaPane.scaleXProperty(), 1.0),
+                new KeyValue(campanaPane.scaleYProperty(), 1.0))
+        );
+        pulsoAlertas.setCycleCount(Timeline.INDEFINITE);
+        pulsoAlertas.play();
+    }
+
+    private void detenerPulso() {
+        if (pulsoAlertas != null) {
+            pulsoAlertas.stop();
+            pulsoAlertas = null;
+            campanaPane.setEffect(null);
+            campanaPane.setScaleX(1.0);
+            campanaPane.setScaleY(1.0);
+        }
+    }
+
     /**
      * Abre el panel flotante de solicitudes de pieza (solo admin).
      * <p>Muestra las solicitudes {@code PENDIENTE} y {@code RECHAZADA} con opciones
      * para gestionar, rechazar, recuperar o limpiar cada una.</p>
      */
     @FXML
-    private void abrirSolicitudes() { abrirSolicitudes(false); }
+    private void abrirSolicitudes() { abrirSolicitudes(pulsoAlertas != null); }
 
     private void abrirSolicitudes(boolean abrirEnAlertas) {
+        detenerPulso();
         if (ventanaNotificaciones != null && ventanaNotificaciones.isShowing()) {
             ventanaNotificaciones.close();
             return;
@@ -350,11 +390,20 @@ public class MainController {
 
         ventana.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (isFocused) Platform.runLater(() -> { recargarRef[0].run(); recargarAlertas.run(); });
-            else Platform.runLater(ventana::close);
         });
-        ventana.setOnShown(ev -> reposicionar.run());
+
+        EventHandler<MouseEvent> clickFueraFilter = e -> {
+            javafx.geometry.Bounds b = campanaPane.localToScreen(campanaPane.getBoundsInLocal());
+            if (b == null || !b.contains(e.getScreenX(), e.getScreenY())) ventana.close();
+        };
+
+        ventana.setOnShown(ev -> {
+            reposicionar.run();
+            mainStage.addEventFilter(MouseEvent.MOUSE_PRESSED, clickFueraFilter);
+        });
         ventana.setOnHidden(ev -> {
             poller.shutdownNow();
+            mainStage.removeEventFilter(MouseEvent.MOUSE_PRESSED, clickFueraFilter);
             mainStage.xProperty().removeListener(moveListener);
             mainStage.yProperty().removeListener(moveListener);
             mainStage.widthProperty().removeListener(resizeListener);
@@ -657,6 +706,7 @@ public class MainController {
             alertasCriticas = todos.stream()
                     .filter(c -> c.getStock() <= c.getStockMinimo())
                     .collect(Collectors.toList());
+            if (!alertasCriticas.isEmpty()) iniciarPulso();
         } catch (SQLException e) {
             mostrarError(e);
             return;
