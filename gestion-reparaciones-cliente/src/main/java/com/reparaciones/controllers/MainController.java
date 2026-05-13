@@ -346,6 +346,9 @@ public class MainController {
         mainStage.heightProperty().addListener(resizeListener);
         mainStage.iconifiedProperty().addListener(iconListener);
 
+        ventana.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (isFocused) { recargarRef[0].run(); recargarAlertas.run(); }
+        });
         ventana.setOnShown(ev -> reposicionar.run());
         ventana.setOnHidden(ev -> {
             poller.shutdownNow();
