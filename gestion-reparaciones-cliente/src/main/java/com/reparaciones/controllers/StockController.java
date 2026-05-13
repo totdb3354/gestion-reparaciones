@@ -1081,10 +1081,10 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
         if (sel == null) return;
         int cantidadRevertir = sel.getCantidadRecibida() != null ? sel.getCantidadRecibida() : sel.getCantidad();
         ConfirmDialog.mostrar(
-                "Desrecibir pedido",
+                "Revertir a pendiente",
                 "¿Revertir el pedido #" + sel.getIdCompra() + " de " + sel.getTipoComponente() +
-                " a pendiente?\nSe descontarán " + cantidadRevertir + " unidad(es) del stock.",
-                "Desrecibir",
+                " a pendiente?\nSe descontarán " + cantidadRevertir + " unidad(es) del stock.\nRecuerda revisar el stock tras la operación.",
+                "Revertir a pendiente",
                 () -> {
                     try {
                         compraDAO.desrecibir(sel);
