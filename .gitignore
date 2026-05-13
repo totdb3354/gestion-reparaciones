@@ -4,3 +4,11 @@ gestion-reparaciones-cliente/target/
 
 # Configuración local de herramientas
 gestion-reparaciones/.claude/
+
+# Documentación privada de despliegue e instalación
+despliegue_vdc.md
+instalacion.md
+
+# Obsidian y notas locales
+.obsidian/
+*.canvas
