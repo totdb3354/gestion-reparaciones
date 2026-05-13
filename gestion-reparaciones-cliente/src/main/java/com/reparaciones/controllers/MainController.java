@@ -350,6 +350,7 @@ public class MainController {
 
         ventana.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (isFocused) Platform.runLater(() -> { recargarRef[0].run(); recargarAlertas.run(); });
+            else Platform.runLater(ventana::close);
         });
         ventana.setOnShown(ev -> reposicionar.run());
         ventana.setOnHidden(ev -> {
