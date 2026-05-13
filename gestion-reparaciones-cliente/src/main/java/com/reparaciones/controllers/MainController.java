@@ -299,6 +299,8 @@ public class MainController {
             try {
                 for (SolicitudResumen s : rcDAO.getSolicitudes("PENDIENTE"))
                     rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "RECHAZADA");
+                for (SolicitudStock s : solicitudStockDAO.getSolicitudes("PENDIENTE"))
+                    solicitudStockDAO.actualizarEstado(s.getIdSol(), "RECHAZADA");
                 recargarRef[0].run();
             } catch (SQLException ex) { mostrarError(ex); }
         });
