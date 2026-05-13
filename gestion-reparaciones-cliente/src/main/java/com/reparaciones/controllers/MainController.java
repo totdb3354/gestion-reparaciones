@@ -3,9 +3,10 @@ package com.reparaciones.controllers;
 import com.reparaciones.Sesion;
 import com.reparaciones.dao.ComponenteDAO;
 import com.reparaciones.dao.ReparacionComponenteDAO;
+import com.reparaciones.dao.SolicitudStockDAO;
 import com.reparaciones.models.Componente;
 import com.reparaciones.models.SolicitudResumen;
-import com.reparaciones.utils.Colores;
+import com.reparaciones.models.SolicitudStock;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -20,13 +21,11 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -35,6 +34,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -63,7 +63,6 @@ public class MainController {
     @FXML private Button    btnEstadisticas;
     @FXML private Button    btnUsuario;
     @FXML private Label     lblUsuario;
-    @FXML private Label     lblAlertaStock;
     @FXML private StackPane  campanaPane;
     @FXML private ImageView  ivCampana;
     @FXML private StackPane  badgePane;
@@ -72,8 +71,10 @@ public class MainController {
     private final Image imgCampanaOn  = new Image(getClass().getResourceAsStream("/images/NotfON.png"));
     private final Image imgCampanaOff = new Image(getClass().getResourceAsStream("/images/NotifOFF.png"));
 
-    private final ReparacionComponenteDAO rcDAO = new ReparacionComponenteDAO();
+    private final ReparacionComponenteDAO rcDAO             = new ReparacionComponenteDAO();
+    private final SolicitudStockDAO       solicitudStockDAO = new SolicitudStockDAO();
     private ContextMenu menuUsuario;
+    private Stage ventanaNotificaciones;
 
     private List<Componente> alertasCriticas = List.of();
     private com.reparaciones.utils.Recargable controladorActivo;
@@ -101,11 +102,20 @@ public class MainController {
             campanaPane.setManaged(true);
             actualizarBadge();
         }
-        // Recargar al recuperar el foco de la ventana principal
+        // Recargar al recuperar el foco; abrir alertas la primera vez que la ventana se muestra
         contenedor.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) return;
             newScene.windowProperty().addListener((obs2, oldWin, win) -> {
                 if (win == null) return;
+                if (win.isShowing()) {
+                    if (!alertasCriticas.isEmpty())
+                        Platform.runLater(() -> Platform.runLater(() -> abrirSolicitudes(true)));
+                } else {
+                    win.showingProperty().addListener((obs3, wasShowing, isShowing) -> {
+                        if (isShowing && !alertasCriticas.isEmpty())
+                            Platform.runLater(() -> Platform.runLater(() -> abrirSolicitudes(true)));
+                    });
+                }
                 win.focusedProperty().addListener((obs3, wasFocused, isFocused) -> {
                     if (isFocused && controladorActivo != null) {
                         controladorActivo.recargar();
@@ -123,10 +133,10 @@ public class MainController {
      */
     void actualizarBadge() {
         try {
-            int pendientes = rcDAO.contarSolicitudesPendientes();
-            if (pendientes > 0) {
+            int total = rcDAO.contarSolicitudesPendientes() + solicitudStockDAO.contarPendientes();
+            if (total > 0) {
                 ivCampana.setImage(imgCampanaOn);
-                lblBadge.setText(String.valueOf(pendientes));
+                lblBadge.setText(String.valueOf(total));
                 badgePane.setVisible(true);
                 badgePane.setManaged(true);
             } else {
@@ -145,106 +155,179 @@ public class MainController {
      * para gestionar, rechazar, recuperar o limpiar cada una.</p>
      */
     @FXML
-    private void abrirSolicitudes() {
+    private void abrirSolicitudes() { abrirSolicitudes(false); }
+
+    private void abrirSolicitudes(boolean abrirEnAlertas) {
+        if (ventanaNotificaciones != null && ventanaNotificaciones.isShowing()) {
+            ventanaNotificaciones.close();
+            return;
+        }
+
+        // ── Cargar estructura desde FXML ──────────────────────────────────────
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/NotificacionesModal.fxml"));
+        VBox raiz;
+        try { raiz = loader.load(); } catch (IOException e) { mostrarError(e); return; }
+        Map<String, Object> ns = loader.getNamespace();
+
+        Button btnTabSol      = (Button) ns.get("btnTabSolicitudes");
+        Button btnTabAlert    = (Button) ns.get("btnTabAlertas");
+        Label  lblIrPedidos   = (Label)  ns.get("lblIrPedidos");
+        VBox   panelSolicitudes = (VBox) ns.get("panelSolicitudes");
+        VBox   panelAlertas     = (VBox) ns.get("panelAlertas");
+        VBox   listaPendientes  = (VBox) ns.get("listaPendientes");
+        VBox   listaRechazadas  = (VBox) ns.get("listaRechazadas");
+        VBox   contenedorAlertas = (VBox) ns.get("contenedorAlertas");
+        Button btnPedir         = (Button) ns.get("btnPedir");
+        Button btnRechazarTodo  = (Button) ns.get("btnRechazarTodo");
+        Button btnPedirTodas    = (Button) ns.get("btnPedirTodas");
+        Button btnVerStock      = (Button) ns.get("btnVerStock");
+
         Stage ventana = new Stage();
-        ventana.initModality(Modality.APPLICATION_MODAL);
+        ventana.initOwner(campanaPane.getScene().getWindow());
         ventana.initStyle(StageStyle.UNDECORATED);
         ventana.setResizable(false);
 
-        // ── Cabecera ──────────────────────────────────────────────────────────
-        Label lblTitulo = new Label("Solicitudes de pieza");
-        lblTitulo.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
-        Label lblX = new Label("✕");
-        lblX.setStyle("-fx-font-size: 14px; -fx-cursor: hand; -fx-text-fill: #586376;");
-        lblX.setOnMouseClicked(e -> ventana.close());
-        Label lblIrPedidos = new Label("→ Ir a pedidos");
-        lblIrPedidos.setStyle("-fx-font-size: 12px; -fx-cursor: hand; -fx-text-fill: #001232; -fx-font-weight: bold;");
+        btnTabSol  .setStyle(estiloTabActivo());
+        btnTabAlert.setStyle(estiloTabInactivo());
         lblIrPedidos.setOnMouseClicked(e -> { ventana.close(); mostrarStockEnPedidos(); });
-        HBox spacerH = new HBox(); HBox.setHgrow(spacerH, Priority.ALWAYS);
-        HBox cabecera = new HBox(8, lblTitulo, spacerH, lblIrPedidos, lblX);
-        cabecera.setAlignment(Pos.CENTER_LEFT);
-        cabecera.setPadding(new Insets(0, 0, 12, 0));
-
-        // ── Listas de solicitudes ─────────────────────────────────────────────
-        VBox listaPendientes  = new VBox(6);
-        VBox listaRechazadas  = new VBox(6);
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-        Runnable recargar = () -> {
+        // ── Panel Alertas — poblar contenedor del FXML ────────────────────────
+        List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
+        List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
+        int ia = 0;
+        for (Componente c : sinStock)
+            contenedorAlertas.getChildren().add(tarjetaAlerta(c, true,  ia++ % 2 != 0, ventana));
+        for (Componente c : bajoMin)
+            contenedorAlertas.getChildren().add(tarjetaAlerta(c, false, ia++ % 2 != 0, ventana));
+        if (contenedorAlertas.getChildren().isEmpty()) {
+            Label lbl = new Label("Sin alertas de stock");
+            lbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
+            contenedorAlertas.getChildren().add(lbl);
+        }
+        btnPedirTodas.setOnAction(e -> {
+            if (alertasCriticas.isEmpty()) return;
+            FormularioCompraController.abrirConComponentes(alertasCriticas, () -> {});
+        });
+        btnVerStock.setOnAction(e -> { ventana.close(); mostrarStock(); });
+
+        // ── Recargar ──────────────────────────────────────────────────────────
+        final Runnable[] recargarRef = { null };
+        recargarRef[0] = () -> {
             listaPendientes.getChildren().clear();
             listaRechazadas.getChildren().clear();
             try {
-                List<SolicitudResumen> pendientes  = rcDAO.getSolicitudes("PENDIENTE");
-                List<SolicitudResumen> rechazadas  = rcDAO.getSolicitudes("RECHAZADA");
-
-                for (SolicitudResumen s : pendientes)
-                    listaPendientes.getChildren().add(tarjetaSolicitud(s, ventana, fmt));
-                for (SolicitudResumen s : rechazadas)
-                    listaRechazadas.getChildren().add(tarjetaRechazada(s, ventana, fmt));
+                int ip = 0;
+                for (SolicitudResumen s : rcDAO.getSolicitudes("PENDIENTE"))
+                    listaPendientes.getChildren().add(tarjetaSolicitud(s, ventana, fmt, ip++ % 2 != 0));
+                for (SolicitudStock s : solicitudStockDAO.getSolicitudes("PENDIENTE"))
+                    listaPendientes.getChildren().add(tarjetaSolicitudPreventiva(s, ventana, fmt, ip++ % 2 != 0));
+                int ir = 0;
+                for (SolicitudResumen s : rcDAO.getSolicitudes("RECHAZADA"))
+                    listaRechazadas.getChildren().add(tarjetaRechazada(s, ventana, fmt, ir++ % 2 != 0));
+                for (SolicitudStock s : solicitudStockDAO.getSolicitudes("RECHAZADA"))
+                    listaRechazadas.getChildren().add(tarjetaRechazadaPreventiva(s, ventana, fmt, ir++ % 2 != 0));
             } catch (SQLException ex) { mostrarError(ex); }
+            actualizarBadge();
         };
-
-        // guardamos la referencia para poder llamarla desde los botones
-        final Runnable[] recargarRef = { null };
-        recargarRef[0] = () -> { recargar.run(); actualizarBadge(); };
         recargarRef[0].run();
         ventana.setUserData(recargarRef[0]);
 
-        // ── Sección pendientes ────────────────────────────────────────────────
-        Label lblPend = new Label("Pendientes");
-        lblPend.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #586376;");
-
-        // ── Sección rechazadas ────────────────────────────────────────────────
-        Label lblRech = new Label("Rechazadas");
-        lblRech.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #9AA0AA;");
-
-        ScrollPane scroll = new ScrollPane();
-        VBox contenido = new VBox(10, lblPend, listaPendientes, lblRech, listaRechazadas);
-        contenido.setPadding(new Insets(4, 4, 4, 4));
-        scroll.setContent(contenido);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(400);
-        scroll.setStyle("-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;");
-
-        // ── Botón pedir piezas ────────────────────────────────────────────────
-        Button btnPedir = new Button("Pedir piezas");
-        btnPedir.setMaxWidth(Double.MAX_VALUE);
-        btnPedir.getStyleClass().add("btn-primary");
+        // ── Acciones ──────────────────────────────────────────────────────────
         btnPedir.setOnAction(e -> {
             try {
-                List<SolicitudResumen> pendientes = rcDAO.getSolicitudes("PENDIENTE");
-                if (pendientes.isEmpty()) return;
-                // paso 7: pre-rellenar FormularioCompra
-                FormularioCompraController.abrirConSolicitudes(pendientes, () -> {
-                    for (SolicitudResumen s : pendientes) {
+                List<SolicitudResumen> urgentes   = rcDAO.getSolicitudes("PENDIENTE");
+                List<SolicitudStock>   preventivas = solicitudStockDAO.getSolicitudes("PENDIENTE");
+                if (urgentes.isEmpty() && preventivas.isEmpty()) return;
+                FormularioCompraController.abrirConSolicitudes(urgentes, preventivas, () -> {
+                    for (SolicitudResumen s : urgentes) {
                         try { rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "GESTIONADA"); }
+                        catch (SQLException ex) { mostrarError(ex); }
+                    }
+                    for (SolicitudStock s : preventivas) {
+                        try { solicitudStockDAO.actualizarEstado(s.getIdSol(), "GESTIONADA"); }
                         catch (SQLException ex) { mostrarError(ex); }
                     }
                     recargarRef[0].run();
                 });
-                ventana.close();
             } catch (SQLException ex) { mostrarError(ex); }
         });
 
-        VBox raiz = new VBox(12, cabecera, scroll, btnPedir);
-        raiz.setPadding(new Insets(20));
-        raiz.setPrefWidth(480);
-        raiz.setStyle("-fx-background-color: #DDE1E7; " +
-                      "-fx-border-color: #C4C9D4; -fx-border-width: 1;");
-
-        final double[] drag = new double[2];
-        raiz.setOnMousePressed(ev  -> { drag[0] = ev.getSceneX(); drag[1] = ev.getSceneY(); });
-        raiz.setOnMouseDragged(ev  -> {
-            ventana.setX(ev.getScreenX() - drag[0]);
-            ventana.setY(ev.getScreenY() - drag[1]);
+        btnRechazarTodo.setOnAction(e -> {
+            try {
+                for (SolicitudResumen s : rcDAO.getSolicitudes("PENDIENTE"))
+                    rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "RECHAZADA");
+                recargarRef[0].run();
+            } catch (SQLException ex) { mostrarError(ex); }
         });
+
+        // ── Tab switching ─────────────────────────────────────────────────────
+        btnTabSol.setOnAction(e -> {
+            btnTabSol  .setStyle(estiloTabActivo());
+            btnTabAlert.setStyle(estiloTabInactivo());
+            panelSolicitudes.setVisible(true);  panelSolicitudes.setManaged(true);
+            panelAlertas    .setVisible(false); panelAlertas    .setManaged(false);
+        });
+        btnTabAlert.setOnAction(e -> {
+            btnTabSol  .setStyle(estiloTabInactivo());
+            btnTabAlert.setStyle(estiloTabActivo());
+            panelSolicitudes.setVisible(false); panelSolicitudes.setManaged(false);
+            panelAlertas    .setVisible(true);  panelAlertas    .setManaged(true);
+        });
+
+        if (abrirEnAlertas) {
+            btnTabSol  .setStyle(estiloTabInactivo());
+            btnTabAlert.setStyle(estiloTabActivo());
+            panelSolicitudes.setVisible(false); panelSolicitudes.setManaged(false);
+            panelAlertas    .setVisible(true);  panelAlertas    .setManaged(true);
+        }
 
         Scene scene = new Scene(raiz);
         scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
         ventana.setScene(scene);
-        ventana.showAndWait();
-        actualizarBadge();
+        Stage mainStage = (Stage) campanaPane.getScene().getWindow();
+        Runnable reposicionar = () -> {
+            javafx.geometry.Bounds b = campanaPane.localToScreen(campanaPane.getBoundsInLocal());
+            if (b == null) return;
+            double x = b.getMaxX() - ventana.getWidth();
+            double y = b.getMaxY() + 6;
+            ventana.setX(Math.max(0, x));
+            ventana.setY(y);
+        };
+        javafx.beans.value.ChangeListener<Number> moveListener   = (obs, o, n) -> reposicionar.run();
+        javafx.beans.value.ChangeListener<Number> resizeListener = (obs, o, n) -> ventana.close();
+        javafx.beans.value.ChangeListener<Boolean> iconListener  = (obs, o, n) -> { if (n) ventana.close(); };
+
+        mainStage.xProperty().addListener(moveListener);
+        mainStage.yProperty().addListener(moveListener);
+        mainStage.widthProperty().addListener(resizeListener);
+        mainStage.heightProperty().addListener(resizeListener);
+        mainStage.iconifiedProperty().addListener(iconListener);
+
+        ventana.setOnShown(ev -> reposicionar.run());
+        ventana.setOnHidden(ev -> {
+            mainStage.xProperty().removeListener(moveListener);
+            mainStage.yProperty().removeListener(moveListener);
+            mainStage.widthProperty().removeListener(resizeListener);
+            mainStage.heightProperty().removeListener(resizeListener);
+            mainStage.iconifiedProperty().removeListener(iconListener);
+            actualizarBadge();
+        });
+        ventana.show();
+        ventanaNotificaciones = ventana;
+    }
+
+    private static String estiloTabActivo() {
+        return "-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+               "-fx-font-size: 12px; -fx-background-radius: 17; -fx-padding: 7 18 7 18;" +
+               "-fx-cursor: hand; -fx-font-weight: bold;";
+    }
+
+    private static String estiloTabInactivo() {
+        return "-fx-background-color: transparent; -fx-text-fill: #586376;" +
+               "-fx-font-size: 12px; -fx-background-radius: 17; -fx-padding: 7 18 7 18;" +
+               "-fx-cursor: hand;";
     }
 
     /**
@@ -255,38 +338,59 @@ public class MainController {
      * @param fmt     formateador de fecha
      * @return HBox listo para insertar en el panel de solicitudes
      */
-    private HBox tarjetaSolicitud(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt) {
-        Label lblComp   = new Label(s.getTipoComponente());
-        lblComp.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #2C3B54;");
-        Label lblInfo   = new Label(s.getNombreTecnico() + " · " + s.getIdRep());
-        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #586376;");
-        Label lblFecha  = new Label(s.getFechaSolicitud().format(fmt));
-        lblFecha.setStyle("-fx-font-size: 10px; -fx-text-fill: #9AA0AA;");
-        String desc = s.getDescripcion() != null ? s.getDescripcion() : "";
-        Label lblDesc   = new Label(desc);
-        lblDesc.setStyle("-fx-font-size: 11px; -fx-text-fill: #586376;");
-        lblDesc.setWrapText(true);
+    private HBox tarjetaSolicitud(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
+        // Icono circular con inicial del componente
+        String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
+                ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
+        Label lblIco = new Label(inicial);
+        lblIco.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #586376;");
+        StackPane icoPane = new StackPane(lblIco);
+        icoPane.setMinSize(36, 36); icoPane.setMaxSize(36, 36);
+        icoPane.setStyle("-fx-background-color: #E8EAF0; -fx-background-radius: 50;");
 
-        VBox textos = new VBox(2, lblComp, lblInfo, lblDesc, lblFecha);
+        Label lblComp = new Label(s.getTipoComponente());
+        lblComp.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2C3B54;");
+        Label lblTag = new Label("⚠");
+        lblTag.setStyle("-fx-font-size: 10px; -fx-text-fill: #D97B00; -fx-font-weight: bold;" +
+                "-fx-background-color: #FFF3E0; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
+        HBox compRow = new HBox(6, lblComp, lblTag);
+        compRow.setAlignment(Pos.CENTER_LEFT);
+        Label lblInfo = new Label(s.getNombreTecnico() + "  ·  " +
+                s.getFechaSolicitud().format(fmt) + "  ·  " + s.getIdRep());
+        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #9AA0AA;");
+        VBox textos = new VBox(3, compRow, lblInfo);
+        if (s.getDescripcion() != null && !s.getDescripcion().isEmpty()) {
+            Label lblDesc = new Label(s.getDescripcion());
+            lblDesc.setStyle("-fx-font-size: 11px; -fx-text-fill: #586376;");
+            lblDesc.setWrapText(true);
+            textos.getChildren().add(lblDesc);
+        }
         HBox.setHgrow(textos, Priority.ALWAYS);
 
         Button btnRechazar = new Button("Rechazar");
-        btnRechazar.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020; " +
-                             "-fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand;");
-        btnRechazar.setOnAction(e -> {
-            try {
-                rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "RECHAZADA");
-                actualizarBadge();
-                // recargar panel
-                ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { mostrarError(ex); }
-        });
+        btnRechazar.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
+        btnRechazar.setOnAction(e -> rechazarSolicitud(s.getIdRc(), ventana));
 
-        HBox card = new HBox(10, textos, btnRechazar);
+        HBox card = new HBox(10, icoPane, textos, btnRechazar);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(10));
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 6;");
+        card.setStyle("-fx-background-color: " + (alterno ? "#F5F6F8" : "white") + "; -fx-background-radius: 6;");
+
+        ContextMenu ctx = new ContextMenu();
+        MenuItem itemRechazarSol = new MenuItem("Rechazar solicitud");
+        ctx.getItems().add(itemRechazarSol);
+        itemRechazarSol.setOnAction(e -> rechazarSolicitud(s.getIdRc(), ventana));
+        card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
+
         return card;
+    }
+
+    private void rechazarSolicitud(int idRc, Stage ventana) {
+        try {
+            rcDAO.actualizarEstadoSolicitud(idRc, "RECHAZADA");
+            ((Runnable) ventana.getUserData()).run();
+        } catch (SQLException ex) { mostrarError(ex); }
     }
 
     /**
@@ -299,25 +403,31 @@ public class MainController {
      * @param fmt     formateador de fecha
      * @return HBox listo para insertar en el panel de solicitudes
      */
-    private HBox tarjetaRechazada(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt) {
-        Label lblComp  = new Label(s.getTipoComponente());
-        lblComp.setStyle("-fx-font-size: 12px; -fx-text-fill: #9AA0AA;");
-        Label lblInfo  = new Label(s.getNombreTecnico() + " · " + s.getIdRep());
-        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #B0B5BF;");
+    private HBox tarjetaRechazada(SolicitudResumen s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
+        String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
+                ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
+        Label lblIco = new Label(inicial);
+        lblIco.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #B0B5BF;");
+        StackPane icoPane = new StackPane(lblIco);
+        icoPane.setMinSize(36, 36); icoPane.setMaxSize(36, 36);
+        icoPane.setStyle("-fx-background-color: #EDEEF0; -fx-background-radius: 50;");
 
-        VBox textos = new VBox(2, lblComp, lblInfo);
+        Label lblComp = new Label(s.getTipoComponente());
+        lblComp.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
+        Label lblTagR = new Label("⚠");
+        lblTagR.setStyle("-fx-font-size: 10px; -fx-text-fill: #C8A060; -fx-font-weight: bold;" +
+                "-fx-background-color: #FFF8ED; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
+        HBox compRowR = new HBox(6, lblComp, lblTagR);
+        compRowR.setAlignment(Pos.CENTER_LEFT);
+        Label lblInfo = new Label(s.getNombreTecnico() + "  ·  " + s.getIdRep());
+        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #B0B5BF;");
+        VBox textos = new VBox(3, compRowR, lblInfo);
         HBox.setHgrow(textos, Priority.ALWAYS);
 
         Button btnRecuperar = new Button("Recuperar");
-        btnRecuperar.setStyle("-fx-background-color: #C8D8C8; -fx-text-fill: #2C4A2C; " +
-                              "-fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand;");
-        btnRecuperar.setOnAction(e -> {
-            try {
-                rcDAO.actualizarEstadoSolicitud(s.getIdRc(), "PENDIENTE");
-                actualizarBadge();
-                ((Runnable) ventana.getUserData()).run();
-            } catch (SQLException ex) { mostrarError(ex); }
-        });
+        btnRecuperar.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
+        btnRecuperar.setOnAction(e -> recuperarSolicitud(s.getIdRc(), ventana));
 
         ImageView ivBorrar = new ImageView(
                 new Image(getClass().getResourceAsStream("/images/borrar.png")));
@@ -330,10 +440,161 @@ public class MainController {
             } catch (SQLException ex) { mostrarError(ex); }
         });
 
-        HBox card = new HBox(10, textos, btnRecuperar, ivBorrar);
+        HBox card = new HBox(10, icoPane, textos, btnRecuperar, ivBorrar);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(8));
-        card.setStyle("-fx-background-color: #F0F1F3; -fx-background-radius: 6;");
+        card.setStyle("-fx-background-color: " + (alterno ? "#E9EAEC" : "#F0F1F3") + "; -fx-background-radius: 6;");
+
+        ContextMenu ctx = new ContextMenu();
+        MenuItem itemRecuperarSol = new MenuItem("Recuperar solicitud");
+        ctx.getItems().add(itemRecuperarSol);
+        itemRecuperarSol.setOnAction(e -> recuperarSolicitud(s.getIdRc(), ventana));
+        card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
+
+        return card;
+    }
+
+    private void recuperarSolicitud(int idRc, Stage ventana) {
+        try {
+            rcDAO.actualizarEstadoSolicitud(idRc, "PENDIENTE");
+            ((Runnable) ventana.getUserData()).run();
+        } catch (SQLException ex) { mostrarError(ex); }
+    }
+
+    private HBox tarjetaSolicitudPreventiva(SolicitudStock s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
+        String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
+                ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
+        Label lblIco = new Label(inicial);
+        lblIco.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #586376;");
+        StackPane icoPane = new StackPane(lblIco);
+        icoPane.setMinSize(36, 36); icoPane.setMaxSize(36, 36);
+        icoPane.setStyle("-fx-background-color: #E8EAF0; -fx-background-radius: 50;");
+
+        Label lblComp = new Label(s.getTipoComponente());
+        lblComp.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2C3B54;");
+        Label lblInfo = new Label(s.getNombreUsuario() + "  ·  " + s.getFecha().format(fmt));
+        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #9AA0AA;");
+        VBox textos = new VBox(3, lblComp, lblInfo);
+        if (s.getDescripcion() != null && !s.getDescripcion().isEmpty()) {
+            Label lblDesc = new Label(s.getDescripcion());
+            lblDesc.setStyle("-fx-font-size: 11px; -fx-text-fill: #586376;");
+            lblDesc.setWrapText(true);
+            textos.getChildren().add(lblDesc);
+        }
+        HBox.setHgrow(textos, Priority.ALWAYS);
+
+        Button btnRechazar = new Button("Rechazar");
+        btnRechazar.setStyle("-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
+        btnRechazar.setOnAction(e -> rechazarPreventiva(s.getIdSol(), ventana));
+
+        HBox card = new HBox(10, icoPane, textos, btnRechazar);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(10));
+        card.setStyle("-fx-background-color: " + (alterno ? "#F5F6F8" : "white") + "; -fx-background-radius: 6;");
+
+        ContextMenu ctx = new ContextMenu();
+        MenuItem itemRechazarSol = new MenuItem("Rechazar solicitud");
+        ctx.getItems().add(itemRechazarSol);
+        itemRechazarSol.setOnAction(e -> rechazarPreventiva(s.getIdSol(), ventana));
+        card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
+
+        return card;
+    }
+
+    private HBox tarjetaRechazadaPreventiva(SolicitudStock s, Stage ventana, DateTimeFormatter fmt, boolean alterno) {
+        String inicial = s.getTipoComponente() != null && !s.getTipoComponente().isEmpty()
+                ? s.getTipoComponente().substring(0, 1).toUpperCase() : "?";
+        Label lblIco = new Label(inicial);
+        lblIco.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #B0B5BF;");
+        StackPane icoPane = new StackPane(lblIco);
+        icoPane.setMinSize(36, 36); icoPane.setMaxSize(36, 36);
+        icoPane.setStyle("-fx-background-color: #EDEEF0; -fx-background-radius: 50;");
+
+        Label lblComp = new Label(s.getTipoComponente());
+        lblComp.setStyle("-fx-font-size: 13px; -fx-text-fill: #9AA0AA;");
+        Label lblInfo = new Label(s.getNombreUsuario() + "  ·  " + s.getFecha().format(fmt));
+        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #B0B5BF;");
+        VBox textos = new VBox(3, lblComp, lblInfo);
+        HBox.setHgrow(textos, Priority.ALWAYS);
+
+        Button btnRecuperar = new Button("Recuperar");
+        btnRecuperar.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 14 6 14;");
+        btnRecuperar.setOnAction(e -> recuperarPreventiva(s.getIdSol(), ventana));
+
+        ImageView ivBorrar = new ImageView(
+                new Image(getClass().getResourceAsStream("/images/borrar.png")));
+        ivBorrar.setFitWidth(18); ivBorrar.setFitHeight(18); ivBorrar.setPreserveRatio(true);
+        ivBorrar.setStyle("-fx-cursor: hand; -fx-opacity: 0.5;");
+        ivBorrar.setOnMouseClicked(e -> {
+            try {
+                solicitudStockDAO.borrar(s.getIdSol());
+                ((Runnable) ventana.getUserData()).run();
+            } catch (SQLException ex) { mostrarError(ex); }
+        });
+
+        HBox card = new HBox(10, icoPane, textos, btnRecuperar, ivBorrar);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(8));
+        card.setStyle("-fx-background-color: " + (alterno ? "#E9EAEC" : "#F0F1F3") + "; -fx-background-radius: 6;");
+
+        ContextMenu ctx = new ContextMenu();
+        MenuItem itemRecuperarSol = new MenuItem("Recuperar solicitud");
+        ctx.getItems().add(itemRecuperarSol);
+        itemRecuperarSol.setOnAction(e -> recuperarPreventiva(s.getIdSol(), ventana));
+        card.setOnContextMenuRequested(e -> ctx.show(card, e.getScreenX(), e.getScreenY()));
+
+        return card;
+    }
+
+    private void rechazarPreventiva(int idSol, Stage ventana) {
+        try {
+            solicitudStockDAO.actualizarEstado(idSol, "RECHAZADA");
+            ((Runnable) ventana.getUserData()).run();
+        } catch (SQLException ex) { mostrarError(ex); }
+    }
+
+    private void recuperarPreventiva(int idSol, Stage ventana) {
+        try {
+            solicitudStockDAO.actualizarEstado(idSol, "PENDIENTE");
+            ((Runnable) ventana.getUserData()).run();
+        } catch (SQLException ex) { mostrarError(ex); }
+    }
+
+    private HBox tarjetaAlerta(Componente c, boolean sinStock, boolean alterno, Stage ventana) {
+        Label lblIco = new Label(sinStock ? "✕" : "!");
+        lblIco.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: white;");
+        StackPane icoPane = new StackPane(lblIco);
+        icoPane.setMinSize(40, 40); icoPane.setMaxSize(40, 40);
+        icoPane.setStyle("-fx-background-color: " + (sinStock ? "#E8504A" : "#E8903A") +
+                "; -fx-background-radius: 50;");
+
+        Label lblComp = new Label(c.getTipo());
+        lblComp.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2C3B54;");
+        String etiqueta  = sinStock ? "Sin Stock" : "Stock Bajo";
+        String unidades  = sinStock ? "Sin unidades" : c.getStock() + " unid. restantes";
+        Label lblEtiq = new Label(etiqueta);
+        lblEtiq.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " +
+                (sinStock ? "#E8504A" : "#E8903A") + ";");
+        Label lblInfo = new Label(unidades);
+        lblInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #9AA0AA;");
+        HBox infoRow = new HBox(6, lblEtiq, lblInfo);
+        infoRow.setAlignment(Pos.CENTER_LEFT);
+        VBox textos = new VBox(3, lblComp, infoRow);
+        HBox.setHgrow(textos, Priority.ALWAYS);
+
+        Button btnPedir = new Button("Pedir");
+        btnPedir.setStyle("-fx-background-color: #2C3B54; -fx-text-fill: white;" +
+                "-fx-font-size: 11px; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 6 16 6 16;");
+        btnPedir.setOnAction(e -> {
+            FormularioCompraController.abrir(c, () -> {});
+        });
+
+        HBox card = new HBox(12, icoPane, textos, btnPedir);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(12));
+        card.setStyle("-fx-background-color: " + (alterno ? "#F5F6F8" : "white") + "; -fx-background-radius: 6;");
         return card;
     }
 
@@ -352,102 +613,6 @@ public class MainController {
             mostrarError(e);
             return;
         }
-        if (alertasCriticas.isEmpty()) return;
-
-        lblAlertaStock.setVisible(true);
-        lblAlertaStock.setManaged(true);
-        lblAlertaStock.setOnMouseClicked(e -> mostrarDialogoAlerta());
-        Platform.runLater(this::mostrarDialogoAlerta);
-    }
-
-    /** Muestra el popup modal con la lista de componentes sin stock y bajo mínimo. */
-    private void mostrarDialogoAlerta() {
-        List<Componente> sinStock = alertasCriticas.stream().filter(c -> c.getStock() == 0).collect(Collectors.toList());
-        List<Componente> bajoMin  = alertasCriticas.stream().filter(c -> c.getStock() > 0).collect(Collectors.toList());
-
-        Stage ventana = new Stage();
-        ventana.initModality(Modality.APPLICATION_MODAL);
-        ventana.initStyle(StageStyle.UNDECORATED);
-        ventana.setResizable(false);
-
-        Label lblIcono = new Label("⚠");
-        lblIcono.setStyle("-fx-font-size: 20px; -fx-text-fill: #D97B00;");
-
-        Label lblTitulo = new Label("Alerta de stock");
-        lblTitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + Colores.AZUL_MEDIO + ";");
-
-        Label lblX = new Label("✕");
-        lblX.setStyle("-fx-font-size: 16px; -fx-cursor: hand; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
-        lblX.setOnMouseClicked(e -> ventana.close());
-
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox cabecera = new HBox(8, lblIcono, lblTitulo, spacer, lblX);
-        cabecera.setAlignment(Pos.CENTER_LEFT);
-        cabecera.setPadding(new Insets(0, 0, 12, 0));
-
-        Label lblResumen = new Label(alertasCriticas.size() + " componente(s) requieren atención");
-        lblResumen.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_GRIS + ";");
-
-        VBox cuerpo = new VBox(10, cabecera, lblResumen);
-
-        if (!sinStock.isEmpty()) {
-            Label lblSec = new Label("Sin stock (" + sinStock.size() + ")");
-            lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + Colores.ROJO_SIN_STOCK + ";");
-            VBox filas = new VBox(4);
-            for (Componente c : sinStock) {
-                Label fila = new Label("• " + c.getTipo());
-                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
-                filas.getChildren().add(fila);
-            }
-            ScrollPane scroll = new ScrollPane(filas);
-            scroll.setFitToWidth(true);
-            scroll.setMaxHeight(140);
-            scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-            cuerpo.getChildren().addAll(lblSec, scroll);
-        }
-
-        if (!bajoMin.isEmpty()) {
-            Label lblSec = new Label("Bajo mínimo (" + bajoMin.size() + ")");
-            lblSec.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #D97B00;");
-            VBox filas = new VBox(4);
-            for (Componente c : bajoMin) {
-                Label fila = new Label("• " + c.getTipo() + "   (" + c.getStock() + " uds.)");
-                fila.setStyle("-fx-font-size: 12px; -fx-text-fill: " + Colores.AZUL_NOCHE + ";");
-                filas.getChildren().add(fila);
-            }
-            ScrollPane scroll = new ScrollPane(filas);
-            scroll.setFitToWidth(true);
-            scroll.setMaxHeight(140);
-            scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-            cuerpo.getChildren().addAll(lblSec, scroll);
-        }
-
-        Button btnCerrar = new Button("Entendido");
-        btnCerrar.setMaxWidth(Double.MAX_VALUE);
-        btnCerrar.setStyle(
-                "-fx-background-color: " + Colores.AZUL_NOCHE + "; -fx-text-fill: " + Colores.CREMA + ";" +
-                "-fx-font-weight: bold; -fx-font-size: 12px; -fx-background-radius: 4;" +
-                "-fx-padding: 10; -fx-cursor: hand;");
-        btnCerrar.setOnAction(e -> ventana.close());
-        cuerpo.getChildren().add(btnCerrar);
-
-        cuerpo.setPadding(new Insets(24));
-        cuerpo.setPrefWidth(360);
-        cuerpo.setStyle("-fx-background-color: " + Colores.CREMA + ";" +
-                "-fx-border-color: #C2C8D0; -fx-border-width: 1;");
-
-        final double[] drag = new double[2];
-        cuerpo.setOnMousePressed(ev  -> { drag[0] = ev.getSceneX(); drag[1] = ev.getSceneY(); });
-        cuerpo.setOnMouseDragged(ev  -> {
-            ventana.setX(ev.getScreenX() - drag[0]);
-            ventana.setY(ev.getScreenY() - drag[1]);
-        });
-
-        Scene scene = new Scene(cuerpo);
-        scene.setFill(Color.web(Colores.CREMA));
-        ventana.setScene(scene);
-        ventana.showAndWait();
     }
 
     /** Navega a la vista de inicio según el rol (clickable desde el logo). */

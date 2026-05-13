@@ -109,9 +109,11 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
     @FXML private Label lblUltimaActProveedores;
 
     // ── DAOs ──────────────────────────────────────────────────────────────────
-    private final ComponenteDAO     componenteDAO = new ComponenteDAO();
-    private final CompraComponenteDAO compraDAO   = new CompraComponenteDAO();
-    private final ProveedorDAO      proveedorDAO  = new ProveedorDAO();
+    private final ComponenteDAO       componenteDAO    = new ComponenteDAO();
+    private final CompraComponenteDAO compraDAO        = new CompraComponenteDAO();
+    private final ProveedorDAO        proveedorDAO     = new ProveedorDAO();
+    private final com.reparaciones.dao.SolicitudStockDAO solicitudStockDAO =
+            new com.reparaciones.dao.SolicitudStockDAO();
 
     // ── Observable lists ──────────────────────────────────────────────────────
     private final ObservableList<Componente>      datosStock      = FXCollections.observableArrayList();
@@ -290,28 +292,41 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
             }
         });
 
-        // Menú contextual (solo supertecnico)
-        if (com.reparaciones.Sesion.esSuperTecnico()) {
-            ContextMenu ctxStock = new ContextMenu();
-            MenuItem itemPedir  = new MenuItem("Pedir");
-            MenuItem itemMin    = new MenuItem("Ajustar mínimo");
-            MenuItem itemEditar = new MenuItem("Editar stock");
-            ctxStock.getItems().addAll(itemPedir, itemEditar, new SeparatorMenuItem(), itemMin);
-            tablaStock.setContextMenu(ctxStock);
-            MenuItem itemToggleActivo = new MenuItem("Desactivar");
-            ctxStock.getItems().add(new SeparatorMenuItem());
-            ctxStock.getItems().add(itemToggleActivo);
-            tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-                itemPedir      .setDisable(sel == null);
-                itemMin        .setDisable(sel == null);
-                itemEditar     .setDisable(sel == null);
-                itemToggleActivo.setDisable(sel == null);
-                if (sel != null) itemToggleActivo.setText(sel.isActivo() ? "Desactivar" : "Activar");
+        // Menú contextual (supertecnico: completo; tecnico: solo solicitar)
+        if (!com.reparaciones.Sesion.esAdmin()) {
+            ContextMenu ctxStock   = new ContextMenu();
+            MenuItem itemSolicitar = new MenuItem("Solicitar pieza");
+
+            if (com.reparaciones.Sesion.esSuperTecnico()) {
+                MenuItem itemPedir        = new MenuItem("Pedir");
+                MenuItem itemMin          = new MenuItem("Ajustar mínimo");
+                MenuItem itemEditar       = new MenuItem("Editar stock");
+                MenuItem itemToggleActivo = new MenuItem("Desactivar");
+                ctxStock.getItems().addAll(itemPedir, itemEditar, new SeparatorMenuItem(), itemMin,
+                        new SeparatorMenuItem(), itemToggleActivo, new SeparatorMenuItem(), itemSolicitar);
+                tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+                    itemPedir        .setDisable(sel == null);
+                    itemMin          .setDisable(sel == null);
+                    itemEditar       .setDisable(sel == null);
+                    itemToggleActivo .setDisable(sel == null);
+                    itemSolicitar    .setDisable(sel == null);
+                    if (sel != null) itemToggleActivo.setText(sel.isActivo() ? "Desactivar" : "Activar");
+                });
+                itemPedir       .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) pedirComponente(sel); });
+                itemMin         .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) ajustarMinimo(sel); });
+                itemEditar      .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) editarStock(sel); });
+                itemToggleActivo.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) toggleActivarComponente(sel); });
+            } else {
+                ctxStock.getItems().add(itemSolicitar);
+                tablaStock.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) ->
+                        itemSolicitar.setDisable(sel == null));
+            }
+
+            itemSolicitar.setOnAction(e -> {
+                Componente sel = tablaStock.getSelectionModel().getSelectedItem();
+                if (sel != null) solicitarPieza(sel);
             });
-            itemPedir .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) pedirComponente(sel); });
-            itemMin   .setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) ajustarMinimo(sel); });
-            itemEditar.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) editarStock(sel); });
-            itemToggleActivo.setOnAction(e -> { Componente sel = tablaStock.getSelectionModel().getSelectedItem(); if (sel != null) toggleActivarComponente(sel); });
+            tablaStock.setContextMenu(ctxStock);
         }
 
         // Filtros: buscador + estado (MenuButton con CheckBoxes)
@@ -620,6 +635,62 @@ public class StockController implements com.reparaciones.utils.Recargable, com.r
                 new Alert(Alert.AlertType.WARNING, "Valor no válido (debe ser ≥ 0).").showAndWait();
             } catch (SQLException e) { mostrarError(e); }
         });
+    }
+
+    private void solicitarPieza(Componente c) {
+        Label lblTitulo = new Label("Solicitar pieza");
+        lblTitulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;");
+
+        Label lblActual = new Label("Componente: " + c.getTipo() + "   ·   Stock actual: " + c.getStock() + " ud(s).");
+        lblActual.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376;");
+
+        Label lblDesc = new Label("Descripción (opcional)");
+        lblDesc.setStyle("-fx-font-size: 12px; -fx-text-fill: #586376; -fx-font-weight: bold;");
+
+        javafx.scene.control.TextArea taDesc = new javafx.scene.control.TextArea();
+        taDesc.setPromptText("Motivo o contexto de la solicitud...");
+        taDesc.setPrefRowCount(3);
+        taDesc.setWrapText(true);
+        taDesc.setStyle("-fx-background-color: white; -fx-border-color: #C2C8D0;" +
+                "-fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 6;" +
+                "-fx-font-size: 13px; -fx-text-fill: #2C3B54;");
+
+        Button btnConfirmar = new Button("Solicitar");
+        btnConfirmar.setMaxWidth(Double.MAX_VALUE);
+        btnConfirmar.getStyleClass().add("btn-primary");
+
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.setMaxWidth(Double.MAX_VALUE);
+        btnCancelar.getStyleClass().add("btn-secondary");
+
+        javafx.scene.layout.HBox botones = new javafx.scene.layout.HBox(10, btnCancelar, btnConfirmar);
+        botones.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        javafx.scene.layout.VBox contenido = new javafx.scene.layout.VBox(12,
+                lblTitulo, lblActual, lblDesc, taDesc, botones);
+        contenido.setPadding(new javafx.geometry.Insets(28));
+        contenido.setPrefWidth(380);
+        contenido.setStyle("-fx-background-color: #DDE1E7;");
+
+        javafx.stage.Stage ventana = new javafx.stage.Stage();
+        ventana.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        ventana.setResizable(false);
+        ventana.setTitle("Solicitar pieza — " + c.getTipo());
+
+        btnCancelar.setOnAction(ev -> ventana.close());
+        btnConfirmar.setOnAction(ev -> {
+            String desc = taDesc.getText().trim();
+            try {
+                solicitudStockDAO.insertar(c.getIdCom(), desc.isEmpty() ? null : desc);
+                ventana.close();
+            } catch (java.sql.SQLException ex) { mostrarError(ex); }
+        });
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(contenido);
+        scene.getStylesheets().add(getClass().getResource("/styles/app.css").toExternalForm());
+        ventana.setScene(scene);
+        javafx.application.Platform.runLater(taDesc::requestFocus);
+        ventana.showAndWait();
     }
 
     // ─── Configurar tabla Pedidos ─────────────────────────────────────────────

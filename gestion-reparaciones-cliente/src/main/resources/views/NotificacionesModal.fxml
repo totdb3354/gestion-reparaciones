@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Estructura estática del modal de notificaciones.
+    Sin fx:controller — los nodos se obtienen via FXMLLoader.getNamespace()
+    y toda la lógica permanece en MainController.
+-->
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      xmlns="http://javafx.com/javafx/17"
+      fx:id="raiz"
+      prefWidth="480"
+      spacing="12"
+      style="-fx-background-color: #DDE1E7; -fx-border-color: #C4C9D4; -fx-border-width: 1;">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+    <!-- ══ Tab bar ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="8">
+        <HBox fx:id="segmentado" alignment="CENTER_LEFT" spacing="0"
+              style="-fx-background-color: white; -fx-background-radius: 20;
+                     -fx-border-color: #D0D4DC; -fx-border-radius: 20;
+                     -fx-border-width: 1; -fx-padding: 3;">
+            <Button fx:id="btnTabSolicitudes" text="Solicitudes"/>
+            <Button fx:id="btnTabAlertas"     text="Alertas"/>
+        </HBox>
+        <HBox HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblIrPedidos" text="→ Ir a pedidos"
+               style="-fx-font-size: 12px; -fx-cursor: hand;
+                      -fx-text-fill: #001232; -fx-font-weight: bold;"/>
+    </HBox>
+
+    <!-- ══ Panel Solicitudes ════════════════════════════════════════════════ -->
+    <VBox fx:id="panelSolicitudes" spacing="8">
+        <ScrollPane fitToWidth="true" prefHeight="370" hbarPolicy="NEVER"
+                    style="-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;">
+            <VBox spacing="8">
+                <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
+                <Label text="Solicitudes de pieza"
+                       style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;"/>
+                <VBox fx:id="listaPendientes" spacing="6"/>
+                <Label text="Rechazadas"
+                       style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #9AA0AA;"/>
+                <VBox fx:id="listaRechazadas" spacing="6"/>
+            </VBox>
+        </ScrollPane>
+        <HBox spacing="8" alignment="CENTER">
+            <Button fx:id="btnPedir" text="Pedir piezas"
+                    maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: #2C3B54; -fx-text-fill: white;
+                           -fx-font-size: 13px; -fx-background-radius: 20;
+                           -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 11;"/>
+            <Button fx:id="btnRechazarTodo" text="Rechazar todo"
+                    maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: #F5A0A0; -fx-text-fill: #7A2020;
+                           -fx-font-size: 13px; -fx-background-radius: 20;
+                           -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 11;"/>
+        </HBox>
+    </VBox>
+
+    <!-- ══ Panel Alertas ════════════════════════════════════════════════════ -->
+    <VBox fx:id="panelAlertas" spacing="8" visible="false" managed="false">
+        <ScrollPane fitToWidth="true" prefHeight="320" hbarPolicy="NEVER"
+                    style="-fx-background: #DDE1E7; -fx-background-color: #DDE1E7;">
+            <VBox spacing="8">
+                <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
+                <Label text="Alertas de Stock"
+                       style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;"/>
+                <VBox fx:id="contenedorAlertas" spacing="6"/>
+            </VBox>
+        </ScrollPane>
+        <HBox spacing="8" alignment="CENTER">
+            <Button fx:id="btnPedirTodas" text="Pedir todas las piezas"
+                    maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: #2C3B54; -fx-text-fill: white;
+                           -fx-font-size: 13px; -fx-background-radius: 20;
+                           -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 11;"/>
+            <Button fx:id="btnVerStock" text="Ver Stock Completo"
+                    maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                    style="-fx-background-color: #2C3B54; -fx-text-fill: white;
+                           -fx-font-size: 13px; -fx-background-radius: 20;
+                           -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 11;"/>
+        </HBox>
+    </VBox>
+
+</VBox>

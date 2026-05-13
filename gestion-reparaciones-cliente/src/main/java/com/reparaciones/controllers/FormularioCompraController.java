@@ -9,6 +9,7 @@ import com.reparaciones.models.Componente;
 import com.reparaciones.models.CompraComponente;
 import com.reparaciones.models.LineaPedido;
 import com.reparaciones.models.Proveedor;
+import com.reparaciones.models.SolicitudStock;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -471,7 +472,88 @@ public class FormularioCompraController {
         }
     }
 
+    public void initConSolicitudes(List<com.reparaciones.models.SolicitudResumen> urgentes,
+                                   List<SolicitudStock> preventivas, Runnable onGuardado) {
+        this.onGuardado = onGuardado;
+        try {
+            componentesDisponibles = FXCollections.observableArrayList(
+                    componenteDAO.getAllGestionados().stream()
+                            .filter(Componente::isActivo)
+                            .collect(java.util.stream.Collectors.toList()));
+            proveedoresDisponibles = FXCollections.observableArrayList(proveedorDAO.getActivos());
+        } catch (SQLException e) { mostrarError(e); }
+        configurarTabla();
+        tablaLineas.setItems(lineas);
+        java.util.Map<Integer, Integer> conteo = new java.util.LinkedHashMap<>();
+        for (com.reparaciones.models.SolicitudResumen s : urgentes)
+            conteo.merge(s.getIdCom(), 1, Integer::sum);
+        for (SolicitudStock s : preventivas)
+            conteo.merge(s.getIdCom(), 1, Integer::sum);
+        for (java.util.Map.Entry<Integer, Integer> entry : conteo.entrySet()) {
+            int idCom = entry.getKey();
+            int cantidad = entry.getValue();
+            componentesDisponibles.stream()
+                    .filter(c -> c.getIdCom() == idCom)
+                    .findFirst()
+                    .ifPresent(comp -> {
+                        añadirFila(comp);
+                        lineas.get(lineas.size() - 1).setCantidad(cantidad);
+                    });
+        }
+    }
+
     // ─── Apertura estática ────────────────────────────────────────────────────
+
+    public static void abrirConSolicitudes(List<com.reparaciones.models.SolicitudResumen> urgentes,
+                                           List<SolicitudStock> preventivas, Runnable onGuardado) {
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(
+                        FormularioCompraController.class.getResource("/views/FormularioCompraView.fxml"));
+                Parent root = loader.load();
+                FormularioCompraController ctrl = loader.getController();
+                Stage stage = new Stage();
+                stage.setTitle("Nuevo pedido — solicitudes pendientes");
+                stage.setScene(new Scene(root));
+                stage.setResizable(false);
+                stage.initModality(Modality.APPLICATION_MODAL);
+                ctrl.initConSolicitudes(urgentes, preventivas, onGuardado);
+                stage.show();
+            } catch (Exception e) { mostrarError(e); }
+        });
+    }
+
+    public void initConComponentes(List<Componente> componentes, Runnable onGuardado) {
+        this.onGuardado = onGuardado;
+        try {
+            componentesDisponibles = FXCollections.observableArrayList(
+                    componenteDAO.getAllGestionados().stream()
+                            .filter(Componente::isActivo)
+                            .collect(java.util.stream.Collectors.toList()));
+            proveedoresDisponibles = FXCollections.observableArrayList(proveedorDAO.getActivos());
+        } catch (SQLException e) { mostrarError(e); }
+        configurarTabla();
+        tablaLineas.setItems(lineas);
+        for (Componente c : componentes) añadirFila(c);
+    }
+
+    public static void abrirConComponentes(List<Componente> componentes, Runnable onGuardado) {
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(
+                        FormularioCompraController.class.getResource("/views/FormularioCompraView.fxml"));
+                Parent root = loader.load();
+                FormularioCompraController ctrl = loader.getController();
+                Stage stage = new Stage();
+                stage.setTitle("Nuevo pedido — alertas de stock");
+                stage.setScene(new Scene(root));
+                stage.setResizable(false);
+                stage.initModality(Modality.APPLICATION_MODAL);
+                ctrl.initConComponentes(componentes, onGuardado);
+                stage.show();
+            } catch (Exception e) { mostrarError(e); }
+        });
+    }
 
     public static void abrirConSolicitudes(List<com.reparaciones.models.SolicitudResumen> solicitudes, Runnable onGuardado) {
         Platform.runLater(() -> {

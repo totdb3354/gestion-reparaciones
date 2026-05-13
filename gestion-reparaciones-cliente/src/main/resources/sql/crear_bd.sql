@@ -12,6 +12,7 @@ USE reparaciones;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS Log_Actividad;
+DROP TABLE IF EXISTS Solicitud_Stock;
 DROP TABLE IF EXISTS Reparacion_componente;
 DROP TABLE IF EXISTS Compra_componente;
 DROP TABLE IF EXISTS Reparacion;
@@ -130,6 +131,21 @@ CREATE TABLE Reparacion_componente (
     PRIMARY KEY (ID_RC),
     CONSTRAINT fk_rc_reparacion  FOREIGN KEY (ID_REP) REFERENCES Reparacion (ID_REP),
     CONSTRAINT fk_rc_componente  FOREIGN KEY (ID_COM) REFERENCES Componente  (ID_COM)
+);
+
+-- ── Solicitudes de stock preventivas ─────────────────────────────────────────
+
+CREATE TABLE Solicitud_Stock (
+    ID_SOL      INT          NOT NULL AUTO_INCREMENT,
+    ID_COM      INT          NOT NULL,
+    ID_USU      INT          NOT NULL,
+    DESCRIPCION TEXT,
+    ESTADO      ENUM('PENDIENTE','GESTIONADA','RECHAZADA') NOT NULL DEFAULT 'PENDIENTE',
+    FECHA       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UPDATED_AT  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (ID_SOL),
+    CONSTRAINT fk_sol_componente FOREIGN KEY (ID_COM) REFERENCES Componente (ID_COM),
+    CONSTRAINT fk_sol_usuario    FOREIGN KEY (ID_USU) REFERENCES Usuario    (ID_USU)
 );
 
 -- ── Log de actividad ──────────────────────────────────────────────────────────
