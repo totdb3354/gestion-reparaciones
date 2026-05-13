@@ -61,6 +61,7 @@ public class FormularioCompraController {
     private final ProveedorDAO        proveedorDAO  = new ProveedorDAO();
     private final TipoCambioDAO       tipoCambioDAO = new TipoCambioDAO();
     private final CompraComponenteDAO compraDAO     = new CompraComponenteDAO();
+    private final java.util.Map<String, Double> tasasCache = new java.util.HashMap<>();
 
     private final ObservableList<LineaPedido> lineas = FXCollections.observableArrayList();
     private ObservableList<Componente> componentesDisponibles;
@@ -94,10 +95,20 @@ public class FormularioCompraController {
             tablaLineas.refresh();
             return;
         }
+        Double cached = tasasCache.get(divisa);
+        if (cached != null) {
+            linea.setTasa(cached);
+            tablaLineas.refresh();
+            return;
+        }
         new Thread(() -> {
             try {
                 double t = tipoCambioDAO.getTasa(divisa);
-                Platform.runLater(() -> { linea.setTasa(t); tablaLineas.refresh(); });
+                Platform.runLater(() -> {
+                    tasasCache.put(divisa, t);
+                    linea.setTasa(t);
+                    tablaLineas.refresh();
+                });
             } catch (SQLException e) {
                 Platform.runLater(tablaLineas::refresh);
             }

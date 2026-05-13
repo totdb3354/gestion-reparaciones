@@ -226,19 +226,35 @@ public class MainController {
 
         // ── Recargar ──────────────────────────────────────────────────────────
         final Runnable[] recargarRef = { null };
+        final java.util.concurrent.atomic.AtomicReference<java.util.Set<String>> snapshotRef =
+                new java.util.concurrent.atomic.AtomicReference<>(java.util.Collections.emptySet());
         recargarRef[0] = () -> {
-            listaPendientes.getChildren().clear();
-            listaRechazadas.getChildren().clear();
             try {
+                List<SolicitudResumen> pendRC  = rcDAO.getSolicitudes("PENDIENTE");
+                List<SolicitudStock>   pendSol = solicitudStockDAO.getSolicitudes("PENDIENTE");
+                List<SolicitudResumen> rechRC  = rcDAO.getSolicitudes("RECHAZADA");
+                List<SolicitudStock>   rechSol = solicitudStockDAO.getSolicitudes("RECHAZADA");
+
+                java.util.Set<String> snapshot = new java.util.LinkedHashSet<>();
+                pendRC .forEach(s -> snapshot.add("pr" + s.getIdRc()));
+                pendSol.forEach(s -> snapshot.add("ps" + s.getIdSol()));
+                rechRC .forEach(s -> snapshot.add("rr" + s.getIdRc()));
+                rechSol.forEach(s -> snapshot.add("rs" + s.getIdSol()));
+
+                if (snapshot.equals(snapshotRef.get())) { actualizarBadge(); return; }
+                snapshotRef.set(snapshot);
+
+                listaPendientes.getChildren().clear();
+                listaRechazadas.getChildren().clear();
                 int ip = 0;
-                for (SolicitudResumen s : rcDAO.getSolicitudes("PENDIENTE"))
+                for (SolicitudResumen s : pendRC)
                     listaPendientes.getChildren().add(tarjetaSolicitud(s, ventana, fmt, ip++ % 2 != 0));
-                for (SolicitudStock s : solicitudStockDAO.getSolicitudes("PENDIENTE"))
+                for (SolicitudStock s : pendSol)
                     listaPendientes.getChildren().add(tarjetaSolicitudPreventiva(s, ventana, fmt, ip++ % 2 != 0));
                 int ir = 0;
-                for (SolicitudResumen s : rcDAO.getSolicitudes("RECHAZADA"))
+                for (SolicitudResumen s : rechRC)
                     listaRechazadas.getChildren().add(tarjetaRechazada(s, ventana, fmt, ir++ % 2 != 0));
-                for (SolicitudStock s : solicitudStockDAO.getSolicitudes("RECHAZADA"))
+                for (SolicitudStock s : rechSol)
                     listaRechazadas.getChildren().add(tarjetaRechazadaPreventiva(s, ventana, fmt, ir++ % 2 != 0));
             } catch (SQLException ex) { mostrarError(ex); }
             actualizarBadge();
