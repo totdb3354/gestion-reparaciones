@@ -1361,6 +1361,8 @@ public class FormularioReparacionController {
                 solicitudNuevaEnEstaSesion = true;
                 btnSolicitud.setText("⚠ Pieza pendiente");
                 btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                btnSolicitud.setVisible(true);
+                btnSolicitud.setManaged(true);
                 dialog.close();
                 notificar();
             });
@@ -1423,6 +1425,9 @@ public class FormularioReparacionController {
                         chkReutilizado.setDisable(true);
                         btnSolicitud.setText(esGestionada ? "⚠ En camino" : "⚠ Pieza pendiente");
                         btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
+                        btnSolicitud.setDisable(false);
+                        btnSolicitud.setVisible(true);
+                        btnSolicitud.setManaged(true);
                         if (c.getStock() > 0) {
                             btnMas.setDisable(false);
                             btnMenos.setDisable(true);
