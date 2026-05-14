@@ -127,7 +127,11 @@ public class PendientesTecnicoController {
         });
 
         cEstado.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
+            private final Label badge   = new Label();
+            private final Label lblTipo = new Label();
+            private final javafx.scene.layout.VBox celdaBox =
+                    new javafx.scene.layout.VBox(2, badge, lblTipo);
+            { celdaBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT); }
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -135,23 +139,46 @@ public class PendientesTecnicoController {
                 ReparacionResumen rep = getTableView().getItems().get(getIndex());
                 String base = "-fx-background-radius: 10; -fx-padding: 2 10 2 10;" +
                               "-fx-font-size: 11px; -fx-font-weight: bold;";
+                lblTipo.setText("");
                 if (rep.isEsIncidencia()) {
                     badge.setText("Incidencia");
                     badge.setStyle(base +
                         "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BG + ";" +
                         "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_INCIDENCIA_BRD + ";");
                 } else if (rep.getEsSolicitud() > 0) {
-                    badge.setText("Solicitud");
-                    badge.setStyle(base +
-                        "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
-                        "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
+                    boolean recibido  = "GESTIONADA".equals(rep.getEstadoSolicitud())
+                                        && rep.getStockSolicitud() > 0;
+                    boolean enCamino  = rep.isEnCaminoSolicitud();
+                    if (recibido) {
+                        badge.setText("Recibido");
+                        badge.setStyle(base +
+                            "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;");
+                    } else if (enCamino) {
+                        badge.setText("En camino");
+                        badge.setStyle(base +
+                            "-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0;");
+                    } else {
+                        badge.setText("Solicitud");
+                        badge.setStyle(base +
+                            "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
+                            "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
+                    }
+                    String todos = rep.getTiposSolicitud();
+                    javafx.scene.control.Tooltip.uninstall(celdaBox, null);
+                    if (todos != null && !todos.isEmpty()) {
+                        boolean multiples = rep.getEsSolicitud() > 1;
+                        lblTipo.setText(multiples ? rep.getEsSolicitud() + " piezas" : todos);
+                        lblTipo.setStyle("-fx-font-size: 10px; -fx-text-fill: #586376;");
+                        javafx.scene.control.Tooltip.install(celdaBox,
+                                new javafx.scene.control.Tooltip(todos));
+                    }
                 } else {
                     badge.setText("Normal");
                     badge.setStyle(base +
                         "-fx-background-color: #E8EAF0;" +
                         "-fx-text-fill: #586376;");
                 }
-                setGraphic(badge);
+                setGraphic(celdaBox);
             }
         });
 

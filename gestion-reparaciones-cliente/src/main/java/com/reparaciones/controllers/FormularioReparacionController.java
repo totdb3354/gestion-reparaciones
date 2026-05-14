@@ -132,7 +132,7 @@ public class FormularioReparacionController {
                         if ("RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
                         for (FilaUI fila : filasUI)
                             fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud(),
-                                    "PENDIENTE".equals(sol.getEstadoSolicitud()));
+                                    sol.getEstadoSolicitud(), sol.isEnCamino());
                     }
                 }
             } catch (SQLException e) {
@@ -146,7 +146,16 @@ public class FormularioReparacionController {
                 if ("RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
                 for (FilaUI fila : filasUI)
                     fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud(),
-                            "PENDIENTE".equals(sol.getEstadoSolicitud()));
+                            sol.getEstadoSolicitud(), sol.isEnCamino());
+            }
+        }
+        // Tercera pasada: solicitudes RECHAZADAS — preseleccionar el SKU concreto para que
+        // el indicador de stock muestre el valor correcto (0) en lugar del primer SKU con stock.
+        if (solicitudesCargadas != null) {
+            for (FilaReparacion sol : solicitudesCargadas) {
+                if (!"RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
+                for (FilaUI fila : filasUI)
+                    fila.preseleccionarSku(sol.getIdCom());
             }
         }
     }
@@ -630,6 +639,12 @@ public class FormularioReparacionController {
         private static final String STYLE_SOL_ACTIVA =
                 "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + "; -fx-text-fill: white;" +
                 "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+        private static final String STYLE_SOL_RECIBIDA =
+                "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;" +
+                "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+        private static final String STYLE_SOL_EN_CAMINO =
+                "-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0;" +
+                "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
 
         private final HBox mainRow;
 
@@ -1390,37 +1405,52 @@ public class FormularioReparacionController {
             root.setOpacity(0.4);
         }
 
-        // Estado      | Stock>0 | Resultado
-        // PENDIENTE   |  sí/no  | Bloqueado (admin aún no gestionó)
-        // GESTIONADA  |   sí    | Desbloqueado (pedido llegó a stock)
-        // GESTIONADA  |   no    | Bloqueado (pedido hecho, pieza en camino)
-        // RECHAZADA   |   —     | No se carga (filtrado en SQL)
-        void activarSolicitud(int idCom, String descripcion, boolean esPendiente) {
+        // Estado      | enCamino | Stock>0 | Resultado
+        // GESTIONADA  |    —     |   sí    | Desbloqueado — "✓ Recibido" (verde)
+        // cualquiera  |   sí     |   no    | Bloqueado    — "⚠ En camino" (azul)
+        // PENDIENTE   |   no     |   no    | Bloqueado, sin badge (barra agotado lo indica)
+        // RECHAZADA   |    —     |    —    | No se carga (filtrado en SQL)
+        void activarSolicitud(int idCom, String descripcion, String estadoSolicitud, boolean enCamino) {
             for (Componente c : skus) {
                 if (c.getIdCom() == idCom) {
                     cbSku.setValue(c);
-                    if (!esPendiente && c.getStock() > 0) {
-                        // GESTIONADA y ya hay stock — pre-seleccionar sin bloquear
+                    if ("GESTIONADA".equals(estadoSolicitud) && c.getStock() > 0) {
+                        // Pieza llegó al stock — fila desbloqueada, badge verde informativo
                         solicitudActiva = false;
                         descripcionSolicitud = null;
+                        btnSolicitud.setText("✓ Recibido");
+                        btnSolicitud.setStyle(STYLE_SOL_RECIBIDA);
+                        btnSolicitud.setDisable(true);
+                        btnSolicitud.setVisible(true);
+                        btnSolicitud.setManaged(true);
                         notificar();
                     } else {
-                        // PENDIENTE o GESTIONADA sin stock: mostrar aviso, bloquear solo si no hay stock
                         descripcionSolicitud = descripcion;
                         solicitudActiva = true;
                         cantidad = 0;
                         actualizarContador();
                         chkReutilizado.setSelected(false);
                         chkReutilizado.setDisable(true);
-                        btnSolicitud.setText("⚠ Pieza pendiente");
-                        btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
-                        if (c.getStock() > 0) {
-                            btnMas.setDisable(false);
-                            btnMenos.setDisable(true);
-                        } else {
-                            btnMas.setDisable(true);
-                            btnMenos.setDisable(true);
+                        btnMas.setDisable(true);
+                        btnMenos.setDisable(true);
+                        if (enCamino) {
+                            btnSolicitud.setText("⚠ En camino");
+                            btnSolicitud.setStyle(STYLE_SOL_EN_CAMINO);
+                            btnSolicitud.setDisable(true);
+                            btnSolicitud.setVisible(true);
+                            btnSolicitud.setManaged(true);
                         }
+                        // Sub-fila en estado confirmado: solicitud ya registrada en BD
+                        String desc = (descripcion != null && !descripcion.isBlank()) ? " — " + descripcion : "";
+                        agotadoConfirmado = true;
+                        descripcionAgotado = descripcion;
+                        lblSubAgotado.setText("✓  Solicitud de reposición pendiente" + desc);
+                        lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #2E7D32; -fx-font-weight: bold;");
+                        btnSubAgotado.setVisible(false); btnSubAgotado.setManaged(false);
+                        btnEditarDesc.setVisible(true);  btnEditarDesc.setManaged(true);
+                        subFilaAgotado.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 4 8 4 70;");
+                        subFilaAgotado.setVisible(true);
+                        subFilaAgotado.setManaged(true);
                         notificar();
                     }
                     return;
@@ -1428,6 +1458,14 @@ public class FormularioReparacionController {
             }
         }
 
+
+        void preseleccionarSku(int idCom) {
+            skus.stream()
+                .filter(c -> c.getIdCom() == idCom)
+                .findFirst()
+                .filter(c -> cbSku.getItems().contains(c))
+                .ifPresent(cbSku::setValue);
+        }
 
         // ── Modo edición ──────────────────────────────────────────────────────
 

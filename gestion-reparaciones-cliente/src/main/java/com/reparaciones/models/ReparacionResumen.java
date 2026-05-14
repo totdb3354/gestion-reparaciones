@@ -28,6 +28,11 @@ public class ReparacionResumen {
     private int           idTec;
     private int           esSolicitud;
     private String        descripcionSolicitud;
+    private String        estadoSolicitud;
+    private String        tipoSolicitud;
+    private int           stockSolicitud;
+    private boolean       enCaminoSolicitud;
+    private String        tiposSolicitud;
     private LocalDateTime updatedAt;
 
     /**
@@ -132,4 +137,15 @@ public class ReparacionResumen {
     public void setDescripcionSolicitud(String descripcionSolicitud) { this.descripcionSolicitud = descripcionSolicitud; }
     public void setIdTec(int idTec)                                 { this.idTec = idTec; }
     public void setNombreTecnico(String nombreTecnico)              { this.nombreTecnico = nombreTecnico; }
+    public void setEstadoSolicitud(String estadoSolicitud)          { this.estadoSolicitud = estadoSolicitud; }
+    public void setTipoSolicitud(String tipoSolicitud)              { this.tipoSolicitud = tipoSolicitud; }
+    public void setStockSolicitud(int stockSolicitud)               { this.stockSolicitud = stockSolicitud; }
+    public void setEnCaminoSolicitud(boolean enCaminoSolicitud)     { this.enCaminoSolicitud = enCaminoSolicitud; }
+    public void setTiposSolicitud(String tiposSolicitud)            { this.tiposSolicitud = tiposSolicitud; }
+
+    public String  getEstadoSolicitud()    { return estadoSolicitud; }
+    public String  getTipoSolicitud()      { return tipoSolicitud; }
+    public int     getStockSolicitud()     { return stockSolicitud; }
+    public boolean isEnCaminoSolicitud()   { return enCaminoSolicitud; }
+    public String  getTiposSolicitud()     { return tiposSolicitud; }
 }

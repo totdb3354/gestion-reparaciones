@@ -34,6 +34,9 @@ public class FilaReparacion {
     /** Estado de la solicitud: "PENDIENTE", "GESTIONADA" o "RECHAZADA". {@code null} si no es solicitud. */
     private final String estadoSolicitud;
 
+    /** {@code true} si existe un pedido de compra en estado 'pendiente' para el componente solicitado. */
+    private boolean enCamino;
+
     /**
      * @param idCom                ID del componente
      * @param cantidad             unidades utilizadas
@@ -81,4 +84,9 @@ public class FilaReparacion {
 
     /** @return estado de la solicitud ("PENDIENTE", "GESTIONADA", "RECHAZADA"), o {@code null} */
     public String getEstadoSolicitud() { return estadoSolicitud; }
+
+    /** @return {@code true} si hay un pedido de compra pendiente para el componente solicitado */
+    public boolean isEnCamino() { return enCamino; }
+
+    public void setEnCamino(boolean enCamino) { this.enCamino = enCamino; }
 }
