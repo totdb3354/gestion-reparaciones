@@ -149,6 +149,15 @@ public class FormularioReparacionController {
                             sol.getEstadoSolicitud(), sol.isEnCamino());
             }
         }
+        // Tercera pasada: solicitudes RECHAZADAS — preseleccionar el SKU concreto para que
+        // el indicador de stock muestre el valor correcto (0) en lugar del primer SKU con stock.
+        if (solicitudesCargadas != null) {
+            for (FilaReparacion sol : solicitudesCargadas) {
+                if (!"RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
+                for (FilaUI fila : filasUI)
+                    fila.preseleccionarSku(sol.getIdCom());
+            }
+        }
     }
 
     public void initEditar(String idRep, Runnable onGuardado) {
@@ -1449,6 +1458,14 @@ public class FormularioReparacionController {
             }
         }
 
+
+        void preseleccionarSku(int idCom) {
+            skus.stream()
+                .filter(c -> c.getIdCom() == idCom)
+                .findFirst()
+                .filter(c -> cbSku.getItems().contains(c))
+                .ifPresent(cbSku::setValue);
+        }
 
         // ── Modo edición ──────────────────────────────────────────────────────
 
