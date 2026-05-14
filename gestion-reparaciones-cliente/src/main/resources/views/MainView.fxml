@@ -23,7 +23,7 @@
                 </graphic>
             </Button>
             <Label text="FSGR:" styleClass="navbar-title" style="-fx-font-weight: bold;"/>
-            <Label text="Gestión de Stock y Reparaciones V.1" styleClass="navbar-title" style="-fx-font-weight: normal;"/>
+            <Label text="Gestión de Stock y Reparaciones V.0.9.0" styleClass="navbar-title" style="-fx-font-weight: normal;"/>
 
             <!-- Botones de navegación -->
             <HBox styleClass="nav-switch" spacing="2" alignment="CENTER">

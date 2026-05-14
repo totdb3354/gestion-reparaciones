@@ -22,7 +22,7 @@
         <HBox alignment="CENTER" spacing="6">
             <Label text="FSGR"
                    style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2C3B54;"/>
-            <Label text="v0.4.0"
+            <Label text="v0.9.0"
                    style="-fx-font-size: 11px; -fx-text-fill: #A0A8B4; -fx-padding: 5 0 0 0;"/>
             <VBox.margin><Insets bottom="4"/></VBox.margin>
         </HBox>
