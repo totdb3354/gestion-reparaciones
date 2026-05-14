@@ -132,7 +132,7 @@ public class FormularioReparacionController {
                         if ("RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
                         for (FilaUI fila : filasUI)
                             fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud(),
-                                    "PENDIENTE".equals(sol.getEstadoSolicitud()));
+                                    sol.getEstadoSolicitud());
                     }
                 }
             } catch (SQLException e) {
@@ -146,7 +146,7 @@ public class FormularioReparacionController {
                 if ("RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
                 for (FilaUI fila : filasUI)
                     fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud(),
-                            "PENDIENTE".equals(sol.getEstadoSolicitud()));
+                            sol.getEstadoSolicitud());
             }
         }
     }
@@ -630,6 +630,9 @@ public class FormularioReparacionController {
         private static final String STYLE_SOL_ACTIVA =
                 "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + "; -fx-text-fill: white;" +
                 "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+        private static final String STYLE_SOL_RECIBIDA =
+                "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;" +
+                "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
 
         private final HBox mainRow;
 
@@ -1391,28 +1394,34 @@ public class FormularioReparacionController {
         }
 
         // Estado      | Stock>0 | Resultado
-        // PENDIENTE   |  sí/no  | Bloqueado (admin aún no gestionó)
-        // GESTIONADA  |   sí    | Desbloqueado (pedido llegó a stock)
-        // GESTIONADA  |   no    | Bloqueado (pedido hecho, pieza en camino)
+        // PENDIENTE   |  sí/no  | Bloqueado — "⚠ Pieza pendiente"
+        // GESTIONADA  |   sí    | Desbloqueado — "✓ Recibido" (verde)
+        // GESTIONADA  |   no    | Bloqueado — "⚠ En camino"
         // RECHAZADA   |   —     | No se carga (filtrado en SQL)
-        void activarSolicitud(int idCom, String descripcion, boolean esPendiente) {
+        void activarSolicitud(int idCom, String descripcion, String estadoSolicitud) {
             for (Componente c : skus) {
                 if (c.getIdCom() == idCom) {
                     cbSku.setValue(c);
-                    if (!esPendiente && c.getStock() > 0) {
-                        // GESTIONADA y ya hay stock — pre-seleccionar sin bloquear
+                    boolean esGestionada = "GESTIONADA".equals(estadoSolicitud);
+                    if (esGestionada && c.getStock() > 0) {
+                        // Pieza llegó al stock — fila desbloqueada, badge verde informativo
                         solicitudActiva = false;
                         descripcionSolicitud = null;
+                        btnSolicitud.setText("✓ Recibido");
+                        btnSolicitud.setStyle(STYLE_SOL_RECIBIDA);
+                        btnSolicitud.setDisable(true);
+                        btnSolicitud.setVisible(true);
+                        btnSolicitud.setManaged(true);
                         notificar();
                     } else {
-                        // PENDIENTE o GESTIONADA sin stock: mostrar aviso, bloquear solo si no hay stock
+                        // PENDIENTE o GESTIONADA sin stock: mostrar aviso, bloquear
                         descripcionSolicitud = descripcion;
                         solicitudActiva = true;
                         cantidad = 0;
                         actualizarContador();
                         chkReutilizado.setSelected(false);
                         chkReutilizado.setDisable(true);
-                        btnSolicitud.setText("⚠ Pieza pendiente");
+                        btnSolicitud.setText(esGestionada ? "⚠ En camino" : "⚠ Pieza pendiente");
                         btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
                         if (c.getStock() > 0) {
                             btnMas.setDisable(false);
