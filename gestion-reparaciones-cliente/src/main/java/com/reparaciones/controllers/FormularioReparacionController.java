@@ -1361,8 +1361,6 @@ public class FormularioReparacionController {
                 solicitudNuevaEnEstaSesion = true;
                 btnSolicitud.setText("⚠ Pieza pendiente");
                 btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
-                btnSolicitud.setVisible(true);
-                btnSolicitud.setManaged(true);
                 dialog.close();
                 notificar();
             });
