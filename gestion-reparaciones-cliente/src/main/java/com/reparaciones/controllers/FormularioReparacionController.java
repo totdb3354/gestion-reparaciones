@@ -146,7 +146,7 @@ public class FormularioReparacionController {
                 if ("RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
                 for (FilaUI fila : filasUI)
                     fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud(),
-                            sol.getEstadoSolicitud());
+                            sol.getEstadoSolicitud(), sol.isEnCamino());
             }
         }
     }
