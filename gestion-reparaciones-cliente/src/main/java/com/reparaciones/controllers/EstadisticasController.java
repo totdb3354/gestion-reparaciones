@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
  *
  * @role ADMIN
  */
-public class EstadisticasController {
+public class EstadisticasController implements com.reparaciones.utils.Recargable {
 
     @FXML private Button   btnTabReparaciones;
     @FXML private Button   btnTabStock;
@@ -838,6 +838,15 @@ public class EstadisticasController {
         activo.getStyleClass().setAll("stock-sidebar-btn-active");
         inactivo.getStyleClass().setAll("stock-sidebar-btn");
     }
+
+    @Override
+    public void recargar() {
+        if (pnlStock.isVisible()) renderStockActual();
+        else                      recargarDatos();
+    }
+
+    @Override
+    public void detenerPolling() { /* sin poller */ }
 
     /** Inyectado por MainController para permitir navegación a la vista de reparaciones. */
     public void setNavegacion(com.reparaciones.utils.Navegable navegacion) {
