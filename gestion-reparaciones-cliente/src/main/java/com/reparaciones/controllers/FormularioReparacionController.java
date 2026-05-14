@@ -1414,18 +1414,13 @@ public class FormularioReparacionController {
                         btnSolicitud.setManaged(true);
                         notificar();
                     } else {
-                        // PENDIENTE o GESTIONADA sin stock: mostrar aviso, bloquear
+                        // PENDIENTE o GESTIONADA sin stock: bloquear (la barra agotado ya lo indica)
                         descripcionSolicitud = descripcion;
                         solicitudActiva = true;
                         cantidad = 0;
                         actualizarContador();
                         chkReutilizado.setSelected(false);
                         chkReutilizado.setDisable(true);
-                        btnSolicitud.setText(esGestionada ? "⚠ En camino" : "⚠ Pieza pendiente");
-                        btnSolicitud.setStyle(STYLE_SOL_ACTIVA);
-                        btnSolicitud.setDisable(false);
-                        btnSolicitud.setVisible(true);
-                        btnSolicitud.setManaged(true);
                         if (c.getStock() > 0) {
                             btnMas.setDisable(false);
                             btnMenos.setDisable(true);
