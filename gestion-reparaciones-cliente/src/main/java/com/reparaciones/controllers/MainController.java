@@ -159,7 +159,7 @@ public class MainController {
     private void iniciarPulso() {
         if (pulsoAlertas != null && pulsoAlertas.getStatus() == Timeline.Status.RUNNING) return;
         DropShadow glow = new DropShadow();
-        glow.setColor(Color.RED);
+        glow.setColor(Color.web("#F1E356"));
         glow.setRadius(0);
         campanaPane.setEffect(glow);
         pulsoAlertas = new Timeline(
