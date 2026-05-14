@@ -777,9 +777,12 @@ public class FormularioReparacionController {
                 }
             });
 
-            btnObservacion = new Button("✎  Añadir observación");
+            btnObservacion = new Button("Añadir observación");
+            ImageView ivObs = new ImageView(imgEditar);
+            ivObs.setFitWidth(14); ivObs.setFitHeight(14); ivObs.setPreserveRatio(true);
+            btnObservacion.setGraphic(ivObs);
             btnObservacion.setStyle(
-                    "-fx-background-color: #A9A9A9; -fx-text-fill: #E7E7E7;" +
+                    "-fx-background-color: #888888; -fx-text-fill: #E7E7E7;" +
                             "-fx-font-size: 11px; -fx-cursor: hand;" +
                             "-fx-background-radius: 0; -fx-padding: 4 10 4 10;");
             btnObservacion.setMinHeight(27);
