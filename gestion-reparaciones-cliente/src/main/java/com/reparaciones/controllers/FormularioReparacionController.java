@@ -1431,6 +1431,17 @@ public class FormularioReparacionController {
                             btnSolicitud.setVisible(true);
                             btnSolicitud.setManaged(true);
                         }
+                        // Sub-fila en estado confirmado: solicitud ya registrada en BD
+                        String desc = (descripcion != null && !descripcion.isBlank()) ? " — " + descripcion : "";
+                        agotadoConfirmado = true;
+                        descripcionAgotado = descripcion;
+                        lblSubAgotado.setText("✓  Solicitud de reposición pendiente" + desc);
+                        lblSubAgotado.setStyle("-fx-font-size: 11px; -fx-text-fill: #2E7D32; -fx-font-weight: bold;");
+                        btnSubAgotado.setVisible(false); btnSubAgotado.setManaged(false);
+                        btnEditarDesc.setVisible(true);  btnEditarDesc.setManaged(true);
+                        subFilaAgotado.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 4 8 4 70;");
+                        subFilaAgotado.setVisible(true);
+                        subFilaAgotado.setManaged(true);
                         notificar();
                     }
                     return;
