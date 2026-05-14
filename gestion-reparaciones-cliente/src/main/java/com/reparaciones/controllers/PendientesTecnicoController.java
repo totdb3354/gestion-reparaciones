@@ -163,10 +163,14 @@ public class PendientesTecnicoController {
                             "-fx-background-color: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BG + ";" +
                             "-fx-text-fill: " + com.reparaciones.utils.Colores.FILA_SOLICITUD_BRD + ";");
                     }
-                    String tipo = rep.getTipoSolicitud();
-                    if (tipo != null && !tipo.isEmpty()) {
-                        lblTipo.setText(tipo);
+                    String todos = rep.getTiposSolicitud();
+                    javafx.scene.control.Tooltip.uninstall(celdaBox, null);
+                    if (todos != null && !todos.isEmpty()) {
+                        boolean multiples = rep.getEsSolicitud() > 1;
+                        lblTipo.setText(multiples ? rep.getEsSolicitud() + " piezas" : todos);
                         lblTipo.setStyle("-fx-font-size: 10px; -fx-text-fill: #586376;");
+                        javafx.scene.control.Tooltip.install(celdaBox,
+                                new javafx.scene.control.Tooltip(todos));
                     }
                 } else {
                     badge.setText("Normal");
