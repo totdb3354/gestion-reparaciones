@@ -132,7 +132,7 @@ public class FormularioReparacionController {
                         if ("RECHAZADA".equals(sol.getEstadoSolicitud())) continue;
                         for (FilaUI fila : filasUI)
                             fila.activarSolicitud(sol.getIdCom(), sol.getDescripcionSolicitud(),
-                                    sol.getEstadoSolicitud());
+                                    sol.getEstadoSolicitud(), sol.isEnCamino());
                     }
                 }
             } catch (SQLException e) {
@@ -632,6 +632,9 @@ public class FormularioReparacionController {
                 "-fx-font-size: 11px; -fx-cursor: hand; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
         private static final String STYLE_SOL_RECIBIDA =
                 "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;" +
+                "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
+        private static final String STYLE_SOL_EN_CAMINO =
+                "-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0;" +
                 "-fx-font-size: 11px; -fx-background-radius: 0; -fx-padding: 4 10 4 10;";
 
         private final HBox mainRow;
@@ -1393,17 +1396,16 @@ public class FormularioReparacionController {
             root.setOpacity(0.4);
         }
 
-        // Estado      | Stock>0 | Resultado
-        // PENDIENTE   |  sí/no  | Bloqueado — "⚠ Pieza pendiente"
-        // GESTIONADA  |   sí    | Desbloqueado — "✓ Recibido" (verde)
-        // GESTIONADA  |   no    | Bloqueado — "⚠ En camino"
-        // RECHAZADA   |   —     | No se carga (filtrado en SQL)
-        void activarSolicitud(int idCom, String descripcion, String estadoSolicitud) {
+        // Estado      | enCamino | Stock>0 | Resultado
+        // GESTIONADA  |    —     |   sí    | Desbloqueado — "✓ Recibido" (verde)
+        // cualquiera  |   sí     |   no    | Bloqueado    — "⚠ En camino" (azul)
+        // PENDIENTE   |   no     |   no    | Bloqueado, sin badge (barra agotado lo indica)
+        // RECHAZADA   |    —     |    —    | No se carga (filtrado en SQL)
+        void activarSolicitud(int idCom, String descripcion, String estadoSolicitud, boolean enCamino) {
             for (Componente c : skus) {
                 if (c.getIdCom() == idCom) {
                     cbSku.setValue(c);
-                    boolean esGestionada = "GESTIONADA".equals(estadoSolicitud);
-                    if (esGestionada && c.getStock() > 0) {
+                    if ("GESTIONADA".equals(estadoSolicitud) && c.getStock() > 0) {
                         // Pieza llegó al stock — fila desbloqueada, badge verde informativo
                         solicitudActiva = false;
                         descripcionSolicitud = null;
@@ -1414,19 +1416,20 @@ public class FormularioReparacionController {
                         btnSolicitud.setManaged(true);
                         notificar();
                     } else {
-                        // PENDIENTE o GESTIONADA sin stock: bloquear (la barra agotado ya lo indica)
                         descripcionSolicitud = descripcion;
                         solicitudActiva = true;
                         cantidad = 0;
                         actualizarContador();
                         chkReutilizado.setSelected(false);
                         chkReutilizado.setDisable(true);
-                        if (c.getStock() > 0) {
-                            btnMas.setDisable(false);
-                            btnMenos.setDisable(true);
-                        } else {
-                            btnMas.setDisable(true);
-                            btnMenos.setDisable(true);
+                        btnMas.setDisable(true);
+                        btnMenos.setDisable(true);
+                        if (enCamino) {
+                            btnSolicitud.setText("⚠ En camino");
+                            btnSolicitud.setStyle(STYLE_SOL_EN_CAMINO);
+                            btnSolicitud.setDisable(true);
+                            btnSolicitud.setVisible(true);
+                            btnSolicitud.setManaged(true);
                         }
                         notificar();
                     }

@@ -31,6 +31,7 @@ public class ReparacionResumen {
     private String        estadoSolicitud;
     private String        tipoSolicitud;
     private int           stockSolicitud;
+    private boolean       enCaminoSolicitud;
     private LocalDateTime updatedAt;
 
     /**
@@ -138,8 +139,10 @@ public class ReparacionResumen {
     public void setEstadoSolicitud(String estadoSolicitud)          { this.estadoSolicitud = estadoSolicitud; }
     public void setTipoSolicitud(String tipoSolicitud)              { this.tipoSolicitud = tipoSolicitud; }
     public void setStockSolicitud(int stockSolicitud)               { this.stockSolicitud = stockSolicitud; }
+    public void setEnCaminoSolicitud(boolean enCaminoSolicitud)     { this.enCaminoSolicitud = enCaminoSolicitud; }
 
-    public String getEstadoSolicitud() { return estadoSolicitud; }
-    public String getTipoSolicitud()   { return tipoSolicitud; }
-    public int    getStockSolicitud()  { return stockSolicitud; }
+    public String  getEstadoSolicitud()    { return estadoSolicitud; }
+    public String  getTipoSolicitud()      { return tipoSolicitud; }
+    public int     getStockSolicitud()     { return stockSolicitud; }
+    public boolean isEnCaminoSolicitud()   { return enCaminoSolicitud; }
 }
